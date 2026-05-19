@@ -180,6 +180,8 @@ def render_article(article: dict) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{esc(title)}</title>
   <meta name="description" content="{esc(article['description'])}">
+  <link rel="icon" href="../assets/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png">
   <link rel="stylesheet" href="../assets/styles.css">
 </head>
 <body>
@@ -246,6 +248,8 @@ def render_group_page(group_key: str, title: str, description: str, lead: str) -
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{esc(title)} - AI效率资源站</title>
   <meta name="description" content="{esc(description)}">
+  <link rel="icon" href="assets/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
@@ -279,6 +283,8 @@ def render_index() -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI效率资源站 - 大学生与职场新人的 AI 学习求职导航</title>
   <meta name="description" content="AI效率资源站面向大学生和职场新人，提供 AI 学习方法、求职准备、提示词模板和工具安全内容。">
+  <link rel="icon" href="assets/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
