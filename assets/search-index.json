@@ -1,0 +1,452 @@
+[
+  {
+    "title": "四六级 14 天备考计划怎么安排",
+    "description": "适合大学生的四六级 14 天备考计划，把词汇、阅读、听力、作文和翻译拆成每天可执行任务。",
+    "href": "articles/cet-14-day-study-plan.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "四六级",
+    "keyword": "四六级 14 天备考计划"
+  },
+  {
+    "title": "四六级作文模板怎么用才不生硬",
+    "description": "说明四六级作文模板的安全用法：保留结构、替换主题、准备理由库，不机械背诵整篇范文。",
+    "href": "articles/cet-writing-template-safe-use.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "作文",
+    "keyword": "四六级作文模板"
+  },
+  {
+    "title": "四六级听力错题怎么复盘",
+    "description": "把四六级听力错题复盘拆成场景词、转折词、答案句和下次动作，避免只对答案。",
+    "href": "articles/cet-listening-review-method.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "听力",
+    "keyword": "四六级听力错题复盘"
+  },
+  {
+    "title": "四六级阅读题定位和排除法",
+    "description": "讲解四六级阅读题如何先看题干、找定位句、识别同义替换，并排除范围扩大和偷换概念。",
+    "href": "articles/cet-reading-question-strategy.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "阅读",
+    "keyword": "四六级阅读定位法"
+  },
+  {
+    "title": "四六级翻译常见句型和拆句方法",
+    "description": "整理四六级翻译中常见的中文长句拆分方法、传统文化和社会发展类表达。",
+    "href": "articles/cet-translation-common-patterns.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "翻译",
+    "keyword": "四六级翻译句型"
+  },
+  {
+    "title": "期末论文选题怎么用 AI 辅助",
+    "description": "说明如何用 AI 辅助期末论文选题：拆老师要求、评估资料可得性、控制题目范围。",
+    "href": "articles/final-paper-topic-selection.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "期末作业",
+    "keyword": "期末论文选题 AI"
+  },
+  {
+    "title": "课程论文提纲怎么拆到三级标题",
+    "description": "用 AI 辅助课程论文提纲，按研究问题、章节任务、证据材料拆成三级标题。",
+    "href": "articles/final-paper-outline-ai.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "提纲",
+    "keyword": "课程论文提纲"
+  },
+  {
+    "title": "课程作业资料来源怎么核验",
+    "description": "讲解课程作业引用资料如何判断可靠性，区分教材、官网、论文、报告和普通经验文章。",
+    "href": "articles/course-report-source-check.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "资料核验",
+    "keyword": "课程作业资料核验"
+  },
+  {
+    "title": "用 AI 做作业怎样避免越界",
+    "description": "说明大学生使用 AI 辅助作业的边界：可以拆题、做提纲、查漏洞，但不能替代个人完成要求。",
+    "href": "articles/ai-homework-integrity.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "学习边界",
+    "keyword": "AI 作业边界"
+  },
+  {
+    "title": "期末汇报和答辩怎么准备",
+    "description": "整理期末汇报和答辩准备方法：PPT 结构、开场讲稿、老师追问和材料自查。",
+    "href": "articles/presentation-defense-prep.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "答辩",
+    "keyword": "期末答辩准备"
+  },
+  {
+    "title": "社团活动策划案基本结构",
+    "description": "社团活动策划案应包含背景、目标、流程、分工、预算、风险和复盘指标。",
+    "href": "articles/club-event-plan-structure.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "活动策划",
+    "keyword": "社团活动策划案结构"
+  },
+  {
+    "title": "校园十佳歌手比赛策划思路",
+    "description": "以校园十佳歌手比赛为例，说明活动目标、报名、彩排、决赛流程、宣传和复盘。",
+    "href": "articles/campus-singer-event-plan.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "校园活动",
+    "keyword": "校园十佳歌手策划案"
+  },
+  {
+    "title": "活动预算表怎么做才清楚",
+    "description": "说明校园活动预算表如何列费用项、单价、数量、负责人、用途和备用金。",
+    "href": "articles/activity-budget-table.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "预算",
+    "keyword": "活动预算表"
+  },
+  {
+    "title": "社团活动宣传文案怎么写",
+    "description": "校园活动宣传文案要说明对象、时间、地点、亮点和报名方式，避免只写情绪口号。",
+    "href": "articles/club-promo-copywriting.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "宣传文案",
+    "keyword": "社团活动宣传文案"
+  },
+  {
+    "title": "大学生怎么用 AI 做时间管理",
+    "description": "讲解大学生如何用 AI 拆分课程、考试、社团和求职任务，形成周计划和复盘表。",
+    "href": "articles/student-time-management-ai.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "时间管理",
+    "keyword": "大学生 AI 时间管理"
+  },
+  {
+    "title": "考试错题复盘表怎么做",
+    "description": "适合学生的错题复盘表：记录题型、错因、依据、下次动作，而不是只抄正确答案。",
+    "href": "articles/exam-wrong-question-review.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "错题复盘",
+    "keyword": "错题复盘表"
+  },
+  {
+    "title": "本科课程项目开题思路怎么写",
+    "description": "课程项目开题应说明问题、目标、功能范围、技术路线、交付物和风险，不要一开始写大而全。",
+    "href": "articles/undergraduate-project-proposal.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "项目开题",
+    "keyword": "本科课程项目开题"
+  },
+  {
+    "title": "小组作业怎么分工和复盘",
+    "description": "小组作业分工要明确交付物、截止时间和检查人，避免最后由一个人补全部内容。",
+    "href": "articles/group-assignment-collaboration.html",
+    "group": "campus",
+    "groupLabel": "校园效率",
+    "tag": "小组作业",
+    "keyword": "小组作业分工"
+  },
+  {
+    "title": "自动化测试面试准备路线",
+    "description": "自动化测试面试准备路线，覆盖接口、UI、数据库、框架、CI 和项目复盘。",
+    "href": "articles/automation-test-interview-roadmap.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "自动化测试",
+    "keyword": "自动化测试面试准备"
+  },
+  {
+    "title": "UI 自动化不稳定怎么回答",
+    "description": "面试中回答 UI 自动化不稳定问题时，可从定位器、显式等待、截图日志和用例边界展开。",
+    "href": "articles/ui-automation-flaky-answer.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "UI 自动化",
+    "keyword": "UI 自动化不稳定面试回答"
+  },
+  {
+    "title": "接口自动化 token 和鉴权怎么处理",
+    "description": "接口自动化中 token 和鉴权处理思路：登录前置、会话上下文、角色账号和过期重试。",
+    "href": "articles/api-test-auth-token.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "接口测试",
+    "keyword": "接口自动化 token 鉴权"
+  },
+  {
+    "title": "接口测试断言怎么设计",
+    "description": "接口测试断言不应只看状态码，还应覆盖业务码、字段、错误信息和关键数据结果。",
+    "href": "articles/api-assertion-design.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "接口测试",
+    "keyword": "接口测试断言设计"
+  },
+  {
+    "title": "pytest 参数化和 fixture 怎么讲",
+    "description": "面试中讲 pytest 参数化和 fixture，可围绕减少重复、准备数据、共享前置和提高可维护性展开。",
+    "href": "articles/pytest-parametrize-fixture.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "pytest",
+    "keyword": "pytest 参数化 fixture"
+  },
+  {
+    "title": "Selenium 显式等待怎么理解",
+    "description": "Selenium 显式等待用于等待关键条件出现，比固定 sleep 更可控，适合解释 UI 自动化稳定性。",
+    "href": "articles/selenium-explicit-wait.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "Selenium",
+    "keyword": "Selenium 显式等待"
+  },
+  {
+    "title": "测试报告、日志和截图怎么定位问题",
+    "description": "自动化失败后应通过测试报告、请求响应、日志、截图和环境信息判断问题来源。",
+    "href": "articles/test-report-logs-screenshots.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "测试报告",
+    "keyword": "测试报告 日志 截图 定位问题"
+  },
+  {
+    "title": "自动化测试接入 CI 先跑哪些用例",
+    "description": "自动化测试接入 CI 应先选择稳定的冒烟用例，覆盖核心链路，避免一开始全量导致误报。",
+    "href": "articles/ci-smoke-testing.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "CI",
+    "keyword": "自动化测试 CI 冒烟用例"
+  },
+  {
+    "title": "接口测试什么时候需要查数据库",
+    "description": "数据库校验适合订单、库存、用户状态等关键链路，不是每条接口都必须查库。",
+    "href": "articles/database-validation-testing.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "数据库校验",
+    "keyword": "接口测试 数据库校验"
+  },
+  {
+    "title": "测试岗简历项目经历怎么写",
+    "description": "测试岗简历项目经历要写清模块、测试点、方法、工具、结果和可追问细节。",
+    "href": "articles/test-resume-project-description.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "简历",
+    "keyword": "测试岗简历项目经历"
+  },
+  {
+    "title": "AI 润色简历怎样避免编造经历",
+    "description": "用 AI 润色简历时应提供真实经历和岗位 JD，让 AI 优化表达而不是新增事实。",
+    "href": "articles/ai-resume-polish-guide.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "AI 简历",
+    "keyword": "AI 润色简历"
+  },
+  {
+    "title": "应届生项目经历 STAR 表达",
+    "description": "应届生项目经历可以用 STAR 结构讲清背景、任务、行动和结果，但不能夸大项目性质。",
+    "href": "articles/fresh-graduate-project-star.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "STAR",
+    "keyword": "应届生项目 STAR"
+  },
+  {
+    "title": "没有实习经历怎么写测试岗简历",
+    "description": "没有实习经历时，可以用课程项目、自学练习、缺陷记录和测试报告证明测试岗能力。",
+    "href": "articles/no-internship-resume.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "简历",
+    "keyword": "没有实习测试岗简历"
+  },
+  {
+    "title": "测试岗面试自我介绍怎么准备",
+    "description": "测试岗自我介绍应控制在 60 到 90 秒，讲清方向、项目、测试能力和求职动机。",
+    "href": "articles/test-interview-self-introduction.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "面试",
+    "keyword": "测试岗自我介绍"
+  },
+  {
+    "title": "缺陷报告怎么写清复现步骤",
+    "description": "缺陷报告要包含环境、前置条件、复现步骤、实际结果、预期结果、附件和影响范围。",
+    "href": "articles/bug-report-writing.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "缺陷报告",
+    "keyword": "缺陷报告复现步骤"
+  },
+  {
+    "title": "零基础测试工程师学习路线",
+    "description": "零基础测试工程师可按软件基础、测试方法、接口测试、自动化、数据库和项目表达逐步学习。",
+    "href": "articles/qa-learning-roadmap.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "学习路线",
+    "keyword": "测试工程师学习路线"
+  },
+  {
+    "title": "用 AI 做模拟面试怎么提问",
+    "description": "AI 模拟面试应采用一问一答模式，围绕简历项目追问，并在回答后给结构化反馈。",
+    "href": "articles/mock-interview-prompt.html",
+    "group": "career",
+    "groupLabel": "求职冲刺",
+    "tag": "模拟面试",
+    "keyword": "AI 模拟面试 Prompt"
+  },
+  {
+    "title": "GPT 和 Claude 新手怎么选",
+    "description": "GPT 和 Claude 新手选择指南，从任务类型、上下文、文件处理、结果核验和使用习惯比较。",
+    "href": "articles/gpt-claude-beginner-differences.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "入门",
+    "keyword": "GPT Claude 新手怎么选"
+  },
+  {
+    "title": "稳定 Prompt 的四段式公式",
+    "description": "稳定 Prompt 通常包含角色、目标、材料和输出格式，适合学习、求职和办公任务。",
+    "href": "articles/prompt-four-part-formula.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "Prompt",
+    "keyword": "Prompt 四段式公式"
+  },
+  {
+    "title": "AI 总结资料怎么避免漏重点",
+    "description": "AI 总结资料时应要求列出核心观点、原文依据、不确定信息和可执行动作，避免只给概括。",
+    "href": "articles/ai-summary-prompt.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "总结",
+    "keyword": "AI 总结资料 Prompt"
+  },
+  {
+    "title": "AI 写作润色 Prompt 怎么写",
+    "description": "AI 写作润色应保留原意、不新增事实、减少空话，并输出修改说明和证据缺口。",
+    "href": "articles/ai-writing-polish-prompt.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "写作",
+    "keyword": "AI 写作润色 Prompt"
+  },
+  {
+    "title": "用 AI 制定学习计划怎么提问",
+    "description": "用 AI 制定学习计划时，应提供目标、基础、时间、截止日期和薄弱点，并要求输出完成标准。",
+    "href": "articles/ai-study-plan-prompt.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "学习计划",
+    "keyword": "AI 学习计划 Prompt"
+  },
+  {
+    "title": "会议纪要 Prompt 怎么整理待办",
+    "description": "AI 整理会议纪要时应输出结论、待办、负责人、截止时间、风险和待确认事项。",
+    "href": "articles/ai-meeting-notes-prompt.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "会议纪要",
+    "keyword": "AI 会议纪要 Prompt"
+  },
+  {
+    "title": "让 AI 整理表格和清单怎么提问",
+    "description": "让 AI 整理表格时，应指定列名、排序规则、缺失值处理和输出格式，避免生成不可用表格。",
+    "href": "articles/ai-table-analysis-prompt.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "表格",
+    "keyword": "AI 整理表格 Prompt"
+  },
+  {
+    "title": "AI 账号安全检查清单",
+    "description": "AI 账号安全检查清单，包括密码、二次验证、敏感信息、授权应用和设备管理。",
+    "href": "articles/ai-account-security-checklist.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "账号安全",
+    "keyword": "AI 账号安全清单"
+  },
+  {
+    "title": "Prompt Injection 是什么",
+    "description": "Prompt Injection 是针对大语言模型的提示词攻击，可能让模型忽略原指令或泄露敏感信息。",
+    "href": "articles/prompt-injection-basics.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "安全",
+    "keyword": "Prompt Injection 是什么"
+  },
+  {
+    "title": "上传资料给 AI 前怎么脱敏",
+    "description": "上传资料给 AI 前应删除姓名、电话、身份证、账号、密钥、客户信息和公司内部细节。",
+    "href": "articles/sensitive-info-redaction.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "脱敏",
+    "keyword": "AI 资料脱敏"
+  },
+  {
+    "title": "AI 输出结果怎么核验",
+    "description": "AI 输出结果要区分事实、建议和推测，涉及时间、政策、工具版本和考试规则时回到官方来源。",
+    "href": "articles/ai-result-verification.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "核验",
+    "keyword": "AI 输出核验"
+  },
+  {
+    "title": "用 AI 做资料检索的正确流程",
+    "description": "用 AI 做资料检索应先定义问题、找来源、提取观点、核验事实，再整理成自己的笔记。",
+    "href": "articles/ai-search-research-workflow.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "资料检索",
+    "keyword": "AI 资料检索流程"
+  },
+  {
+    "title": "用 AI 整理个人知识库",
+    "description": "用 AI 整理个人知识库，应把资料转成主题、适用场景、操作步骤、常见错误和下次行动。",
+    "href": "articles/personal-knowledge-base-ai.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "知识库",
+    "keyword": "AI 个人知识库"
+  },
+  {
+    "title": "用 AI 做 PPT 大纲怎么提问",
+    "description": "AI 做 PPT 大纲时要说明听众、目标、页数、场景和每页要回答的问题。",
+    "href": "articles/ai-ppt-outline-prompt.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "PPT",
+    "keyword": "AI PPT 大纲 Prompt"
+  },
+  {
+    "title": "用 AI 做每周复盘怎么写",
+    "description": "每周复盘可以让 AI 帮你整理目标、完成情况、卡点、原因和下周行动，但事实要自己提供。",
+    "href": "articles/ai-weekly-review.html",
+    "group": "tools",
+    "groupLabel": "AI 工具",
+    "tag": "复盘",
+    "keyword": "AI 每周复盘"
+  }
+]

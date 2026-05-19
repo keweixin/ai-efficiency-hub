@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from html import escape
 from pathlib import Path
 import re
@@ -415,6 +416,692 @@ def main() -> None:
     (ROOT / "assets" / "site.js").write_text(render_site_js(), encoding="utf-8", newline="\n")
     (ROOT / "sitemap.xml").write_text(render_sitemap(), encoding="utf-8", newline="\n")
     (ROOT / "assets" / "images" / "ATTRIBUTIONS.md").write_text(render_attributions(), encoding="utf-8", newline="\n")
+
+
+# Optimized renderer v2. The definitions below intentionally replace the
+# first-pass renderer above while keeping the article data in one file.
+SITE_NAME = "AI效率资源站"
+SITE_DESCRIPTION = "面向大学生和职场新人的 AI 学习、求职与工具资源库"
+DEFAULT_IMAGE = "assets/images/favicon.png"
+FEATURED_SLUGS = [
+    "cet-14-day-study-plan",
+    "automation-test-interview-roadmap",
+    "prompt-four-part-formula",
+    "final-paper-outline-ai",
+    "ai-resume-polish-guide",
+    "ai-account-security-checklist",
+]
+GROUP_PAGE_COPY = {
+    "campus": {
+        "title": "校园效率区",
+        "description": "校园效率区整理四六级备考、期末作业、活动策划和小组协作文章。",
+        "lead": "把 AI 当成学习助教：拆计划、搭框架、查漏洞，但不替代自己的学习过程。",
+        "buckets": [
+            ("四六级备考", ["cet-14-day-study-plan", "cet-writing-template-safe-use", "cet-listening-review-method", "cet-reading-question-strategy", "cet-translation-common-patterns"]),
+            ("期末作业", ["final-paper-topic-selection", "final-paper-outline-ai", "course-report-source-check", "ai-homework-integrity", "presentation-defense-prep"]),
+            ("校园协作", ["club-event-plan-structure", "campus-singer-event-plan", "activity-budget-table", "club-promo-copywriting", "student-time-management-ai", "exam-wrong-question-review", "undergraduate-project-proposal", "group-assignment-collaboration"]),
+        ],
+    },
+    "career": {
+        "title": "求职冲刺区",
+        "description": "求职冲刺区整理自动化测试面试、简历优化、项目表达和模拟面试文章。",
+        "lead": "面向应届生和转行新人，把简历、面试和项目表达做成可练习、可复盘的流程。",
+        "buckets": [
+            ("自动化测试", ["automation-test-interview-roadmap", "ui-automation-flaky-answer", "api-test-auth-token", "api-assertion-design", "pytest-parametrize-fixture", "selenium-explicit-wait", "test-report-logs-screenshots", "ci-smoke-testing", "database-validation-testing"]),
+            ("简历项目", ["test-resume-project-description", "ai-resume-polish-guide", "fresh-graduate-project-star", "no-internship-resume"]),
+            ("面试表达", ["test-interview-self-introduction", "bug-report-writing", "qa-learning-roadmap", "mock-interview-prompt"]),
+        ],
+    },
+    "tools": {
+        "title": "AI 工具箱",
+        "description": "AI 工具箱整理 GPT/Claude 入门、提示词模板、资料核验和账号安全文章。",
+        "lead": "给 AI 工具新手准备的合规使用路径：先理解任务，再写提示词，最后核验结果。",
+        "buckets": [
+            ("Prompt 模板", ["gpt-claude-beginner-differences", "prompt-four-part-formula", "ai-summary-prompt", "ai-writing-polish-prompt", "ai-study-plan-prompt", "ai-meeting-notes-prompt", "ai-table-analysis-prompt"]),
+            ("安全核验", ["ai-account-security-checklist", "prompt-injection-basics", "sensitive-info-redaction", "ai-result-verification"]),
+            ("资料整理", ["ai-search-research-workflow", "personal-knowledge-base-ai", "ai-ppt-outline-prompt", "ai-weekly-review"]),
+        ],
+    },
+}
+STATIC_PAGES = {
+    "about.html": {
+        "title": "关于本站",
+        "description": "了解 AI效率资源站的定位、内容边界和编辑原则。",
+        "eyebrow": "About",
+        "lead": "AI效率资源站面向大学生、应届生和职场新人，整理 AI 学习、求职和工具使用资料。",
+        "sections": [
+            ("内容定位", "本站关注可执行的效率方法，例如学习计划、资料整理、简历表达、面试准备、提示词模板和工具对比。内容可以由 AI 辅助起草，但发布前会围绕准确性、可执行性和合规边界进行人工整理。"),
+            ("内容边界", "本站不提供替做作业、违反考试规则、学术不端、规避平台规则、账号买卖或任何可能伤害用户账号与设备安全的教程。"),
+            ("后续计划", "第一版先验证内容方向和页面结构。后续会根据搜索数据补充专题页、下载型清单、工具清单和更细的学习路线。"),
+        ],
+    },
+    "privacy.html": {
+        "title": "隐私政策",
+        "description": "AI效率资源站隐私政策，说明站点当前不主动收集个人敏感信息。",
+        "eyebrow": "Privacy",
+        "lead": "本页面说明本站在静态站第一版中的数据处理方式。",
+        "sections": [
+            ("信息收集", "当前版本是纯静态网站，不提供注册、登录、评论或在线支付功能，也不会主动收集身份证号、银行卡、账号密码等敏感信息。"),
+            ("第三方服务", "后续如接入网站统计或广告联盟，可能由第三方根据其隐私政策处理访问数据或广告展示数据。本站会在接入前更新本页面说明。"),
+            ("联系信息", "如果你通过联系页面主动发送邮件，邮件中包含的信息仅用于回复你的问题或合作咨询。"),
+        ],
+    },
+    "contact.html": {
+        "title": "联系合作",
+        "description": "联系 AI效率资源站，进行内容建议、资源合作或广告合作咨询。",
+        "eyebrow": "Contact",
+        "lead": "欢迎提供选题建议、资料纠错、工具推荐和合规广告合作。",
+        "sections": [
+            ("合作类型", "可沟通内容共创、工具测评、合规联盟链接和广告位合作。暂不接受灰色工具、账号交易、规避规则或夸大收益类推广。"),
+            ("联系方式", "邮箱：contact@example.com。如需内容合作或反馈文章选题，请通过邮箱说明需求和联系信息。"),
+        ],
+    },
+}
+
+
+def slug_to_article() -> dict[str, dict]:
+    return {item["slug"]: item for item in ARTICLES}
+
+
+def site_path(path: str) -> str:
+    return f"{SITE_URL}/{path}" if path else f"{SITE_URL}/"
+
+
+def path_prefix(path: str) -> str:
+    return "../" if path.startswith("articles/") else ""
+
+
+def image_file_from_src(src: str) -> Path:
+    clean = src.replace("../", "")
+    return ROOT / clean
+
+
+def webp_path(src: str) -> str:
+    return re.sub(r"\.(jpg|jpeg|png)$", ".webp", src, flags=re.I)
+
+
+def image_dimensions(src: str) -> tuple[int, int]:
+    try:
+        from PIL import Image
+        with Image.open(image_file_from_src(src)) as img:
+            return img.size
+    except Exception:
+        return (1200, 675)
+
+
+def ensure_webp_images() -> None:
+    try:
+        from PIL import Image
+    except Exception:
+        return
+    for meta in IMAGES.values():
+        src = image_file_from_src(meta["src"])
+        target = src.with_suffix(".webp")
+        if not src.exists():
+            continue
+        with Image.open(src) as img:
+            img.convert("RGB").save(target, "WEBP", quality=78, method=6)
+
+
+def json_script(data: dict | list) -> str:
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+
+
+def structured_webpage(name: str, description: str, path: str, page_type: str = "WebPage") -> dict:
+    return {
+        "@context": "https://schema.org",
+        "@type": page_type,
+        "name": name,
+        "description": description,
+        "url": site_path(path),
+        "inLanguage": "zh-CN",
+        "isPartOf": {"@type": "WebSite", "name": SITE_NAME, "url": site_path("")},
+    }
+
+
+def meta_head(title: str, description: str, path: str, og_type: str = "website", image: str = DEFAULT_IMAGE, schema: dict | list | None = None, robots: str = "index, follow") -> str:
+    prefix = path_prefix(path)
+    canonical = site_path(path)
+    image_url = site_path(image.replace("../", ""))
+    schema_html = f'\n  <script type="application/ld+json">{json_script(schema)}</script>' if schema else ""
+    return f"""  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{esc(title)}</title>
+  <meta name="description" content="{esc(description)}">
+  <meta name="robots" content="{esc(robots)}">
+  <link rel="canonical" href="{esc(canonical)}">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:type" content="{esc(og_type)}">
+  <meta property="og:site_name" content="{SITE_NAME}">
+  <meta property="og:title" content="{esc(title)}">
+  <meta property="og:description" content="{esc(description)}">
+  <meta property="og:url" content="{esc(canonical)}">
+  <meta property="og:image" content="{esc(image_url)}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{esc(title)}">
+  <meta name="twitter:description" content="{esc(description)}">
+  <meta name="twitter:image" content="{esc(image_url)}">
+  <link rel="icon" href="{prefix}assets/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="{prefix}assets/images/apple-touch-icon.png">
+  <link rel="stylesheet" href="{prefix}assets/styles.css">{schema_html}"""
+
+
+def header_html(prefix: str = "") -> str:
+    return f'<a class="skip-link" href="#main">跳到正文</a>\n  <header class="site-header"><div class="nav-wrap"><a class="brand" href="{prefix}index.html" aria-label="{SITE_NAME}首页"><span class="brand-mark">AI</span><span>{SITE_NAME}</span></a><nav class="site-nav" data-site-nav aria-label="主导航"></nav></div></header>'
+
+
+def footer_html(prefix: str = "") -> str:
+    return f'<footer class="site-footer"><div class="footer-inner" data-site-footer></div></footer><script src="{prefix}assets/site.js"></script>'
+
+
+def article_card(article: dict, prefix: str = "") -> str:
+    accent = GROUPS[article["group"]]["accent"]
+    return f"""<article class="article-card {accent}" data-group="{esc(article['group'])}" data-tag="{esc(article['tag'])}">
+  <div class="tag-list"><span class="tag free">免费文章</span><span class="tag">{esc(article['tag'])}</span></div>
+  <h2>{esc(article['title'])}</h2>
+  <p>{esc(article['description'])}</p>
+  <a class="card-link" href="{prefix}{article_url(article['slug'])}">阅读文章</a>
+</article>"""
+
+
+def quick_answer(article: dict) -> str:
+    return (
+        f"{article['keyword']}的关键不是收集更多材料，而是先确定目标、输入材料和检查标准。"
+        f"可以按“场景判断、步骤拆解、模板执行、结果核验”四步走：先看自己是否属于{article['tag']}场景，"
+        f"再把任务拆成 3 到 5 个动作，最后用清单确认是否符合课程、岗位或工具规则。"
+    )
+
+
+def execution_items(article: dict) -> list[str]:
+    return [
+        f"先写下这次要解决的具体问题：{article['keyword']}。",
+        "准备真实背景材料，不让 AI 自行补关键事实。",
+        f"按本文步骤执行：{article['steps'][0]}",
+        "输出后逐条核验来源、时间、规则和适用范围。",
+        "把最终结果整理成自己的笔记、表格或练习材料，便于下次复用。",
+    ]
+
+
+def deep_dive(article: dict) -> str:
+    if article["group"] == "campus":
+        return (
+            f"校园场景还要特别注意老师要求和课程评分标准。处理{article['keyword']}时，"
+            "建议把任务分成“必须完成”和“可以优化”两层：前者包括题目要求、格式、截止时间和个人理解，后者才是表达润色、结构优化和资料补充。"
+            "这样做能避免把精力花在看起来精致但不影响得分的地方，也能留下自己的思考痕迹。"
+        )
+    if article["group"] == "career":
+        return (
+            f"求职场景更看重可解释性。准备{article['keyword']}时，不要只背结论，"
+            "还要能讲清背景、你做过的动作、遇到的问题、如何定位以及结果如何验证。"
+            "如果某个经历不是自己亲手完成，就应该把表达降级为“了解、参与、辅助”，避免面试追问时前后不一致。"
+        )
+    return (
+        f"AI 工具场景更看重输入质量和结果核验。使用{article['keyword']}时，"
+        "先把任务边界、材料来源和输出格式写清楚，再要求模型标注不确定信息。"
+        "涉及账号、安全、文件、政策或工具版本的内容，应回到官方文档或原始材料确认。"
+    )
+
+
+def faq_items(article: dict) -> list[tuple[str, str]]:
+    return [
+        (
+            f"{article['keyword']}可以完全交给 AI 吗？",
+            "不建议。AI 适合拆解任务、发现遗漏和优化表达，但关键事实、个人经历、规则判断和最终取舍都需要人工确认。",
+        ),
+        (
+            "输出结果怎么看是否可靠？",
+            "先看是否引用了可访问来源，再检查时间、版本、适用对象和是否与你的真实场景一致。没有来源的具体结论要标记为待核验。",
+        ),
+        (
+            "怎样把这篇文章的方法复用到下一次？",
+            "把步骤、模板、错误清单保存成自己的检查表。下一次只替换背景材料和目标，不直接复用未核验的结论。",
+        ),
+    ]
+
+
+def article_schema(article: dict, path: str, image: str) -> list[dict]:
+    group = GROUPS[article["group"]]
+    faq = faq_items(article) if article["group"] in {"career", "tools"} else []
+    schemas: list[dict] = [
+        {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            "headline": article["title"],
+            "description": article["description"],
+            "image": site_path(image.replace("../", "")),
+            "datePublished": TODAY,
+            "dateModified": TODAY,
+            "author": {"@type": "Organization", "name": SITE_NAME},
+            "publisher": {"@type": "Organization", "name": SITE_NAME, "logo": {"@type": "ImageObject", "url": site_path(DEFAULT_IMAGE)}},
+            "mainEntityOfPage": site_path(path),
+            "inLanguage": "zh-CN",
+            "articleSection": group["label"],
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {"@type": "ListItem", "position": 1, "name": "首页", "item": site_path("")},
+                {"@type": "ListItem", "position": 2, "name": group["label"], "item": site_path(group["page"])},
+                {"@type": "ListItem", "position": 3, "name": article["title"], "item": site_path(path)},
+            ],
+        },
+    ]
+    if faq:
+        schemas.append({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}}
+                for q, a in faq
+            ],
+        })
+    return schemas
+
+
+def render_picture(image: dict, eager: bool = False) -> str:
+    width, height = image_dimensions(image["src"])
+    loading = "eager" if eager else "lazy"
+    priority = ' fetchpriority="high"' if eager else ""
+    return (
+        f'<picture><source srcset="{esc(webp_path(image["src"]))}" type="image/webp">'
+        f'<img src="{esc(image["src"])}" alt="{esc(image["alt"])}" width="{width}" height="{height}" loading="{loading}" decoding="async"{priority}></picture>'
+    )
+
+
+def render_article(article: dict) -> str:
+    group = GROUPS[article["group"]]
+    image = IMAGES[group["image"]]
+    path = article_url(article["slug"])
+    related = related_for(article)
+    all_articles = [item for item in ARTICLES if item["group"] == article["group"]]
+    idx = all_articles.index(article)
+    prev_item = all_articles[idx - 1] if idx > 0 else None
+    next_item = all_articles[idx + 1] if idx < len(all_articles) - 1 else None
+    answer = quick_answer(article)
+    checklist = sentence_list(execution_items(article))
+    faq = faq_items(article) if article["group"] in {"career", "tools"} else []
+    faq_html = ""
+    faq_toc = ""
+    if faq:
+        faq_toc = '<a href="#faq">FAQ</a>'
+        faq_html = f'<h2 id="faq">FAQ</h2>{"".join(f"<h3>{esc(q)}</h3><p>{esc(a)}</p>" for q, a in faq)}'
+    template = (
+        f"【任务】我正在处理：{article['keyword']}。\n"
+        f"【背景】{article['problem']}\n"
+        f"【目标】请帮我得到一个能执行、能检查、能复盘的方案。\n"
+        f"【输出】请按快速答案、执行步骤、检查表、常见错误、待核验信息输出。"
+    )
+    example = (
+        f"如果你今天要处理{article['keyword']}，可以先用 10 分钟写清当前背景，再用本文的步骤做第一轮拆解。"
+        f"例如先记录任务目标、可用时间、现有材料、最终交付物和限制条件，然后执行“{article['steps'][0]}”这一步。"
+        "完成后不要急着扩展内容，而是用执行清单检查是否有遗漏。这样既能减少空泛输出，也能让页面里的方法真正落到你的学习、求职或工具使用场景中。"
+    )
+    nav_links = []
+    if prev_item:
+        nav_links.append(f'<a class="card-link" href="{esc(prev_item["slug"])}.html">上一篇：{esc(prev_item["title"])}</a>')
+    if next_item:
+        nav_links.append(f'<a class="card-link" href="{esc(next_item["slug"])}.html">下一篇：{esc(next_item["title"])}</a>')
+    nav_html = "".join(nav_links)
+    title = f"{article['title']} - {SITE_NAME}"
+    schema = article_schema(article, path, image["src"])
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+{meta_head(title, article["description"], path, "article", image["src"], schema)}
+</head>
+<body data-section="{esc(article['group'])}">
+  {header_html("../")}
+  <main id="main">
+    <section class="article-hero"><div class="section-inner"><nav class="breadcrumb" aria-label="面包屑"><a href="../index.html">首页</a><span>/</span><a href="../{group['page']}">{esc(group['label'])}</a><span>/</span><span>{esc(article['title'])}</span></nav><span class="eyebrow">{esc(group['eyebrow'])}</span><h1>{esc(article['title'])}</h1><div class="article-meta"><span>{esc(article['category'])}</span><span>更新：{TODAY}</span><span>阅读约 7 分钟</span></div></div></section>
+    <section class="section tight"><div class="section-inner"><article class="conversion-card seo-summary-card"><div class="conversion-copy"><div class="offer-meta"><span class="tag hot">快速答案</span><span class="tag free">{esc(article['tag'])}</span></div><h2>{esc(article['keyword'])}怎么先做对</h2><p>{esc(answer)}</p></div><div class="conversion-action"><a class="button hot full" href="#checklist">查看执行清单</a><a class="card-link" href="../{group['page']}">返回{esc(group['label'])}专题</a></div></article></div></section>
+    <section class="section"><div class="section-inner article-layout">
+      <article class="article-body">
+        <figure class="article-image">{render_picture(image)}<figcaption>{esc(image['caption'])}</figcaption></figure>
+        <h2 id="who">适合谁</h2>
+        <p>{esc(article['problem'])}</p>
+        <p>{esc(deep_dive(article))}</p>
+        <p>{esc(f"为了让{article['keyword']}更容易落地，建议把本文当成一张操作卡，而不是一次性读完就结束。第一次阅读时只做标记，第二次阅读时复制模板并填入自己的真实材料，第三次再对照执行清单检查结果。这样的节奏能减少空泛感，也能让后续复盘有依据。")}</p>
+        <h2 id="answer">快速答案</h2>
+        <p>{esc(answer)}</p>
+        <h2 id="method">核心方法</h2>
+        <p>{esc(article['method'])}</p>
+        <ol>{sentence_list(article['steps'])}</ol>
+        <h2 id="checklist">执行清单</h2>
+        <ul>{checklist}</ul>
+        <h2 id="example">实操示例</h2>
+        <p>{esc(example)}</p>
+        <h2 id="template">可复制模板</h2>
+        <p>下面这段模板适合直接复制到 AI 工具里，再把括号中的内容替换成自己的真实材料。输出后仍然要人工核验，尤其是涉及考试规则、工具版本、招聘要求和安全边界的信息。</p>
+        <pre><code>{esc(template)}</code></pre>
+        <p>{esc(article['prompt'])}</p>
+        <h2 id="mistakes">常见错误</h2>
+        <ul>{sentence_list(article['mistakes'])}</ul>
+        <p>如果你发现自己反复遇到这些问题，不要急着增加更多资料。更有效的做法是回到任务目标，把输入材料、完成标准和检查动作补齐。搜索来的内容只能提供参考，最终是否适合你的课程、项目或岗位，还要结合自己的真实场景判断。</p>
+        <h2 id="boundary">边界提醒</h2>
+        <p>本站内容用于学习规划、效率提升和表达训练。涉及课程要求、考试安排、招聘信息、工具政策和安全风险时，应以官方说明、原始资料或任课老师要求为准。AI 可以帮助拆解任务、检查遗漏和优化表达，但不应替代个人判断，也不应生成无法核验的事实。</p>
+        {faq_html}
+        <h2 id="sources">参考来源</h2>
+        <ul>{source_list(article['sources'])}</ul>
+        <h2 id="related">相关文章</h2>
+        <ul>{''.join(f'<li><a href="{esc(item["slug"])}.html">{esc(item["title"])}</a></li>' for item in related)}</ul>
+        <nav class="article-pager" aria-label="文章翻页">{nav_html}</nav>
+      </article>
+      <aside class="sidebar"><nav class="toc"><strong>目录</strong><a href="#who">适合谁</a><a href="#answer">快速答案</a><a href="#method">核心方法</a><a href="#checklist">执行清单</a><a href="#example">实操示例</a><a href="#template">可复制模板</a><a href="#mistakes">常见错误</a><a href="#boundary">边界提醒</a>{faq_toc}<a href="#sources">参考来源</a></nav><div class="ad-slot" data-ad-slot></div></aside>
+    </div></section>
+  </main>
+  {footer_html("../")}
+</body>
+</html>
+"""
+
+
+def render_group_page(group_key: str, title: str | None = None, description: str | None = None, lead: str | None = None) -> str:
+    meta = GROUP_PAGE_COPY[group_key]
+    group = GROUPS[group_key]
+    items = [item for item in ARTICLES if item["group"] == group_key]
+    title = title or meta["title"]
+    description = description or meta["description"]
+    lead = lead or meta["lead"]
+    cards = "\n".join(article_card(item) for item in items)
+    buckets = []
+    by_slug = slug_to_article()
+    for bucket_title, slugs in meta["buckets"]:
+        links = "".join(f'<li><a href="{article_url(by_slug[slug]["slug"])}">{esc(by_slug[slug]["title"])}</a></li>' for slug in slugs if slug in by_slug)
+        buckets.append(f'<article class="resource-card"><h3>{esc(bucket_title)}</h3><ul class="compact-list">{links}</ul></article>')
+    schema = structured_webpage(title, description, group["page"], "CollectionPage")
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+{meta_head(f"{title} - {SITE_NAME}", description, group["page"], "website", DEFAULT_IMAGE, schema)}
+</head>
+<body data-section="{esc(group_key)}">
+  {header_html()}
+  <main id="main">
+    <section class="article-hero"><div class="section-inner"><span class="eyebrow">{esc(group['eyebrow'])}</span><h1>{esc(title)}</h1><p class="hero-lede">{esc(lead)}</p></div></section>
+    <section class="section"><div class="section-inner"><article class="offer-card seo-focus-card"><div class="offer-copy"><div class="offer-meta"><span class="tag hot">专题导航</span><span class="tag free">{len(items)} 篇文章</span></div><h2>先按主题找入口，再进入具体问题</h2><p>本专题按搜索问题拆分文章，每篇都给快速答案、执行清单、模板、常见错误和参考来源。</p></div><div class="offer-action"><a class="button hot" href="articles.html?group={group_key}">查看本专题全部文章</a><a class="card-link" href="{article_url(items[0]['slug'])}">先读：{esc(items[0]['tag'])}</a></div></article></div></section>
+    <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>{esc(title)}分组导航</h2><p>优先从最接近你当前问题的分组进入，减少无效浏览。</p></div></div><div class="grid three">{"".join(buckets)}</div></div></section>
+    <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>{esc(title)}文章列表</h2><p>所有文章均为免费阅读，优先解决一个具体问题，避免空泛堆词。</p></div></div><div class="grid three">{cards}</div></div></section>
+  </main>
+  {footer_html()}
+</body>
+</html>
+"""
+
+
+def render_index() -> str:
+    cards = "\n".join(article_card(next(item for item in ARTICLES if item["slug"] == slug)) for slug in FEATURED_SLUGS)
+    latest = "\n".join(article_card(item) for item in ARTICLES[-6:])
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": SITE_NAME,
+        "description": SITE_DESCRIPTION,
+        "url": site_path(""),
+        "inLanguage": "zh-CN",
+        "potentialAction": {"@type": "SearchAction", "target": site_path("articles.html") + "?q={search_term_string}", "query-input": "required name=search_term_string"},
+    }
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+{meta_head(f"{SITE_NAME} - 大学生与职场新人的 AI 学习求职导航", "AI效率资源站面向大学生和职场新人，提供 AI 学习方法、求职准备、提示词模板和工具安全内容。", "", "website", DEFAULT_IMAGE, schema)}
+</head>
+<body>
+  {header_html()}
+  <main id="main">
+    <section class="hero"><div class="section-inner"><div class="hero-copy"><span class="eyebrow">AI efficiency hub</span><h1><span class="hero-line">把 AI 变成学习、</span><span class="hero-line">求职和日常工作</span><span class="hero-line">的效率工具。</span></h1><p class="hero-lede"><span class="mobile-line">这里专注大学生和职场新人的真实问题：</span><span class="mobile-line">备考、作业、简历、面试、提示词和账号安全。</span><span class="mobile-line">每篇文章都给快速答案、执行清单、模板和参考来源。</span></p><div class="hero-actions"><a class="button hot" href="articles.html">浏览全部文章</a><a class="button" href="career.html">查看求职专题</a><a class="button secondary" href="tools.html">学习 AI 工具</a></div></div><aside class="hero-panel" aria-label="站点内容概览"><div class="metric-grid"><div class="metric"><strong>50</strong><span>长文文章</span></div><div class="metric"><strong>3</strong><span>核心专题</span></div><div class="metric"><strong>0</strong><span>依赖构建</span></div></div></aside></div></section>
+    <section id="sections" class="section"><div class="section-inner"><div class="section-head"><div><h2>三类人群，一套效率资源</h2><p>按校园、求职和 AI 工具三条路径组织内容，先解决真实问题，再整理成可复用方法。</p></div><a class="card-link" href="articles.html">进入全站索引</a></div><div class="grid three"><article class="card accent-green"><h3>校园效率区</h3><p>四六级、期末作业、活动策划和小组协作。</p><div class="tag-list"><span class="tag free">18 篇</span><span class="tag">大学生</span></div><a class="card-link" href="campus.html">进入专区</a></article><article class="card accent-blue"><h3>求职冲刺区</h3><p>自动化测试、简历、项目表达和模拟面试。</p><div class="tag-list"><span class="tag free">17 篇</span><span class="tag">应届生</span></div><a class="card-link" href="career.html">进入专区</a></article><article class="card accent-amber"><h3>AI 工具箱</h3><p>GPT/Claude 入门、Prompt、资料整理和账号安全。</p><div class="tag-list"><span class="tag free">15 篇</span><span class="tag">AI 工具</span></div><a class="card-link" href="tools.html">进入专区</a></article></div></div></section>
+    <section class="section feature-band"><div class="section-inner"><div class="section-head"><div><h2>精选支柱文章</h2><p>先从搜索需求最明确的文章读起，再进入专题页继续延伸。</p></div></div><div class="grid three">{cards}</div></div></section>
+    <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>最新整理</h2><p>持续补充围绕学习、求职和工具核验的长尾问题。</p></div></div><div class="grid three">{latest}</div></div></section>
+  </main>
+  {footer_html()}
+</body>
+</html>
+"""
+
+
+def render_articles_index() -> str:
+    cards = "\n".join(article_card(item) for item in ARTICLES)
+    schema = structured_webpage("全部文章", "AI效率资源站全部文章索引，支持按专题、标签和关键词筛选。", "articles.html", "CollectionPage")
+    tags = sorted({item["tag"] for item in ARTICLES})
+    tag_buttons = "".join(f'<button class="filter-chip" type="button" data-filter-tag="{esc(tag)}">{esc(tag)}</button>' for tag in tags)
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+{meta_head(f"全部文章 - {SITE_NAME}", "AI效率资源站全部文章索引，支持按校园、求职、AI 工具和关键词筛选。", "articles.html", "website", DEFAULT_IMAGE, schema)}
+</head>
+<body data-section="articles">
+  {header_html()}
+  <main id="main">
+    <section class="article-hero"><div class="section-inner"><span class="eyebrow">Index</span><h1>全部文章</h1><p class="hero-lede">按专题、标签和关键词快速找到学习、求职和 AI 工具相关长文。</p></div></section>
+    <section class="section tight"><div class="section-inner"><div class="search-panel" data-search-panel><label for="article-search">搜索文章</label><input id="article-search" type="search" placeholder="输入四六级、简历、Prompt、安全等关键词" autocomplete="off"><div class="filter-row" aria-label="专题筛选"><button class="filter-chip is-active" type="button" data-filter-group="all">全部</button><button class="filter-chip" type="button" data-filter-group="campus">校园</button><button class="filter-chip" type="button" data-filter-group="career">求职</button><button class="filter-chip" type="button" data-filter-group="tools">工具</button></div><div class="filter-row tag-filter" aria-label="标签筛选"><button class="filter-chip is-active" type="button" data-filter-tag="all">全部标签</button>{tag_buttons}</div><p class="search-count" data-search-count>共 50 篇文章</p></div></div></section>
+    <section class="section tight"><div class="section-inner"><div class="grid three" data-article-index>{cards}</div></div></section>
+  </main>
+  {footer_html()}
+</body>
+</html>
+"""
+
+
+def render_static_page(path: str, meta: dict) -> str:
+    sections = "".join(f"<h2>{esc(title)}</h2><p>{esc(body)}</p>" for title, body in meta["sections"])
+    schema = structured_webpage(meta["title"], meta["description"], path, "AboutPage" if path == "about.html" else "WebPage")
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+{meta_head(f"{meta['title']} - {SITE_NAME}", meta["description"], path, "website", DEFAULT_IMAGE, schema)}
+</head>
+<body>
+  {header_html()}
+  <main id="main">
+    <section class="article-hero"><div class="section-inner"><span class="eyebrow">{esc(meta['eyebrow'])}</span><h1>{esc(meta['title'])}</h1><p class="hero-lede">{esc(meta['lead'])}</p></div></section>
+    <section class="section"><div class="section-inner article-body">{sections}</div></section>
+  </main>
+  {footer_html()}
+</body>
+</html>
+"""
+
+
+def render_404() -> str:
+    schema = structured_webpage("页面未找到", "AI效率资源站 404 页面，帮助用户返回文章索引或首页。", "404.html", "WebPage")
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+{meta_head(f"页面未找到 - {SITE_NAME}", "页面未找到，可以返回 AI效率资源站首页或全部文章索引继续浏览。", "404.html", "website", DEFAULT_IMAGE, schema, "noindex, follow")}
+</head>
+<body>
+  {header_html()}
+  <main id="main">
+    <section class="article-hero"><div class="section-inner"><span class="eyebrow">404</span><h1>页面未找到</h1><p class="hero-lede">这个链接可能已经移动。你可以返回首页，或者进入全部文章索引继续查找。</p><div class="hero-actions"><a class="button hot" href="articles.html">浏览全部文章</a><a class="button secondary" href="index.html">返回首页</a></div></div></section>
+  </main>
+  {footer_html()}
+</body>
+</html>
+"""
+
+
+def render_search_index() -> str:
+    data = [
+        {
+            "title": item["title"],
+            "description": item["description"],
+            "href": article_url(item["slug"]),
+            "group": item["group"],
+            "groupLabel": GROUPS[item["group"]]["label"],
+            "tag": item["tag"],
+            "keyword": item["keyword"],
+        }
+        for item in ARTICLES
+    ]
+    return json.dumps(data, ensure_ascii=False, indent=2)
+
+
+def render_site_js() -> str:
+    featured = [
+        ("四六级 14 天备考计划", "articles/cet-14-day-study-plan.html", "校园效率", "把词汇、阅读、听力、作文拆成每天可执行任务。"),
+        ("自动化测试面试准备路线", "articles/automation-test-interview-roadmap.html", "求职冲刺", "按接口、UI、数据库、框架和项目复盘准备。"),
+        ("稳定 Prompt 的四段式公式", "articles/prompt-four-part-formula.html", "AI 工具", "用角色、目标、材料、输出格式提升回答稳定性。"),
+    ]
+    resources = ",\n".join(
+        f'    {{ title: "{title}", href: "{href}", category: "{cat}", summary: "{summary}" }}'
+        for title, href, cat, summary in featured
+    )
+    return f"""const siteConfig = {{
+  name: "{SITE_NAME}",
+  tagline: "{SITE_DESCRIPTION}",
+  adPlaceholder: "赞助内容区域：后续展示与学习、求职和效率工具相关的合规推荐",
+  featuredResources: [
+{resources}
+  ]
+}};
+
+function resolvePath(path) {{
+  const inArticle = location.pathname.includes("/articles/");
+  if (/^https?:/.test(path) || path.startsWith("#")) return path;
+  return inArticle ? `../${{path}}` : path;
+}}
+
+function buildNav() {{
+  const nav = document.querySelector("[data-site-nav]");
+  if (!nav) return;
+  const links = [["首页", "index.html"], ["文章", "articles.html"], ["校园", "campus.html"], ["求职", "career.html"], ["工具", "tools.html"], ["关于", "about.html"]];
+  const current = location.pathname.split("/").pop() || "index.html";
+  const section = document.body.dataset.section || "";
+  const activeBySection = {{ campus: "campus.html", career: "career.html", tools: "tools.html", articles: "articles.html" }};
+  nav.innerHTML = links.map(([label, href]) => {{
+    const active = current === href || activeBySection[section] === href ? ' aria-current="page"' : "";
+    return `<a href="${{resolvePath(href)}}"${{active}}>${{label}}</a>`;
+  }}).join("");
+}}
+
+function buildFooter() {{
+  const footer = document.querySelector("[data-site-footer]");
+  if (!footer) return;
+  const year = new Date().getFullYear();
+  footer.innerHTML = `
+    <div>
+      <strong>${{siteConfig.name}}</strong>
+      <p>${{siteConfig.tagline}}。本站内容用于学习和效率参考，不替代课程要求、考试规则、官方文档或个人判断。</p>
+      <p>© ${{year}} ${{siteConfig.name}}. All rights reserved.</p>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="${{resolvePath("about.html")}}">关于本站</a>
+      <a href="${{resolvePath("privacy.html")}}">隐私政策</a>
+      <a href="${{resolvePath("contact.html")}}">联系合作</a>
+      <a href="${{resolvePath("sitemap.xml")}}">站点地图</a>
+    </nav>`;
+}}
+
+function buildAdSlots() {{
+  document.querySelectorAll("[data-ad-slot]").forEach((slot) => {{
+    slot.innerHTML = `<div><strong>赞助内容区域</strong><span>${{siteConfig.adPlaceholder}}</span></div>`;
+  }});
+}}
+
+function buildFeaturedResources() {{
+  const target = document.querySelector("[data-featured-resources]");
+  if (!target) return;
+  target.innerHTML = siteConfig.featuredResources.map((item) => `
+    <article class="resource-card">
+      <span class="tag">${{item.category}}</span>
+      <h3>${{item.title}}</h3>
+      <p>${{item.summary}}</p>
+      <a class="card-link" href="${{resolvePath(item.href)}}">查看资源</a>
+    </article>
+  `).join("");
+}}
+
+async function buildArticleSearch() {{
+  const target = document.querySelector("[data-article-index]");
+  const panel = document.querySelector("[data-search-panel]");
+  if (!target || !panel) return;
+  let items = [];
+  try {{
+    const response = await fetch(resolvePath("assets/search-index.json"));
+    items = await response.json();
+  }} catch (error) {{
+    items = Array.from(target.querySelectorAll(".article-card")).map((card) => ({{
+      title: card.querySelector("h2")?.textContent || "",
+      description: card.querySelector("p")?.textContent || "",
+      href: card.querySelector("a")?.getAttribute("href") || "#",
+      group: card.dataset.group || "",
+      tag: card.dataset.tag || "",
+      keyword: card.textContent || ""
+    }}));
+  }}
+  const input = panel.querySelector("#article-search");
+  const count = panel.querySelector("[data-search-count]");
+  let group = new URLSearchParams(location.search).get("group") || "all";
+  let tag = "all";
+  const render = () => {{
+    const q = (input.value || "").trim().toLowerCase();
+    const filtered = items.filter((item) => {{
+      const text = `${{item.title}} ${{item.description}} ${{item.tag}} ${{item.keyword}}`.toLowerCase();
+      return (group === "all" || item.group === group) && (tag === "all" || item.tag === tag) && (!q || text.includes(q));
+    }});
+    target.innerHTML = filtered.map((item) => `<article class="article-card" data-group="${{item.group}}" data-tag="${{item.tag}}"><div class="tag-list"><span class="tag free">免费文章</span><span class="tag">${{item.tag}}</span></div><h2>${{item.title}}</h2><p>${{item.description}}</p><a class="card-link" href="${{item.href}}">阅读文章</a></article>`).join("") || `<p class="empty-state">没有找到匹配文章，可以换一个关键词。</p>`;
+    if (count) count.textContent = `共 ${{filtered.length}} 篇文章`;
+  }};
+  panel.querySelectorAll("[data-filter-group]").forEach((button) => {{
+    if (button.dataset.filterGroup === group) button.classList.add("is-active");
+    button.addEventListener("click", () => {{
+      group = button.dataset.filterGroup || "all";
+      panel.querySelectorAll("[data-filter-group]").forEach((el) => el.classList.toggle("is-active", el === button));
+      render();
+    }});
+  }});
+  panel.querySelectorAll("[data-filter-tag]").forEach((button) => {{
+    button.addEventListener("click", () => {{
+      tag = button.dataset.filterTag || "all";
+      panel.querySelectorAll("[data-filter-tag]").forEach((el) => el.classList.toggle("is-active", el === button));
+      render();
+    }});
+  }});
+  input?.addEventListener("input", render);
+  render();
+}}
+
+document.addEventListener("DOMContentLoaded", () => {{
+  buildNav();
+  buildFooter();
+  buildAdSlots();
+  buildFeaturedResources();
+  buildArticleSearch();
+}});
+"""
+
+
+def render_sitemap() -> str:
+    urls = ["", "index.html", "articles.html", "campus.html", "career.html", "tools.html", "about.html", "privacy.html", "contact.html"]
+    urls += [article_url(item["slug"]) for item in ARTICLES]
+    locs = "\n".join(f"  <url><loc>{site_path(url)}</loc><lastmod>{TODAY}</lastmod></url>" if url else f"  <url><loc>{site_path('')}</loc><lastmod>{TODAY}</lastmod></url>" for url in urls)
+    return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{locs}\n</urlset>\n'
+
+
+def write_site_file(path: Path, content: str) -> None:
+    normalized = "\n".join(line.rstrip() for line in content.splitlines()) + "\n"
+    path.write_text(normalized, encoding="utf-8", newline="\n")
+
+
+def main() -> None:
+    ensure_webp_images()
+    ARTICLES_DIR.mkdir(exist_ok=True)
+    for old in ARTICLES_DIR.glob("*.html"):
+        old.unlink()
+    for article in ARTICLES:
+        write_site_file(ARTICLES_DIR / f"{article['slug']}.html", render_article(article))
+    write_site_file(ROOT / "index.html", render_index())
+    write_site_file(ROOT / "articles.html", render_articles_index())
+    for group_key in GROUPS:
+        write_site_file(ROOT / GROUPS[group_key]["page"], render_group_page(group_key))
+    for path, meta in STATIC_PAGES.items():
+        write_site_file(ROOT / path, render_static_page(path, meta))
+    write_site_file(ROOT / "404.html", render_404())
+    write_site_file(ROOT / "assets" / "site.js", render_site_js())
+    write_site_file(ROOT / "assets" / "search-index.json", render_search_index())
+    write_site_file(ROOT / "sitemap.xml", render_sitemap())
+    write_site_file(ROOT / "assets" / "images" / "ATTRIBUTIONS.md", render_attributions())
 
 
 if __name__ == "__main__":

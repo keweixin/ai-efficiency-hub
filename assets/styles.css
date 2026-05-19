@@ -38,6 +38,18 @@ a:hover {
   color: var(--green);
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(40, 90, 155, 0.45);
+  outline-offset: 3px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
 img,
 svg {
   max-width: 100%;
@@ -540,6 +552,20 @@ p {
   margin-top: 1rem;
 }
 
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.breadcrumb a {
+  color: var(--green);
+  font-weight: 700;
+}
+
 .article-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 290px;
@@ -578,9 +604,14 @@ p {
   margin: 0 0 1.15rem;
 }
 
+.article-image picture {
+  display: block;
+}
+
 .article-image img {
   display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border: 1px solid var(--line);
@@ -609,9 +640,13 @@ p {
 }
 
 .article-body table {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin-top: 1rem;
+  white-space: nowrap;
 }
 
 .article-body th,
@@ -657,6 +692,84 @@ p {
   display: block;
   color: var(--muted);
   padding: 0.25rem 0;
+}
+
+.article-pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-top: 1px solid var(--line);
+  margin-top: 2rem;
+  padding-top: 1rem;
+}
+
+.compact-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.compact-list a {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.search-panel {
+  display: grid;
+  gap: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: clamp(1rem, 3vw, 1.4rem);
+}
+
+.search-panel label {
+  font-weight: 800;
+}
+
+.search-panel input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  padding: 0.65rem 0.8rem;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chip {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.45rem 0.75rem;
+}
+
+.filter-chip.is-active,
+.filter-chip:hover {
+  border-color: var(--green);
+  background: #eef7f3;
+  color: var(--green);
+}
+
+.tag-filter {
+  max-height: 7.2rem;
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.search-count,
+.empty-state {
+  color: var(--muted);
 }
 
 .list-links {

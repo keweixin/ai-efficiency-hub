@@ -18,10 +18,12 @@ function resolvePath(path) {
 function buildNav() {
   const nav = document.querySelector("[data-site-nav]");
   if (!nav) return;
-  const links = [["首页", "index.html"], ["校园", "campus.html"], ["求职", "career.html"], ["工具", "tools.html"], ["关于", "about.html"]];
+  const links = [["首页", "index.html"], ["文章", "articles.html"], ["校园", "campus.html"], ["求职", "career.html"], ["工具", "tools.html"], ["关于", "about.html"]];
   const current = location.pathname.split("/").pop() || "index.html";
+  const section = document.body.dataset.section || "";
+  const activeBySection = { campus: "campus.html", career: "career.html", tools: "tools.html", articles: "articles.html" };
   nav.innerHTML = links.map(([label, href]) => {
-    const active = current === href ? ' aria-current="page"' : "";
+    const active = current === href || activeBySection[section] === href ? ' aria-current="page"' : "";
     return `<a href="${resolvePath(href)}"${active}>${label}</a>`;
   }).join("");
 }
@@ -63,9 +65,60 @@ function buildFeaturedResources() {
   `).join("");
 }
 
+async function buildArticleSearch() {
+  const target = document.querySelector("[data-article-index]");
+  const panel = document.querySelector("[data-search-panel]");
+  if (!target || !panel) return;
+  let items = [];
+  try {
+    const response = await fetch(resolvePath("assets/search-index.json"));
+    items = await response.json();
+  } catch (error) {
+    items = Array.from(target.querySelectorAll(".article-card")).map((card) => ({
+      title: card.querySelector("h2")?.textContent || "",
+      description: card.querySelector("p")?.textContent || "",
+      href: card.querySelector("a")?.getAttribute("href") || "#",
+      group: card.dataset.group || "",
+      tag: card.dataset.tag || "",
+      keyword: card.textContent || ""
+    }));
+  }
+  const input = panel.querySelector("#article-search");
+  const count = panel.querySelector("[data-search-count]");
+  let group = new URLSearchParams(location.search).get("group") || "all";
+  let tag = "all";
+  const render = () => {
+    const q = (input.value || "").trim().toLowerCase();
+    const filtered = items.filter((item) => {
+      const text = `${item.title} ${item.description} ${item.tag} ${item.keyword}`.toLowerCase();
+      return (group === "all" || item.group === group) && (tag === "all" || item.tag === tag) && (!q || text.includes(q));
+    });
+    target.innerHTML = filtered.map((item) => `<article class="article-card" data-group="${item.group}" data-tag="${item.tag}"><div class="tag-list"><span class="tag free">免费文章</span><span class="tag">${item.tag}</span></div><h2>${item.title}</h2><p>${item.description}</p><a class="card-link" href="${item.href}">阅读文章</a></article>`).join("") || `<p class="empty-state">没有找到匹配文章，可以换一个关键词。</p>`;
+    if (count) count.textContent = `共 ${filtered.length} 篇文章`;
+  };
+  panel.querySelectorAll("[data-filter-group]").forEach((button) => {
+    if (button.dataset.filterGroup === group) button.classList.add("is-active");
+    button.addEventListener("click", () => {
+      group = button.dataset.filterGroup || "all";
+      panel.querySelectorAll("[data-filter-group]").forEach((el) => el.classList.toggle("is-active", el === button));
+      render();
+    });
+  });
+  panel.querySelectorAll("[data-filter-tag]").forEach((button) => {
+    button.addEventListener("click", () => {
+      tag = button.dataset.filterTag || "all";
+      panel.querySelectorAll("[data-filter-tag]").forEach((el) => el.classList.toggle("is-active", el === button));
+      render();
+    });
+  });
+  input?.addEventListener("input", render);
+  render();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   buildNav();
   buildFooter();
   buildAdSlots();
   buildFeaturedResources();
+  buildArticleSearch();
 });
