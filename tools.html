@@ -30,6 +30,185 @@
     <section class="article-hero"><div class="section-inner"><span class="eyebrow">Tools</span><h1>AI 工具箱</h1><p class="hero-lede">给 AI 工具新手准备的合规使用路径：先理解任务，再写提示词，最后核验结果。</p></div></section>
     <section class="section"><div class="section-inner"><article class="offer-card seo-focus-card"><div class="offer-copy"><div class="offer-meta"><span class="tag hot">专题导航</span><span class="tag free">15 篇文章</span></div><h2>先按主题找入口，再进入具体问题</h2><p>本专题按搜索问题拆分文章，每篇都给快速答案、执行清单、模板、常见错误和参考来源。</p></div><div class="offer-action"><a class="button hot" href="articles.html?group=tools">查看本专题全部文章</a><a class="card-link" href="articles/gpt-claude-beginner-differences.html">先读：入门</a></div></article></div></section>
     <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>AI 工具箱分组导航</h2><p>优先从最接近你当前问题的分组进入，减少无效浏览。</p></div></div><div class="grid three"><article class="resource-card"><h3>Prompt 模板</h3><ul class="compact-list"><li><a href="articles/gpt-claude-beginner-differences.html">GPT 和 Claude 新手怎么选</a></li><li><a href="articles/prompt-four-part-formula.html">稳定 Prompt 的四段式公式</a></li><li><a href="articles/ai-summary-prompt.html">AI 总结资料怎么避免漏重点</a></li><li><a href="articles/ai-writing-polish-prompt.html">AI 写作润色 Prompt 怎么写</a></li><li><a href="articles/ai-study-plan-prompt.html">用 AI 制定学习计划怎么提问</a></li><li><a href="articles/ai-meeting-notes-prompt.html">会议纪要 Prompt 怎么整理待办</a></li><li><a href="articles/ai-table-analysis-prompt.html">让 AI 整理表格和清单怎么提问</a></li></ul></article><article class="resource-card"><h3>安全核验</h3><ul class="compact-list"><li><a href="articles/ai-account-security-checklist.html">AI 账号安全检查清单</a></li><li><a href="articles/prompt-injection-basics.html">Prompt Injection 是什么</a></li><li><a href="articles/sensitive-info-redaction.html">上传资料给 AI 前怎么脱敏</a></li><li><a href="articles/ai-result-verification.html">AI 输出结果怎么核验</a></li></ul></article><article class="resource-card"><h3>资料整理</h3><ul class="compact-list"><li><a href="articles/ai-search-research-workflow.html">用 AI 做资料检索的正确流程</a></li><li><a href="articles/personal-knowledge-base-ai.html">用 AI 整理个人知识库</a></li><li><a href="articles/ai-ppt-outline-prompt.html">用 AI 做 PPT 大纲怎么提问</a></li><li><a href="articles/ai-weekly-review.html">用 AI 做每周复盘怎么写</a></li></ul></article></div></div></section>
+
+<section class="section interactive-tools-section" id="geek-tools">
+  <div class="section-inner">
+    <div class="section-head">
+      <div>
+        <span class="tag hot">期末周 &amp; 求职季工具</span>
+        <h2>极客互动工具箱</h2>
+        <p>所有计算在浏览器本地完成，用于绩点估算与简历表达练习。</p>
+      </div>
+      <div class="tool-tabs" role="tablist">
+        <button class="tool-tab-btn active" role="tab" aria-selected="true" data-tab="gpa-calculator">
+          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 3L1 9l11 6l9-4.91V17h2V9L12 3zM5.47 12.04L12 15.6l6.53-3.56L20 13.1V17h-2v-2.18l-6 3.27l-6-3.27V13.1l1.47-1.06z"/></svg>
+          绩点 (GPA) 计算器
+        </button>
+        <button class="tool-tab-btn" role="tab" aria-selected="false" data-tab="star-generator">
+          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2L9.19 8.63L2 9.24l5.46 4.73L5.82 21L12 17.27z"/></svg>
+          简历 STAR 生成器
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Content 1: GPA Calculator -->
+    <div class="tool-tab-content active" id="gpa-calculator-panel" role="tabpanel">
+      <div class="tool-grid">
+        <div class="tool-form-side">
+          <div class="tool-card-header">
+            <h3>课程成绩录入</h3>
+            <div class="preset-buttons">
+              <button class="btn-preset" data-preset="freshman">大一上示例</button>
+              <button class="btn-preset" data-preset="sophomore">专业课示例</button>
+            </div>
+          </div>
+          <p class="tool-card-desc">支持百分制成绩自动换算 4.0 标准学分绩点。</p>
+          <div class="course-list" id="course-rows-container">
+            <!-- Rows dynamically loaded -->
+          </div>
+          <div class="form-actions">
+            <button class="btn-action primary" id="add-course-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              添加课程
+            </button>
+            <button class="btn-action secondary" id="reset-gpa-btn">重置</button>
+          </div>
+        </div>
+
+        <div class="tool-result-side">
+          <div class="dashboard-card">
+            <div class="dashboard-header">
+              <h3>实时绩点估算</h3>
+              <span class="status-indicator">实时计算</span>
+            </div>
+
+            <div class="gpa-visual-container">
+              <div class="gpa-ring-wrapper">
+                <svg class="gpa-svg" viewBox="0 0 120 120">
+                  <circle class="gpa-ring-bg" cx="60" cy="60" r="50" />
+                  <circle class="gpa-ring-fill" id="gpa-progress-ring" cx="60" cy="60" r="50" />
+                </svg>
+                <div class="gpa-number-box">
+                  <span class="gpa-val" id="gpa-val-display">0.00</span>
+                  <span class="gpa-label">4.0 标准绩点</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="gpa-metrics-grid">
+              <div class="gpa-metric-item">
+                <span class="metric-label">加权平均分</span>
+                <strong class="metric-val" id="weighted-score-display">0.0</strong>
+              </div>
+              <div class="gpa-metric-item">
+                <span class="metric-label">总学分</span>
+                <strong class="metric-val" id="total-credits-display">0.0</strong>
+              </div>
+              <div class="gpa-metric-item">
+                <span class="metric-label">5.0 算法绩点</span>
+                <strong class="metric-val" id="gpa-5-display">0.00</strong>
+              </div>
+            </div>
+
+            <div class="gpa-tips-box">
+              <div class="tips-icon">💡</div>
+              <p id="gpa-evaluation-text">录入你的学分与百分制成绩，看看你的成绩处于什么水平吧！</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content 2: STAR Generator -->
+    <div class="tool-tab-content" id="star-generator-panel" role="tabpanel" style="display: none;">
+      <div class="tool-grid">
+        <div class="tool-form-side">
+          <div class="tool-card-header">
+            <h3>STAR 维度输入</h3>
+            <div class="preset-buttons">
+              <button class="btn-preset" data-star-preset="frontend">前端性能优化</button>
+              <button class="btn-preset" data-star-preset="qa">自动化测试提效</button>
+              <button class="btn-preset" data-star-preset="event">社团运营策划</button>
+            </div>
+          </div>
+          <p class="tool-card-desc">用黄金法则重塑你的项目经历，告别空洞堆砌。</p>
+
+          <div class="star-input-group">
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-s"><strong>S</strong> Situation (情境 / 背景)</label>
+                <span class="field-desc">你当时面临什么业务痛点、紧急挑战或系统瓶颈？</span>
+              </div>
+              <textarea id="star-s" placeholder="例如：在软件发布前夕，测试环境出现高频偶发性锁冲突，导致自动化主流程偶发性阻塞，阻塞率高达 15%，严重拖慢版本发布进度..." rows="3"></textarea>
+            </div>
+
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-t"><strong>T</strong> Task (任务 / 职责)</label>
+                <span class="field-desc">你的具体工作职责是什么？要实现的量化指标是什么？</span>
+              </div>
+              <textarea id="star-t" placeholder="例如：我负责牵头排查该死锁的底层根本原因，并重构相关的事务隔离级别与重试机制，要求在 3 表内将主流程锁冲突率降低至 0，保障发布顺利..." rows="2"></textarea>
+            </div>
+
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-a"><strong>A</strong> Action (行动 / 实施)</label>
+                <span class="field-desc">你采取了什么具体方案？运用了什么硬核工具或核心方法？</span>
+              </div>
+              <textarea id="star-a" placeholder="例如：使用 JVM 线程 Dump 分析定位到 A/B 表锁顺序不一致问题；重写了数据库锁超时自旋重试机制，并编写 Python 自动化脚本压测复现；最后对数据库索引进行了深度优化以减少排他锁范围..." rows="4"></textarea>
+            </div>
+
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-r"><strong>R</strong> Result (结果 / 产出)</label>
+                <span class="field-desc">取得了什么最终成效？请务必用具体百分比或量化数据描述。</span>
+              </div>
+              <textarea id="star-r" placeholder="例如：新机制上线后死锁率降低至 0%，自动化测试吞吐量提升 35%，按期保障了版本发布，并将排查经验整理成团队死锁诊断标准手册..." rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="tool-result-side">
+          <div class="dashboard-card preview-card">
+            <div class="dashboard-header">
+              <h3>简历表达预览</h3>
+              <div class="style-selector">
+                <label for="star-style">风格：</label>
+                <select id="star-style">
+                  <option value="hardcore" selected>硬核技术研发版</option>
+                  <option value="general">通用业务执行版</option>
+                  <option value="minimal">极简求职黄金版</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="star-output-wrapper">
+              <div class="code-editor-header">
+                <div class="editor-buttons">
+                  <span class="editor-dot red"></span>
+                  <span class="editor-dot yellow"></span>
+                  <span class="editor-dot green"></span>
+                </div>
+                <span class="editor-title">formatted-star-resume.md</span>
+              </div>
+              <pre class="star-pre"><code class="star-code" id="star-output-code">在等待输入...</code></pre>
+              <button class="btn-action primary copy-button" id="copy-star-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                一键复制排版
+              </button>
+            </div>
+
+            <div class="gpa-tips-box">
+              <div class="tips-icon">📋</div>
+              <p>STAR 结构适合把项目经历拆成背景、任务、行动和结果，便于在简历和面试中清楚说明自己的贡献。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
     <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>AI 工具箱文章列表</h2><p>所有文章均为免费阅读，优先解决一个具体问题，避免空泛堆词。</p></div></div><div class="grid three"><article class="article-card accent-amber" data-group="tools" data-tag="入门">
   <div class="tag-list"><span class="tag free">免费文章</span><span class="tag">入门</span></div>
   <h2>GPT 和 Claude 新手怎么选</h2>

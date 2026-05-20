@@ -236,6 +236,189 @@ def card(article: dict) -> str:
 </article>"""
 
 
+
+def render_interactive_tools_section() -> str:
+    return """
+<section class="section interactive-tools-section" id="geek-tools">
+  <div class="section-inner">
+    <div class="section-head">
+      <div>
+        <span class="tag hot">期末周 &amp; 求职季工具</span>
+        <h2>极客互动工具箱</h2>
+        <p>所有计算在浏览器本地完成，用于绩点估算与简历表达练习。</p>
+      </div>
+      <div class="tool-tabs" role="tablist">
+        <button class="tool-tab-btn active" role="tab" aria-selected="true" data-tab="gpa-calculator">
+          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 3L1 9l11 6l9-4.91V17h2V9L12 3zM5.47 12.04L12 15.6l6.53-3.56L20 13.1V17h-2v-2.18l-6 3.27l-6-3.27V13.1l1.47-1.06z"/></svg>
+          绩点 (GPA) 计算器
+        </button>
+        <button class="tool-tab-btn" role="tab" aria-selected="false" data-tab="star-generator">
+          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2L9.19 8.63L2 9.24l5.46 4.73L5.82 21L12 17.27z"/></svg>
+          简历 STAR 生成器
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Content 1: GPA Calculator -->
+    <div class="tool-tab-content active" id="gpa-calculator-panel" role="tabpanel">
+      <div class="tool-grid">
+        <div class="tool-form-side">
+          <div class="tool-card-header">
+            <h3>课程成绩录入</h3>
+            <div class="preset-buttons">
+              <button class="btn-preset" data-preset="freshman">大一上示例</button>
+              <button class="btn-preset" data-preset="sophomore">专业课示例</button>
+            </div>
+          </div>
+          <p class="tool-card-desc">支持百分制成绩自动换算 4.0 标准学分绩点。</p>
+          <div class="course-list" id="course-rows-container">
+            <!-- Rows dynamically loaded -->
+          </div>
+          <div class="form-actions">
+            <button class="btn-action primary" id="add-course-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              添加课程
+            </button>
+            <button class="btn-action secondary" id="reset-gpa-btn">重置</button>
+          </div>
+        </div>
+
+        <div class="tool-result-side">
+          <div class="dashboard-card">
+            <div class="dashboard-header">
+              <h3>实时绩点估算</h3>
+              <span class="status-indicator">实时计算</span>
+            </div>
+
+            <div class="gpa-visual-container">
+              <div class="gpa-ring-wrapper">
+                <svg class="gpa-svg" viewBox="0 0 120 120">
+                  <circle class="gpa-ring-bg" cx="60" cy="60" r="50" />
+                  <circle class="gpa-ring-fill" id="gpa-progress-ring" cx="60" cy="60" r="50" />
+                </svg>
+                <div class="gpa-number-box">
+                  <span class="gpa-val" id="gpa-val-display">0.00</span>
+                  <span class="gpa-label">4.0 标准绩点</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="gpa-metrics-grid">
+              <div class="gpa-metric-item">
+                <span class="metric-label">加权平均分</span>
+                <strong class="metric-val" id="weighted-score-display">0.0</strong>
+              </div>
+              <div class="gpa-metric-item">
+                <span class="metric-label">总学分</span>
+                <strong class="metric-val" id="total-credits-display">0.0</strong>
+              </div>
+              <div class="gpa-metric-item">
+                <span class="metric-label">5.0 算法绩点</span>
+                <strong class="metric-val" id="gpa-5-display">0.00</strong>
+              </div>
+            </div>
+
+            <div class="gpa-tips-box">
+              <div class="tips-icon">💡</div>
+              <p id="gpa-evaluation-text">录入你的学分与百分制成绩，看看你的成绩处于什么水平吧！</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content 2: STAR Generator -->
+    <div class="tool-tab-content" id="star-generator-panel" role="tabpanel" style="display: none;">
+      <div class="tool-grid">
+        <div class="tool-form-side">
+          <div class="tool-card-header">
+            <h3>STAR 维度输入</h3>
+            <div class="preset-buttons">
+              <button class="btn-preset" data-star-preset="frontend">前端性能优化</button>
+              <button class="btn-preset" data-star-preset="qa">自动化测试提效</button>
+              <button class="btn-preset" data-star-preset="event">社团运营策划</button>
+            </div>
+          </div>
+          <p class="tool-card-desc">用黄金法则重塑你的项目经历，告别空洞堆砌。</p>
+
+          <div class="star-input-group">
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-s"><strong>S</strong> Situation (情境 / 背景)</label>
+                <span class="field-desc">你当时面临什么业务痛点、紧急挑战或系统瓶颈？</span>
+              </div>
+              <textarea id="star-s" placeholder="例如：在软件发布前夕，测试环境出现高频偶发性锁冲突，导致自动化主流程偶发性阻塞，阻塞率高达 15%，严重拖慢版本发布进度..." rows="3"></textarea>
+            </div>
+
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-t"><strong>T</strong> Task (任务 / 职责)</label>
+                <span class="field-desc">你的具体工作职责是什么？要实现的量化指标是什么？</span>
+              </div>
+              <textarea id="star-t" placeholder="例如：我负责牵头排查该死锁的底层根本原因，并重构相关的事务隔离级别与重试机制，要求在 3 表内将主流程锁冲突率降低至 0，保障发布顺利..." rows="2"></textarea>
+            </div>
+
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-a"><strong>A</strong> Action (行动 / 实施)</label>
+                <span class="field-desc">你采取了什么具体方案？运用了什么硬核工具或核心方法？</span>
+              </div>
+              <textarea id="star-a" placeholder="例如：使用 JVM 线程 Dump 分析定位到 A/B 表锁顺序不一致问题；重写了数据库锁超时自旋重试机制，并编写 Python 自动化脚本压测复现；最后对数据库索引进行了深度优化以减少排他锁范围..." rows="4"></textarea>
+            </div>
+
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-r"><strong>R</strong> Result (结果 / 产出)</label>
+                <span class="field-desc">取得了什么最终成效？请务必用具体百分比或量化数据描述。</span>
+              </div>
+              <textarea id="star-r" placeholder="例如：新机制上线后死锁率降低至 0%，自动化测试吞吐量提升 35%，按期保障了版本发布，并将排查经验整理成团队死锁诊断标准手册..." rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="tool-result-side">
+          <div class="dashboard-card preview-card">
+            <div class="dashboard-header">
+              <h3>简历表达预览</h3>
+              <div class="style-selector">
+                <label for="star-style">风格：</label>
+                <select id="star-style">
+                  <option value="hardcore" selected>硬核技术研发版</option>
+                  <option value="general">通用业务执行版</option>
+                  <option value="minimal">极简求职黄金版</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="star-output-wrapper">
+              <div class="code-editor-header">
+                <div class="editor-buttons">
+                  <span class="editor-dot red"></span>
+                  <span class="editor-dot yellow"></span>
+                  <span class="editor-dot green"></span>
+                </div>
+                <span class="editor-title">formatted-star-resume.md</span>
+              </div>
+              <pre class="star-pre"><code class="star-code" id="star-output-code">在等待输入...</code></pre>
+              <button class="btn-action primary copy-button" id="copy-star-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                一键复制排版
+              </button>
+            </div>
+
+            <div class="gpa-tips-box">
+              <div class="tips-icon">📋</div>
+              <p>STAR 结构适合把项目经历拆成背景、任务、行动和结果，便于在简历和面试中清楚说明自己的贡献。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+"""
+
+
 def render_group_page(group_key: str, title: str, description: str, lead: str) -> str:
     items = [item for item in ARTICLES if item["group"] == group_key]
     group = GROUPS[group_key]
@@ -482,10 +665,11 @@ STATIC_PAGES = {
         "lead": "本隐私声明根据 Google AdSense 规范定制，向您透明化展示本网站及其合作伙伴关于 Cookie 与隐私保护的技术细节。",
         "sections": [
             ("Cookie 及同类技术的使用", "本站为免费提供学习与求职资源的静态网站。为了优化浏览体验并展示契合您个人偏好的广告内容，本站及第三方供应商（包括 Google 等广告发布商）可能会在您的浏览器中存储和读取 Cookie，或者使用网络信标（Web Beacons）收集与数据分析相关的日志信息。"),
-            ("第三方广告供应商与 Google AdSense 说明", "1. Google 等第三方供应商会依据您此前访问本网站或其他网站的历史记录，使用 Cookie 向您投放广告；\n2. Google 对广告 Cookie 的合理使用，使其及其合作伙伴能够根据您对本站和/或互联网上其他网站的访问行为，向您精准投放更具相关性的广告；\n3. 如果您不希望接收个性化广告投放，可以随时通过访问 [Google 广告设置页面(https://www.google.com/settings/ads)] 停用该功能；\n4. 您也可以通过访问 [AboutAds 行业标准退订页面(https://www.aboutads.info)]，一键式选择停用或拒绝接受第三方广告供应商使用个性化广告 Cookie。"),
+            ("第三方广告供应商与 Google AdSense 说明", "1. Google 等第三方供应商会依据您此前访问本网站或其他网站的历史记录，使用 Cookie 向您投放广告；\n2. Google 对广告 Cookie 的合理使用，使其及其合作伙伴能够根据您对本站和/或互联网上其他网站的访问行为，向您投放更具相关性的广告；\n3. 如果您不希望接收个性化广告投放，可以随时通过访问 <a href=\"https://www.google.com/settings/ads\" rel=\"noopener noreferrer\">Google 广告设置页面</a> 停用该功能；\n4. 您也可以通过访问 <a href=\"https://www.aboutads.info\" rel=\"noopener noreferrer\">AboutAds 行业标准退订页面</a>，选择停用或拒绝接受第三方广告供应商使用个性化广告 Cookie。"),
             ("GDPR 与 CCPA 数据选择权保障", "对于来自欧盟地区（GDPR）或加利福尼亚州（CCPA）等拥有严格隐私权法案国家与地区的用户，本站全面支持您的选择权利。若您在首页面或通过浏览器设置拒绝第三方跟踪，我们只会向您展示非个性化的泛用型赞助广告。您可随时在浏览器偏好设置中彻底清除已留存的 Cookie。"),
             ("信息保护与联系方式", "本站属于无需注册的静态演示项目，不收集诸如银行账户、密码或实名证件等任何个人敏感隐私信息。如果您因内容纠错、资源共建等目的主动向我们发送电子邮件，您邮件内包含的所有联系方式与信件内容均仅在必要合理范围内用于沟通，绝不向第三方透露或转售。"),
         ],
+        "allow_html": True,
     },
     "contact.html": {
         "title": "联系合作",
@@ -803,40 +987,18 @@ def render_picture(image: dict, eager: bool = False) -> str:
     )
 def custom_alt_for(article: dict) -> str:
     group = article["group"]
-    title = article["title"]
     kw = article["keyword"]
     if group == "campus":
-        if "四六级" in title or "cet" in article["slug"]:
-            return f"大学生正在精心整理{kw}的复习桌面，笔记本旁整齐摆放着四六级真题、单词卡片和14天日程备考表"
-        elif "论文" in title or "作业" in title or "开题" in title:
-            return f"学生在电脑前使用 AI 辅助拆解{kw}的研究大纲，屏幕上清晰展示着论点框架、参考文献与防学术越界边界"
-        elif "活动" in title or "策划" in title or "预算" in title or "歌手" in title or "社团" in title:
-            return f"校园社团干部在会议室讨论{kw}的执行方案，笔记本电脑上正投射出活动的流程细节、组员分工和预算明细表"
-        else:
-            return f"在校学生专注进行{kw}的学习管理，桌面笔记本显示着时间管理日程与本周学习效率卡"
-    elif group == "career":
-        if "自动化" in title or "测试" in title or "pytest" in title or "Selenium" in title or "api" in title or "接口" in title:
-            return f"软件测试工程师在双屏显示器前调试{kw}，编辑器中正运行着 pytest 框架的代码断言和异常排查日志"
-        elif "简历" in title or "STAR" in title or "实习" in title:
-            return f"求职者根据岗位 JD 正在优化{kw}的简历，屏幕上突出展示了符合 STAR 原则的硬核项目贡献与结果数据"
-        elif "自我介绍" in title or "面试" in title or "缺陷报告" in title:
-            return f"应届生正在模拟演练{kw}的面试场景，电脑中正显示着经典问题的结构化回答思路与严厉的追问预案"
-        else:
-            return f"职场新人使用电脑专注整理{kw}，屏幕上展示着清晰的职业技能标签与项目交付物清单"
-    else: # tools
-        if "GPT" in title or "Claude" in title:
-            return f"电脑屏幕上展示着 {kw} 场景下的智能对话界面，分屏对比了 GPT 与 Claude 的推理输出结果"
-        elif "Prompt" in title or "公式" in title:
-            return f"在 AI 提示词测试工具中输入{kw}的四段式公式，屏幕上正高效输出逻辑严密的高级回复模板"
-        elif "安全" in title or "脱敏" in title or "隐私" in title:
-            return f"安全审计人员正在核查{kw}的数据流程，屏幕中对涉及个人或企业隐私的敏感字段做了精确的模糊脱敏"
-        else:
-            return f"办公桌上的显示器呈现了{kw}的自动化工作流，屏幕右侧展示着个人效率知识库的目录结构"
+        return f"学生在笔记本电脑前整理学习资料，作为{kw}相关校园效率文章配图"
+    if group == "career":
+        return f"多人围绕笔记本电脑讨论项目内容，作为{kw}相关求职文章配图"
+    return f"笔记本电脑屏幕显示代码编辑器，作为{kw}相关 AI 工具文章配图"
 
 
 def custom_caption_for(article: dict) -> str:
     kw = article["keyword"]
-    return f"【实战配图】{kw}的科学流程与效率工作流示意（配图经过 AI 深度解析优化，遵循 SEO 与无障碍可读性规范）。"
+    group_label = GROUPS[article["group"]]["label"]
+    return f"通用配图：{group_label}中与{kw}相关的学习或工作场景，图片来源：Unsplash。"
 
 
 def render_article(article: dict) -> str:
@@ -963,8 +1125,194 @@ def render_article(article: dict) -> str:
 """
 
 
+
+def render_interactive_tools_section() -> str:
+    return """
+<section class="section interactive-tools-section" id="geek-tools">
+  <div class="section-inner">
+    <div class="section-head">
+      <div>
+        <span class="tag hot">期末周 &amp; 求职季工具</span>
+        <h2>极客互动工具箱</h2>
+        <p>所有计算在浏览器本地完成，用于绩点估算与简历表达练习。</p>
+      </div>
+      <div class="tool-tabs" role="tablist">
+        <button class="tool-tab-btn active" role="tab" aria-selected="true" data-tab="gpa-calculator">
+          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 3L1 9l11 6l9-4.91V17h2V9L12 3zM5.47 12.04L12 15.6l6.53-3.56L20 13.1V17h-2v-2.18l-6 3.27l-6-3.27V13.1l1.47-1.06z"/></svg>
+          绩点 (GPA) 计算器
+        </button>
+        <button class="tool-tab-btn" role="tab" aria-selected="false" data-tab="star-generator">
+          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2L9.19 8.63L2 9.24l5.46 4.73L5.82 21L12 17.27z"/></svg>
+          简历 STAR 生成器
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Content 1: GPA Calculator -->
+    <div class="tool-tab-content active" id="gpa-calculator-panel" role="tabpanel">
+      <div class="tool-grid">
+        <div class="tool-form-side">
+          <div class="tool-card-header">
+            <h3>课程成绩录入</h3>
+            <div class="preset-buttons">
+              <button class="btn-preset" data-preset="freshman">大一上示例</button>
+              <button class="btn-preset" data-preset="sophomore">专业课示例</button>
+            </div>
+          </div>
+          <p class="tool-card-desc">支持百分制成绩自动换算 4.0 标准学分绩点。</p>
+          <div class="course-list" id="course-rows-container">
+            <!-- Rows dynamically loaded -->
+          </div>
+          <div class="form-actions">
+            <button class="btn-action primary" id="add-course-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              添加课程
+            </button>
+            <button class="btn-action secondary" id="reset-gpa-btn">重置</button>
+          </div>
+        </div>
+
+        <div class="tool-result-side">
+          <div class="dashboard-card">
+            <div class="dashboard-header">
+              <h3>实时绩点估算</h3>
+              <span class="status-indicator">实时计算</span>
+            </div>
+
+            <div class="gpa-visual-container">
+              <div class="gpa-ring-wrapper">
+                <svg class="gpa-svg" viewBox="0 0 120 120">
+                  <circle class="gpa-ring-bg" cx="60" cy="60" r="50" />
+                  <circle class="gpa-ring-fill" id="gpa-progress-ring" cx="60" cy="60" r="50" />
+                </svg>
+                <div class="gpa-number-box">
+                  <span class="gpa-val" id="gpa-val-display">0.00</span>
+                  <span class="gpa-label">4.0 标准绩点</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="gpa-metrics-grid">
+              <div class="gpa-metric-item">
+                <span class="metric-label">加权平均分</span>
+                <strong class="metric-val" id="weighted-score-display">0.0</strong>
+              </div>
+              <div class="gpa-metric-item">
+                <span class="metric-label">总学分</span>
+                <strong class="metric-val" id="total-credits-display">0.0</strong>
+              </div>
+              <div class="gpa-metric-item">
+                <span class="metric-label">5.0 算法绩点</span>
+                <strong class="metric-val" id="gpa-5-display">0.00</strong>
+              </div>
+            </div>
+
+            <div class="gpa-tips-box">
+              <div class="tips-icon">💡</div>
+              <p id="gpa-evaluation-text">录入你的学分与百分制成绩，看看你的成绩处于什么水平吧！</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content 2: STAR Generator -->
+    <div class="tool-tab-content" id="star-generator-panel" role="tabpanel" style="display: none;">
+      <div class="tool-grid">
+        <div class="tool-form-side">
+          <div class="tool-card-header">
+            <h3>STAR 维度输入</h3>
+            <div class="preset-buttons">
+              <button class="btn-preset" data-star-preset="frontend">前端性能优化</button>
+              <button class="btn-preset" data-star-preset="qa">自动化测试提效</button>
+              <button class="btn-preset" data-star-preset="event">社团运营策划</button>
+            </div>
+          </div>
+          <p class="tool-card-desc">用黄金法则重塑你的项目经历，告别空洞堆砌。</p>
+
+          <div class="star-input-group">
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-s"><strong>S</strong> Situation (情境 / 背景)</label>
+                <span class="field-desc">你当时面临什么业务痛点、紧急挑战或系统瓶颈？</span>
+              </div>
+              <textarea id="star-s" placeholder="例如：在软件发布前夕，测试环境出现高频偶发性锁冲突，导致自动化主流程偶发性阻塞，阻塞率高达 15%，严重拖慢版本发布进度..." rows="3"></textarea>
+            </div>
+
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-t"><strong>T</strong> Task (任务 / 职责)</label>
+                <span class="field-desc">你的具体工作职责是什么？要实现的量化指标是什么？</span>
+              </div>
+              <textarea id="star-t" placeholder="例如：我负责牵头排查该死锁的底层根本原因，并重构相关的事务隔离级别与重试机制，要求在 3 表内将主流程锁冲突率降低至 0，保障发布顺利..." rows="2"></textarea>
+            </div>
+
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-a"><strong>A</strong> Action (行动 / 实施)</label>
+                <span class="field-desc">你采取了什么具体方案？运用了什么硬核工具或核心方法？</span>
+              </div>
+              <textarea id="star-a" placeholder="例如：使用 JVM 线程 Dump 分析定位到 A/B 表锁顺序不一致问题；重写了数据库锁超时自旋重试机制，并编写 Python 自动化脚本压测复现；最后对数据库索引进行了深度优化以减少排他锁范围..." rows="4"></textarea>
+            </div>
+
+            <div class="star-field">
+              <div class="field-label-row">
+                <label for="star-r"><strong>R</strong> Result (结果 / 产出)</label>
+                <span class="field-desc">取得了什么最终成效？请务必用具体百分比或量化数据描述。</span>
+              </div>
+              <textarea id="star-r" placeholder="例如：新机制上线后死锁率降低至 0%，自动化测试吞吐量提升 35%，按期保障了版本发布，并将排查经验整理成团队死锁诊断标准手册..." rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="tool-result-side">
+          <div class="dashboard-card preview-card">
+            <div class="dashboard-header">
+              <h3>简历表达预览</h3>
+              <div class="style-selector">
+                <label for="star-style">风格：</label>
+                <select id="star-style">
+                  <option value="hardcore" selected>硬核技术研发版</option>
+                  <option value="general">通用业务执行版</option>
+                  <option value="minimal">极简求职黄金版</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="star-output-wrapper">
+              <div class="code-editor-header">
+                <div class="editor-buttons">
+                  <span class="editor-dot red"></span>
+                  <span class="editor-dot yellow"></span>
+                  <span class="editor-dot green"></span>
+                </div>
+                <span class="editor-title">formatted-star-resume.md</span>
+              </div>
+              <pre class="star-pre"><code class="star-code" id="star-output-code">在等待输入...</code></pre>
+              <button class="btn-action primary copy-button" id="copy-star-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                一键复制排版
+              </button>
+            </div>
+
+            <div class="gpa-tips-box">
+              <div class="tips-icon">📋</div>
+              <p>STAR 结构适合把项目经历拆成背景、任务、行动和结果，便于在简历和面试中清楚说明自己的贡献。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+"""
+
+
 def render_group_page(group_key: str, title: str | None = None, description: str | None = None, lead: str | None = None) -> str:
     meta = GROUP_PAGE_COPY[group_key]
+    tools_interactive_html = ""
+    if group_key == "tools":
+        tools_interactive_html = render_interactive_tools_section()
     group = GROUPS[group_key]
     items = [item for item in ARTICLES if item["group"] == group_key]
     title = title or meta["title"]
@@ -988,6 +1336,7 @@ def render_group_page(group_key: str, title: str | None = None, description: str
     <section class="article-hero"><div class="section-inner"><span class="eyebrow">{esc(group['eyebrow'])}</span><h1>{esc(title)}</h1><p class="hero-lede">{esc(lead)}</p></div></section>
     <section class="section"><div class="section-inner"><article class="offer-card seo-focus-card"><div class="offer-copy"><div class="offer-meta"><span class="tag hot">专题导航</span><span class="tag free">{len(items)} 篇文章</span></div><h2>先按主题找入口，再进入具体问题</h2><p>本专题按搜索问题拆分文章，每篇都给快速答案、执行清单、模板、常见错误和参考来源。</p></div><div class="offer-action"><a class="button hot" href="articles.html?group={group_key}">查看本专题全部文章</a><a class="card-link" href="{article_url(items[0]['slug'])}">先读：{esc(items[0]['tag'])}</a></div></article></div></section>
     <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>{esc(title)}分组导航</h2><p>优先从最接近你当前问题的分组进入，减少无效浏览。</p></div></div><div class="grid three">{"".join(buckets)}</div></div></section>
+    {tools_interactive_html}
     <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>{esc(title)}文章列表</h2><p>所有文章均为免费阅读，优先解决一个具体问题，避免空泛堆词。</p></div></div><div class="grid three">{cards}</div></div></section>
   </main>
   {footer_html()}
@@ -1051,7 +1400,11 @@ def render_articles_index() -> str:
 
 
 def render_static_page(path: str, meta: dict) -> str:
-    sections = "".join(f"<h2>{esc(title)}</h2><p>{esc(body)}</p>" for title, body in meta["sections"])
+    allow_html = bool(meta.get("allow_html"))
+    sections = "".join(
+        f"<h2>{esc(title)}</h2><p>{body if allow_html else esc(body)}</p>"
+        for title, body in meta["sections"]
+    )
     schema = structured_webpage(meta["title"], meta["description"], path, "AboutPage" if path == "about.html" else "WebPage")
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -1161,30 +1514,8 @@ function buildFooter() {{
 }}
 
 function buildAdSlots() {{
-  // 1. Asynchronously load Google AdSense script once using ca-pub-7663008606677915
-  if (!document.querySelector('script[src*="pagead2.googlesyndication.com"]')) {{
-    const adScript = document.createElement("script");
-    adScript.async = true;
-    adScript.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7663008606677915";
-    adScript.crossOrigin = "anonymous";
-    document.head.appendChild(adScript);
-  }}
-
-  // 2. Loop through and initialize all ad containers with CLS mitigation (min-height: 250px)
   document.querySelectorAll("[data-ad-slot]").forEach((slot) => {{
-    slot.innerHTML = `
-      <ins class="adsbygoogle"
-           style="display:block; min-height: 250px;"
-           data-ad-client="ca-pub-7663008606677915"
-           data-ad-slot="1234567890"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
-    `;
-    try {{
-      (window.adsbygoogle = window.adsbygoogle || []).push({{}});
-    }} catch (e) {{
-      console.warn("AdSense push error:", e);
-    }}
+    slot.innerHTML = `<div><strong>赞助内容区域</strong><span>${{siteConfig.adPlaceholder}}</span></div>`;
   }});
 }}
 
@@ -1272,6 +1603,315 @@ function initCopyButtons() {{
   }});
 }}
 
+
+function initInteractiveTools() {{
+  // --- Tab Switcher Logic ---
+  const tabButtons = document.querySelectorAll(".tool-tab-btn");
+  const tabContents = document.querySelectorAll(".tool-tab-content");
+  if (tabButtons.length > 0) {{
+    tabButtons.forEach((btn) => {{
+      btn.addEventListener("click", () => {{
+        const tabId = btn.dataset.tab;
+        tabButtons.forEach((b) => {{
+          b.classList.toggle("active", b === btn);
+          b.setAttribute("aria-selected", b === btn ? "true" : "false");
+        }});
+        tabContents.forEach((content) => {{
+          if (content.id === `${{tabId}}-panel`) {{
+            content.style.display = "block";
+            content.classList.add("active");
+          }} else {{
+            content.style.display = "none";
+            content.classList.remove("active");
+          }}
+        }});
+      }});
+    }});
+  }}
+
+  // --- GPA Calculator Logic ---
+  const container = document.getElementById("course-rows-container");
+  const addBtn = document.getElementById("add-course-btn");
+  const resetBtn = document.getElementById("reset-gpa-btn");
+  const gpaValDisplay = document.getElementById("gpa-val-display");
+  const weightedScoreDisplay = document.getElementById("weighted-score-display");
+  const totalCreditsDisplay = document.getElementById("total-credits-display");
+  const gpa5Display = document.getElementById("gpa-5-display");
+  const gpaProgressRing = document.getElementById("gpa-progress-ring");
+  const gpaEvaluationText = document.getElementById("gpa-evaluation-text");
+
+  let courseCount = 0;
+
+  function scoreToGpa4(score) {{
+    if (score >= 90) return 4.0;
+    if (score >= 85) return 3.7;
+    if (score >= 82) return 3.3;
+    if (score >= 78) return 3.0;
+    if (score >= 75) return 2.7;
+    if (score >= 72) return 2.3;
+    if (score >= 68) return 2.0;
+    if (score >= 64) return 1.5;
+    if (score >= 60) return 1.0;
+    return 0.0;
+  }}
+
+  function scoreToGpa5(score) {{
+    if (score < 60) return 0.0;
+    return parseFloat(((score - 50) / 10).toFixed(2));
+  }}
+
+  function createCourseRow(name = "", credits = 3.0, score = 90) {{
+    courseCount++;
+    const row = document.createElement("div");
+    row.className = "course-row";
+    row.id = `course-row-${{courseCount}}`;
+    const nameId = `course-name-${{courseCount}}`;
+    const creditId = `course-credit-${{courseCount}}`;
+    const scoreId = `course-score-${{courseCount}}`;
+    row.innerHTML = `
+      <div class="row-field name-field">
+        <label class="sr-only" for="${{nameId}}">第 ${{courseCount}} 门课程名称</label>
+        <input id="${{nameId}}" type="text" class="course-name-input" placeholder="课程名称（可选）" value="${{name}}">
+      </div>
+      <div class="row-field credit-field">
+        <label class="sr-only" for="${{creditId}}">第 ${{courseCount}} 门课程学分</label>
+        <input id="${{creditId}}" type="number" class="course-credit-input" min="0.5" max="10" step="0.5" placeholder="学分" value="${{credits}}">
+      </div>
+      <div class="row-field score-field">
+        <label class="sr-only" for="${{scoreId}}">第 ${{courseCount}} 门课程百分制成绩</label>
+        <input id="${{scoreId}}" type="number" class="course-score-input" min="0" max="100" placeholder="成绩" value="${{score}}">
+      </div>
+      <button class="btn-remove-row" type="button" title="删除此行" aria-label="删除第 ${{courseCount}} 门课程">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    `;
+
+    row.querySelectorAll("input").forEach((input) => {{
+      input.addEventListener("input", calculateGpa);
+    }});
+
+    row.querySelector(".btn-remove-row").addEventListener("click", () => {{
+      row.remove();
+      calculateGpa();
+    }});
+
+    container.appendChild(row);
+  }}
+
+  function calculateGpa() {{
+    const rows = container.querySelectorAll(".course-row");
+    let totalWeightedScore = 0;
+    let totalWeightedGpa4 = 0;
+    let totalWeightedGpa5 = 0;
+    let totalCredits = 0;
+
+    rows.forEach((row) => {{
+      const creditInput = row.querySelector(".course-credit-input");
+      const scoreInput = row.querySelector(".course-score-input");
+
+      const credits = parseFloat(creditInput.value) || 0;
+      const score = parseFloat(scoreInput.value) || 0;
+
+      if (credits > 0) {{
+        totalCredits += credits;
+        totalWeightedScore += score * credits;
+        totalWeightedGpa4 += scoreToGpa4(score) * credits;
+        totalWeightedGpa5 += scoreToGpa5(score) * credits;
+      }}
+    }});
+
+    if (totalCredits > 0) {{
+      const avgScore = totalWeightedScore / totalCredits;
+      const avgGpa4 = totalWeightedGpa4 / totalCredits;
+      const avgGpa5 = totalWeightedGpa5 / totalCredits;
+
+      weightedScoreDisplay.textContent = avgScore.toFixed(1);
+      gpaValDisplay.textContent = avgGpa4.toFixed(2);
+      gpa5Display.textContent = avgGpa5.toFixed(2);
+      totalCreditsDisplay.textContent = totalCredits.toFixed(1);
+
+      if (gpaProgressRing) {{
+        const percent = avgGpa4 / 4.0;
+        const offset = 314.159 - (percent * 314.159);
+        gpaProgressRing.style.strokeDashoffset = offset;
+      }}
+
+      let evalText = "";
+      if (avgGpa4 >= 3.8) {{
+        evalText = "当前绩点非常优秀，适合继续整理课程成果、项目经历和后续申请材料。";
+      }} else if (avgGpa4 >= 3.5) {{
+        evalText = "当前绩点表现稳定，建议保持优势课程，同时针对薄弱科目做阶段复盘。";
+      }} else if (avgGpa4 >= 3.0) {{
+        evalText = "当前绩点处于良好区间，可以优先提升高学分课程的复习效率。";
+      }} else if (avgGpa4 >= 2.0) {{
+        evalText = "当前绩点还有提升空间，建议先定位低分高学分课程，再制定复习计划。";
+      }} else {{
+        evalText = "当前绩点偏低，建议尽快核对课程要求，并为重点科目安排更明确的补强计划。";
+      }}
+      gpaEvaluationText.textContent = evalText;
+    }} else {{
+      weightedScoreDisplay.textContent = "0.0";
+      gpaValDisplay.textContent = "0.00";
+      gpa5Display.textContent = "0.00";
+      totalCreditsDisplay.textContent = "0.0";
+      if (gpaProgressRing) {{
+        gpaProgressRing.style.strokeDashoffset = 314.159;
+      }}
+      gpaEvaluationText.textContent = "录入你的学分与百分制成绩，看看你的成绩处于什么水平吧！";
+    }}
+  }}
+
+  const presets = {{
+    freshman: [
+      {{ name: "高等数学 I", credits: 5.0, score: 92 }},
+      {{ name: "大学英语 I", credits: 3.0, score: 88 }},
+      {{ name: "计算机导论", credits: 3.0, score: 95 }},
+      {{ name: "思想道德与法治", credits: 2.0, score: 85 }},
+      {{ name: "大学体育 I", credits: 1.0, score: 90 }}
+    ],
+    sophomore: [
+      {{ name: "数据结构与算法", credits: 4.0, score: 94 }},
+      {{ name: "操作系统", credits: 4.0, score: 89 }},
+      {{ name: "计算机网络", credits: 3.0, score: 91 }},
+      {{ name: "软件工程导论", credits: 3.0, score: 87 }},
+      {{ name: "数据库系统设计", credits: 3.0, score: 90 }}
+    ]
+  }};
+
+  document.querySelectorAll("[data-preset]").forEach((btn) => {{
+    btn.addEventListener("click", () => {{
+      const type = btn.dataset.preset;
+      container.innerHTML = "";
+      if (presets[type]) {{
+        presets[type].forEach((c) => createCourseRow(c.name, c.credits, c.score));
+      }}
+      calculateGpa();
+    }});
+  }});
+
+  addBtn?.addEventListener("click", () => {{
+    createCourseRow("", 3.0, 85);
+    calculateGpa();
+  }});
+
+  resetBtn?.addEventListener("click", () => {{
+    container.innerHTML = "";
+    createCourseRow("高等数学", 5.0, 90);
+    createCourseRow("大学英语", 3.0, 85);
+    calculateGpa();
+  }});
+
+  // --- Resume STAR Generator Logic ---
+  const starS = document.getElementById("star-s");
+  const starT = document.getElementById("star-t");
+  const starA = document.getElementById("star-a");
+  const starR = document.getElementById("star-r");
+  const starStyle = document.getElementById("star-style");
+  const starOutputCode = document.getElementById("star-output-code");
+  const copyStarBtn = document.getElementById("copy-star-btn");
+
+  const starPresets = {{
+    frontend: {{
+      s: "随着业务功能叠加，某高频交易列表页的首次内容渲染时间（FCP）恶化至 4.2 秒，导致用户流失率显著上升，移动端首屏出现明显白屏卡顿。",
+      t: "我负责主导该核心列表页的性能调优工作，目标是在两周内将 FCP 缩短至 1.8 秒以内，并在弱网环境下实现平滑加载，挽回潜在交易用户。",
+      a: "采用 Chrome DevTools Performance 深度分析，定位到多处大图阻塞、非核心 JS 未按需加载等问题；实施了路由级首屏代码分割（Code Splitting），引入 CSS 骨架屏（Skeleton Screen），并将全站静态资源通过 WebP 压缩接入 Edge CDN，同时对列表图片实施了 Lazy Loading。",
+      r: "首屏 FCP 从 4.2 秒暴降至 1.45 秒（提效 65.5%），在 3G 弱网环境下白屏时长减少了 70%，上线后列表页交易转化率提升了 14.8%，流失率大幅回落。"
+    }},
+    qa: {{
+      s: "原有项目回归测试阶段过度依赖手工测试，500+ 个功能点全量回归耗时超过 2.5 天，且由于人工漏测频发，导致线上生产环境偶发性报错，沟通与排查成本极高。",
+      t: "我承担起搭建全新自动化测试框架的职责，要求在 1 个月内实现核心链路 100% 覆盖，并将自动化回归执行时长压缩至 30 分钟内。",
+      a: "基于 pytest 框架搭建了 Page Object Model (POM) 自动化测试架构，利用 Python Selenium/Playwright 编写了 150+ 个并发执行的测试用例；引入并发机制及智能显式等待（Explicit Waits），并在 CI/CD Pipeline 中集成 Webhook 通知，实现代码提交即刻自动触发冒烟与全量测试。",
+      r: "回归测试总耗时从 2.5 天暴缩至 22 分钟（提效 98% 以上），测试覆盖率由零跃升至 88%，上线两个月来拦截了 14 次严重阻塞性缺陷，线上发布事故率直降为 0。"
+    }},
+    event: {{
+      s: "学院一年一度的极客文化科技节参与人数逐年下滑，上届活动实际签到人数不足 120 人，学生社团预算面临被缩减的窘境，亟需探索新型宣传路径以挽回人气。",
+      t: "作为本届科技节总负责人，我制定了“签到人数翻倍”的目标，要求在 5000 元有限经费内吸引至少 300 名学生到场深度体验，并实现跨院系传播。",
+      a: "重构策划方案，增设了“AI 效率小工具盲盒”与“现场提示词对抗赛”等高交互环节；通过微信公众号、小红书社群矩阵进行裂变海报推广，设计了“邀请 3 人组队即赠送大厂面试指南”的机制，并在全校 8 个主要宿区进行定向海报投放与社群接龙。",
+      r: "现场实际参与人数达到 430+ 人，相比上届极增 258%，创下学院近五年活动人数最高纪录；最终以 4200 元超预期省下 16% 预算，社团因此荣获年度“十佳精品活动”称号。"
+    }}
+  }};
+
+  function updateStarPreview() {{
+    if (!starS || !starT || !starA || !starR || !starOutputCode) return;
+    const sVal = starS.value.trim();
+    const tVal = starT.value.trim();
+    const aVal = starA.value.trim();
+    const rVal = starR.value.trim();
+
+    if (!sVal && !tVal && !aVal && !rVal) {{
+      starOutputCode.textContent = "在左侧输入框输入内容，或选择上方预设，将实时生成排版完美的 STAR 简历文本！";
+      return;
+    }}
+
+    const s = sVal || "（未填写情境描述）";
+    const t = tVal || "（未填写任务职责）";
+    const a = aVal || "（未填写行动步骤）";
+    const r = rVal || "（未填写最终结果）";
+
+    const style = starStyle ? starStyle.value : "hardcore";
+    let formatted = "";
+
+    if (style === "hardcore") {{
+      formatted = `* **[项目背景 (Situation)]** ${{s}}\n* **[核心职责 (Task)]** ${{t}}\n* **[技术攻坚 (Action)]** ${{a}}\n* **[业务成效 (Result)]** ${{r}}`;
+    }} else if (style === "general") {{
+      formatted = `* **项目背景**：${{s}}\n* **工作职责**：${{t}}\n* **具体行动**：${{a}}\n* **最终成效**：${{r}}`;
+    }} else {{
+      formatted = `* 【项目背景】${{s}} 针对此目标，本人【明确任务】${{t}}。\n* 【实施行动】在行动上，${{a}}。\n* 【量化结果】最终实现${{r}}。`;
+    }}
+
+    starOutputCode.textContent = formatted;
+
+    starOutputCode.classList.add("updating");
+    if (starOutputCode._updateTimeout) clearTimeout(starOutputCode._updateTimeout);
+    starOutputCode._updateTimeout = setTimeout(() => {{
+      starOutputCode.classList.remove("updating");
+    }}, 200);
+  }}
+
+  document.querySelectorAll("[data-star-preset]").forEach((btn) => {{
+    btn.addEventListener("click", () => {{
+      const type = btn.dataset.starPreset;
+      if (starPresets[type]) {{
+        starS.value = starPresets[type].s;
+        starT.value = starPresets[type].t;
+        starA.value = starPresets[type].a;
+        starR.value = starPresets[type].r;
+        updateStarPreview();
+      }}
+    }});
+  }});
+
+  [starS, starT, starA, starR].forEach((textarea) => {{
+    textarea?.addEventListener("input", updateStarPreview);
+  }});
+  starStyle?.addEventListener("change", updateStarPreview);
+
+  copyStarBtn?.addEventListener("click", async () => {{
+    const code = starOutputCode ? starOutputCode.textContent : "";
+    if (!code || code.startsWith("在左侧输入框") || code.startsWith("在等待输入")) return;
+    try {{
+      await navigator.clipboard.writeText(code);
+      const originalText = copyStarBtn.textContent || "一键复制排版";
+      copyStarBtn.textContent = "已复制到剪贴板！";
+      copyStarBtn.classList.add("copied");
+      setTimeout(() => {{
+        copyStarBtn.textContent = originalText;
+        copyStarBtn.classList.remove("copied");
+      }}, 2000);
+    }} catch (err) {{
+      console.error("Failed to copy STAR text:", err);
+    }}
+  }});
+
+  if (container) {{
+    createCourseRow("高等数学", 5.0, 90);
+    createCourseRow("大学英语", 3.0, 85);
+    calculateGpa();
+  }}
+  updateStarPreview();
+}}
+
+
 document.addEventListener("DOMContentLoaded", () => {{
   buildNav();
   buildFooter();
@@ -1279,6 +1919,7 @@ document.addEventListener("DOMContentLoaded", () => {{
   buildFeaturedResources();
   buildArticleSearch();
   initCopyButtons();
+  initInteractiveTools();
 }});
 """
 
