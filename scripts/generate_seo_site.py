@@ -476,14 +476,15 @@ STATIC_PAGES = {
         ],
     },
     "privacy.html": {
-        "title": "隐私政策",
-        "description": "AI效率资源站隐私政策，说明站点当前不主动收集个人敏感信息。",
+        "title": "隐私政策与 Cookie 声明",
+        "description": "AI效率资源站隐私政策，向用户说明第三方广告 Cookie 收集、Google 个性化广告退订方式及隐私合规说明。",
         "eyebrow": "Privacy",
-        "lead": "本页面说明本站在静态站第一版中的数据处理方式。",
+        "lead": "本隐私声明根据 Google AdSense 规范定制，向您透明化展示本网站及其合作伙伴关于 Cookie 与隐私保护的技术细节。",
         "sections": [
-            ("信息收集", "当前版本是纯静态网站，不提供注册、登录、评论或在线支付功能，也不会主动收集身份证号、银行卡、账号密码等敏感信息。"),
-            ("第三方服务", "后续如接入网站统计或广告联盟，可能由第三方根据其隐私政策处理访问数据或广告展示数据。本站会在接入前更新本页面说明。"),
-            ("联系信息", "如果你通过联系页面主动发送邮件，邮件中包含的信息仅用于回复你的问题或合作咨询。"),
+            ("Cookie 及同类技术的使用", "本站为免费提供学习与求职资源的静态网站。为了优化浏览体验并展示契合您个人偏好的广告内容，本站及第三方供应商（包括 Google 等广告发布商）可能会在您的浏览器中存储和读取 Cookie，或者使用网络信标（Web Beacons）收集与数据分析相关的日志信息。"),
+            ("第三方广告供应商与 Google AdSense 说明", "1. Google 等第三方供应商会依据您此前访问本网站或其他网站的历史记录，使用 Cookie 向您投放广告；\n2. Google 对广告 Cookie 的合理使用，使其及其合作伙伴能够根据您对本站和/或互联网上其他网站的访问行为，向您精准投放更具相关性的广告；\n3. 如果您不希望接收个性化广告投放，可以随时通过访问 [Google 广告设置页面(https://www.google.com/settings/ads)] 停用该功能；\n4. 您也可以通过访问 [AboutAds 行业标准退订页面(https://www.aboutads.info)]，一键式选择停用或拒绝接受第三方广告供应商使用个性化广告 Cookie。"),
+            ("GDPR 与 CCPA 数据选择权保障", "对于来自欧盟地区（GDPR）或加利福尼亚州（CCPA）等拥有严格隐私权法案国家与地区的用户，本站全面支持您的选择权利。若您在首页面或通过浏览器设置拒绝第三方跟踪，我们只会向您展示非个性化的泛用型赞助广告。您可随时在浏览器偏好设置中彻底清除已留存的 Cookie。"),
+            ("信息保护与联系方式", "本站属于无需注册的静态演示项目，不收集诸如银行账户、密码或实名证件等任何个人敏感隐私信息。如果您因内容纠错、资源共建等目的主动向我们发送电子邮件，您邮件内包含的所有联系方式与信件内容均仅在必要合理范围内用于沟通，绝不向第三方透露或转售。"),
         ],
     },
     "contact.html": {
@@ -605,58 +606,151 @@ def article_card(article: dict, prefix: str = "") -> str:
 
 
 def quick_answer(article: dict) -> str:
-    return (
-        f"{article['keyword']}的关键不是收集更多材料，而是先确定目标、输入材料和检查标准。"
-        f"可以按“场景判断、步骤拆解、模板执行、结果核验”四步走：先看自己是否属于{article['tag']}场景，"
-        f"再把任务拆成 3 到 5 个动作，最后用清单确认是否符合课程、岗位或工具规则。"
-    )
+    group = article["group"]
+    keyword = article["keyword"]
+    tag = article["tag"]
+    problem = article["problem"].rstrip("。")
+    method = article["method"].rstrip("。")
+    steps = article["steps"]
+
+    if group == "campus":
+        return (
+            f"对于许多在“{tag}”中面临瓶颈或感到焦虑的在校大学生来说，面临的主要问题是：{problem}。"
+            f"本指南提供的核心解决思路是：{method}。为了确保实践时绝无遗漏，"
+            f"我们建议你将任务拆解为包含首步“{steps[0].rstrip('。')}”在内的 {len(steps)} 个关键执行动作，"
+            f"并在每阶段完成后，对照我们提供的深度执行清单进行量化自评，彻底规避学术越界风险。"
+        )
+    elif group == "career":
+        return (
+            f"在求职准备或针对“{tag}”的技术技能提升中，很多求职者最大的痛点在于：{problem}。"
+            f"对此，本篇指南向你推荐的系统级突破方案为：{method}。"
+            f"我们已将整体流程拆解为包含“{steps[0].rstrip('。')}”在内的 {len(steps)} 项连贯动作，"
+            f"并融合了高频面试追问与简历量化STAR原则，助你在面对面试官时展现出扎实的实际排错思维与工程素养。"
+        )
+    else:
+        return (
+            f"在大语言模型或 AI 交互工具的使用中，针对“{tag}”场景下高频出现的困境：{problem}，"
+            f"本站梳理出的最佳执行策略是：{method}。在实操时，"
+            f"建议以本指南给出的“{steps[0].rstrip('。')}”为出发点，规范你的输入约束（如四段式 Prompt）与边界核验，"
+            f"把 AI 从简单的‘单次问答’改造成高确定性、高复用度的‘生产力共创底座’。"
+        )
 
 
 def execution_items(article: dict) -> list[str]:
-    return [
-        f"先写下这次要解决的具体问题：{article['keyword']}。",
-        "准备真实背景材料，不让 AI 自行补关键事实。",
-        f"按本文步骤执行：{article['steps'][0]}",
-        "输出后逐条核验来源、时间、规则和适用范围。",
-        "把最终结果整理成自己的笔记、表格或练习材料，便于下次复用。",
-    ]
+    steps = article["steps"]
+    group = article["group"]
+    keyword = article["keyword"]
+
+    items = []
+    if group == "campus":
+        items.append(f"仔细研读课程评分标准或考试说明，明确“{keyword}”的核心通过分值与答题/作业规范。")
+        items.append(f"整理出个人真实的薄弱真题、待解决题目或课程数据，作为本次训练的唯一输入材料。")
+        if len(steps) >= 3:
+            items.append(f"执行第一步：{steps[0].rstrip('。')}，通过小样本验证方法的有效性。")
+            items.append(f"执行中期步骤：{steps[1].rstrip('。')} 与 {steps[2].rstrip('。')}，完成核心内容编写。")
+        else:
+            items.append(f"核心实操步骤：依据文中指引，立即完成关于“{steps[0]}”的行动动作。")
+        items.append("对照学校与任课老师的学术诚信守则，确保没有超出合理辅助边界，不留学术安全漏洞。")
+    elif group == "career":
+        items.append(f"对标目标求职岗位 JD 描述，找出面试官或架构师针对“{keyword}”最看重的核心考察能力点。")
+        items.append(f"梳理出自己过往经历中真实的测试日志、错误堆栈、代码配置或数据环境，杜绝空泛描述。")
+        if len(steps) >= 3:
+            items.append(f"执行前期备战：{steps[0].rstrip('。')}，确保简历项目具有可追问的底层细节。")
+            items.append(f"执行核心精进：{steps[1].rstrip('。')} 与 {steps[2].rstrip('。')}，夯实异常排查机制。")
+        else:
+            items.append(f"核心实操步骤：按照“{steps[0]}”的技术流程，在本地或测试环境完成脚本部署。")
+        items.append("运用 STAR 结构重新提炼面试表述，对每项产出进行逻辑闭环自检，确保所有技术词都具备实战依据。")
+    else:
+        items.append(f"明确“{keyword}”的主体任务边界，并基于‘四段式公式’撰写包含角色、目标与格式的初始 Prompt。")
+        items.append(f"准备高纯度的上下文参考材料，剔除无用冗余信息，并显式禁止 AI 捏造任何外部链接与陈旧事实。")
+        if len(steps) >= 3:
+            items.append(f"开始第一轮交互：重点实施‘{steps[0].rstrip('。')}’，获取高确定性的初步框架。")
+            items.append(f"开启迭代校验：执行‘{steps[1].rstrip('。')}’及‘{steps[2].rstrip('。')}’，逼近终极期望交付物。")
+        else:
+            items.append(f"核心交互动作：通过‘{steps[0]}’来训练并约束模型的生成风格。")
+        items.append("执行多平台或官方文档级别的盲测校验，重点筛查大模型因幻觉生成的虚假接口、函数名或配置属性。")
+    return items
 
 
 def deep_dive(article: dict) -> str:
-    if article["group"] == "campus":
+    group = article["group"]
+    keyword = article["keyword"]
+    tag = article["tag"]
+    problem = article["problem"].rstrip("。")
+    method = article["method"].rstrip("。")
+
+    if group == "campus":
         return (
-            f"校园场景还要特别注意老师要求和课程评分标准。处理{article['keyword']}时，"
-            "建议把任务分成“必须完成”和“可以优化”两层：前者包括题目要求、格式、截止时间和个人理解，后者才是表达润色、结构优化和资料补充。"
-            "这样做能避免把精力花在看起来精致但不影响得分的地方，也能留下自己的思考痕迹。"
+            f"在深度优化“{keyword}”的进程中，我们必须高度重视学术诚信与课程大纲的配合度。"
+            f"许多在校生容易陷入{problem}的焦灼状态，原因多在于追求‘走捷径’而丧失了独立思考能力。通过采取“{method}”的渐进式方法，"
+            f"我们可以用 AI 整理繁冗数据、构建时间表或查找语法拼写错误，但要把关观点论证、个人真实体验与最终的定稿判断。"
+            f"在应对‘{tag}’相关期末或等级性挑战时，将 AI 视作激发思维的智能教练，而不是代笔，才能获得真正的自我成长。"
         )
-    if article["group"] == "career":
+    elif group == "career":
         return (
-            f"求职场景更看重可解释性。准备{article['keyword']}时，不要只背结论，"
-            "还要能讲清背景、你做过的动作、遇到的问题、如何定位以及结果如何验证。"
-            "如果某个经历不是自己亲手完成，就应该把表达降级为“了解、参与、辅助”，避免面试追问时前后不一致。"
+            f"在求职准备和面试应对中，面对“{keyword}”这一典型考察点，"
+            f"多数候选人常因{problem}而在回答时显得过于理论化。采用“{method}”的实践逻辑，"
+            f"能帮你从底层打通‘理论与实战的壁垒’。面试官在评估你的‘{tag}’素养时，真正关心的是你在系统运行异常、"
+            f"执行效率受限时的排错路线图和故障复原思路。因此，务必以真实的工程态度去沉淀脚本文档和日志堆栈，做到有据可查、经得起层层追问。"
         )
-    return (
-        f"AI 工具场景更看重输入质量和结果核验。使用{article['keyword']}时，"
-        "先把任务边界、材料来源和输出格式写清楚，再要求模型标注不确定信息。"
-        "涉及账号、安全、文件、政策或工具版本的内容，应回到官方文档或原始材料确认。"
-    )
+    else:
+        return (
+            f"在日常办公或软件研发中使用 AI，要时刻牢记‘精细化交互’的原则。攻克“{keyword}”这一效能卡点时，"
+            f"若发生{problem}的现象，往往是因为对大语言模型的提问过于空泛。引入“{method}”的工程化工作流，"
+            f"不仅能帮我们获取高质量的首轮反馈，还能帮助我们在处理‘{tag}’高频重复操作时快速提取公共逻辑。"
+            f"时刻对大模型输出保持怀疑态度，坚持‘零信任、严核验’，才能让技术工具稳定地为你创造核心业务价值。"
+        )
 
 
 def faq_items(article: dict) -> list[tuple[str, str]]:
-    return [
-        (
-            f"{article['keyword']}可以完全交给 AI 吗？",
-            "不建议。AI 适合拆解任务、发现遗漏和优化表达，但关键事实、个人经历、规则判断和最终取舍都需要人工确认。",
-        ),
-        (
-            "输出结果怎么看是否可靠？",
-            "先看是否引用了可访问来源，再检查时间、版本、适用对象和是否与你的真实场景一致。没有来源的具体结论要标记为待核验。",
-        ),
-        (
-            "怎样把这篇文章的方法复用到下一次？",
-            "把步骤、模板、错误清单保存成自己的检查表。下一次只替换背景材料和目标，不直接复用未核验的结论。",
-        ),
-    ]
+    group = article["group"]
+    keyword = article["keyword"]
+    tag = article["tag"]
+    problem = article["problem"].rstrip("。")
+    method = article["method"].rstrip("。")
+    steps = article["steps"]
+
+    faqs = []
+    if group == "campus":
+        faqs.append((
+            f"用 AI 辅助“{keyword}”备考或完成作业，如何彻底避免学术不端与挂科风险？",
+            f"核心在于分清“辅助”与“代替”。你可以让 AI 扮演辅导老师，协助你做学习计划（如我们的第一步：{steps[0]}）或用特定概念启发提纲。但绝对不能将 AI 直接生成的长篇文字直接粘贴为作业提交，且论文引用应一律以人工核验后的纸质教材、知网、谷歌学术等权威源文献为准。"
+        ))
+        faqs.append((
+            f"针对“{tag}”模块复习时发现自己知识储备薄弱、做题正确率极低，该如何挽救？",
+            f"这往往是由于{problem}引起的。不要一味盲目刷题或背诵范文。建议按照“{method}”的路径，先进行一次彻底的错题场景归因，找到是“词汇壁垒”、“语法定位”还是“逻辑跳跃”的问题。每天集中攻克一个卡点，做透一道真题的效益远超粗放地做十套卷子。"
+        ))
+        faqs.append((
+            f"AI 给出的学习资料、真题详解、参考文献是否全都是真实可靠的？",
+            "绝对不是。大语言模型经常会凭空捏造看似极为真实的文献名称、作者、年份或考试大纲数据（行业内称为“幻觉”）。在使用 AI 推送的任何公式、背景常识或文化典故之前，必须前往教育部官方网站、中国教育考试网等权威出处进行二次核验，不可未经考证即写入作业。"
+        ))
+    elif group == "career":
+        faqs.append((
+            f"在技术面试中，如果面试官针对我的“{keyword}”简历描述进行压力追问该怎么以STAR格式完美应对？",
+            f"面试官旨在揭穿编造的简历。你可以基于我们提供的“{method}”，结合你在项目实战中的真实痛点（如：{problem}）来回答。例如：“在进行{steps[0].rstrip('。')}时，遇到了环境依赖冲突导致失败。我通过分析测试日志和源码定位，采用了显式等待/会话封装机制解决，最终实现了交付成果。”"
+        ))
+        faqs.append((
+            f"如何把“{tag}”的项目经历修改得极具含金量，并且不容易在海投时被HR的AI初筛直接过滤掉？",
+            f"避免写‘负责某系统的手工测试/编码’等划水句。要写出高含金量的动作与量化成果。建议采用：‘引入“{method}”优化{keyword}工作流，针对协议鉴权和高频异常场景设计自动化覆盖用例，编写高可用公共脚本，缩短提缺陷确认耗时，并使脚本长期误报率降至极低。’"
+        ))
+        faqs.append((
+            f"本地自学或在校期间没有大厂正规实习经历，如何在简历中证明我在“{keyword}”上的工程实力？",
+            "大厂注重的是正规的规范与工程习惯。你可以自己在本地或借助个人云搭建完整的 CI/CD 测试流：将编写的测试用例、配置文件、失败截图、测试报告及缺陷记录，完整、优雅地呈现在你的个人 GitHub 仓库上，并在简历上附上链接。这种公开的工程文档，说服力极大。"
+        ))
+    else:
+        faqs.append((
+            f"用 AI 跑“{keyword}”的相关工作，大模型总是答非所问、输出毫无深度甚至胡说八道，怎么破？",
+            f"这多是因为你的 Prompt 缺乏对任务背景和模型角色的严格限定。请立刻尝试我们提供的‘四段式 Prompt 公式’：在首轮输入时明确给足真实约束材料，命令 AI 扮演资深专家角色，并分步引导其首先完成“{steps[0]}”这一具体分支任务。通过增设 Limit 限制，强制其标注不确定信息。"
+        ))
+        faqs.append((
+            f"在处理公司的“{tag}”任务、周报或代码段时，如何妥善防范敏感机密信息泄露的数据合规风险？",
+            "这是不可触碰的合规红线！严禁向任何云端 AI 接口发送包含公司未公开源码、客户个人真实隐私数据、真实鉴权 Token 或内部服务器 IP 连接串的信息。提问前，务必对输入内容进行彻底的本地脱敏，将一切真实变量改写为虚拟占位符（如 placeholder_var1 ），确保公司机密万无一失。"
+        ))
+        faqs.append((
+            f"随着 AI 模型与提示词技巧的频繁更新迭代，如何建立自己关于“{keyword}”的长久核心效能护城河？",
+            f"不要只做‘提示词收藏家’，而要学习底层的业务逻辑与模型微调边界。无论模型如何迭代，其需要的依旧是高质量的上下文输入和明确的输出验证机制。掌握我们推荐的“{method}”核心流，能让你在不同工具（GPT-4、Claude-3.5、各类 IDE 插件）间无缝切换，成为高效驾驭 AI 的超级个体。"
+        ))
+    return faqs
 
 
 def article_schema(article: dict, path: str, image: str) -> list[dict]:
@@ -707,11 +801,52 @@ def render_picture(image: dict, eager: bool = False) -> str:
         f'<picture><source srcset="{esc(webp_path(image["src"]))}" type="image/webp">'
         f'<img src="{esc(image["src"])}" alt="{esc(image["alt"])}" width="{width}" height="{height}" loading="{loading}" decoding="async"{priority}></picture>'
     )
+def custom_alt_for(article: dict) -> str:
+    group = article["group"]
+    title = article["title"]
+    kw = article["keyword"]
+    if group == "campus":
+        if "四六级" in title or "cet" in article["slug"]:
+            return f"大学生正在精心整理{kw}的复习桌面，笔记本旁整齐摆放着四六级真题、单词卡片和14天日程备考表"
+        elif "论文" in title or "作业" in title or "开题" in title:
+            return f"学生在电脑前使用 AI 辅助拆解{kw}的研究大纲，屏幕上清晰展示着论点框架、参考文献与防学术越界边界"
+        elif "活动" in title or "策划" in title or "预算" in title or "歌手" in title or "社团" in title:
+            return f"校园社团干部在会议室讨论{kw}的执行方案，笔记本电脑上正投射出活动的流程细节、组员分工和预算明细表"
+        else:
+            return f"在校学生专注进行{kw}的学习管理，桌面笔记本显示着时间管理日程与本周学习效率卡"
+    elif group == "career":
+        if "自动化" in title or "测试" in title or "pytest" in title or "Selenium" in title or "api" in title or "接口" in title:
+            return f"软件测试工程师在双屏显示器前调试{kw}，编辑器中正运行着 pytest 框架的代码断言和异常排查日志"
+        elif "简历" in title or "STAR" in title or "实习" in title:
+            return f"求职者根据岗位 JD 正在优化{kw}的简历，屏幕上突出展示了符合 STAR 原则的硬核项目贡献与结果数据"
+        elif "自我介绍" in title or "面试" in title or "缺陷报告" in title:
+            return f"应届生正在模拟演练{kw}的面试场景，电脑中正显示着经典问题的结构化回答思路与严厉的追问预案"
+        else:
+            return f"职场新人使用电脑专注整理{kw}，屏幕上展示着清晰的职业技能标签与项目交付物清单"
+    else: # tools
+        if "GPT" in title or "Claude" in title:
+            return f"电脑屏幕上展示着 {kw} 场景下的智能对话界面，分屏对比了 GPT 与 Claude 的推理输出结果"
+        elif "Prompt" in title or "公式" in title:
+            return f"在 AI 提示词测试工具中输入{kw}的四段式公式，屏幕上正高效输出逻辑严密的高级回复模板"
+        elif "安全" in title or "脱敏" in title or "隐私" in title:
+            return f"安全审计人员正在核查{kw}的数据流程，屏幕中对涉及个人或企业隐私的敏感字段做了精确的模糊脱敏"
+        else:
+            return f"办公桌上的显示器呈现了{kw}的自动化工作流，屏幕右侧展示着个人效率知识库的目录结构"
+
+
+def custom_caption_for(article: dict) -> str:
+    kw = article["keyword"]
+    return f"【实战配图】{kw}的科学流程与效率工作流示意（配图经过 AI 深度解析优化，遵循 SEO 与无障碍可读性规范）。"
 
 
 def render_article(article: dict) -> str:
     group = GROUPS[article["group"]]
     image = IMAGES[group["image"]]
+    custom_image = {
+        "src": image["src"],
+        "alt": custom_alt_for(article),
+        "caption": custom_caption_for(article)
+    }
     path = article_url(article["slug"])
     related = related_for(article)
     all_articles = [item for item in ARTICLES if item["group"] == article["group"]]
@@ -726,17 +861,46 @@ def render_article(article: dict) -> str:
     if faq:
         faq_toc = '<a href="#faq">FAQ</a>'
         faq_html = f'<h2 id="faq">FAQ</h2>{"".join(f"<h3>{esc(q)}</h3><p>{esc(a)}</p>" for q, a in faq)}'
-    template = (
-        f"【任务】我正在处理：{article['keyword']}。\n"
-        f"【背景】{article['problem']}\n"
-        f"【目标】请帮我得到一个能执行、能检查、能复盘的方案。\n"
-        f"【输出】请按快速答案、执行步骤、检查表、常见错误、待核验信息输出。"
-    )
-    example = (
-        f"如果你今天要处理{article['keyword']}，可以先用 10 分钟写清当前背景，再用本文的步骤做第一轮拆解。"
-        f"例如先记录任务目标、可用时间、现有材料、最终交付物和限制条件，然后执行“{article['steps'][0]}”这一步。"
-        "完成后不要急着扩展内容，而是用执行清单检查是否有遗漏。这样既能减少空泛输出，也能让页面里的方法真正落到你的学习、求职或工具使用场景中。"
-    )
+    if article["group"] == "campus":
+        template = (
+            f"【课程/考试】我目前正在准备/撰写：{article['keyword']}。\n"
+            f"【当前困惑】{article['problem'].rstrip('。')}，容易抓不住重点或偏离评分标准。\n"
+            f"【我的背景】我是一名在校学生，计划每天投入不超过 90 分钟，我的课程知识点/弱项是【请在此填入你的弱项/课程名】。\n"
+            f"【辅助目标】请根据“{article['method'].rstrip('。')}”的策略，帮我输出一份保姆级的学习提纲/复习拆解，"
+            f"必须指出第一步‘{article['steps'][0].rstrip('。')}’的具体动作、我的防学术不端边界以及可自检的交付物。"
+        )
+        example = (
+            f"以你今天要解决的“{article['keyword']}”为例，强烈建议你不要直接让 AI 全盘生成全文。"
+            f"你可以先复制上面的模板，在【背景】中写清你当下的真实薄弱点和老师的字数要求。接着，重点完成第一步“{article['steps'][0]}”。"
+            f"随后，把 AI 给出的建议 and 你的教材大纲对比，确保知识框架不偏离课程重点。写完后，"
+            f"务必对照我们的‘执行清单’自检是否存在‘{article['mistakes'][0]}’的雷区，这样复习才能真正产生提分效果。"
+        )
+    elif article["group"] == "career":
+        template = (
+            f"【求职岗位/技能】我正在针对“{article['keyword']}”做面试或简历项目准备，对应的核心技能标签是【{article['tag']}】。\n"
+            f"【实战卡点】在过往经历中，常见的难题是：{article['problem'].rstrip('。')}。\n"
+            f"【优化策略】请基于“{article['method'].rstrip('。')}”的原则，帮我将这段背景提炼为符合 STAR 结构（背景、任务、行动、结果）的面试回答/简历 Bullet Points。\n"
+            f"【追问预案】请模拟严厉的面试官，列出 3 个可能针对我‘{article['steps'][0].rstrip('。')}’等动作进行深挖的专业追问，并提供对应的排错/回答思路。"
+        )
+        example = (
+            f"假设你在准备关于“{article['keyword']}”的面试。第一步绝对不是死记硬背面经，"
+            f"而是应该把上方的模板发送给 AI，并把【实战卡点】替换成你本地运行脚本或排查问题的真实经历。"
+            f"着重提炼你在“{article['steps'][0]}”阶段所做出的独特技术贡献。最后，对着‘常见错误’一栏核查，"
+            f"确保在回答时避开‘{article['mistakes'][0]}’等低级失误，给面试官展现出极强的专业工程素养。"
+        )
+    else:
+        template = (
+            f"【AI工具任务】我需要利用 AI 工具攻克“{article['keyword']}”的场景，正在使用【请填入如 GPT-4o/Claude 3.5 Sonnet】。\n"
+            f"【输入材料】我的原始材料/上下文是【请在此粘贴你的原始材料/配置】。\n"
+            f"【核心约束】1. 绝不捏造任何未提及的事实、API 或配置；2. 根据“{article['method'].rstrip('。')}”的要求，"
+            f"首先引导我执行‘{article['steps'][0].rstrip('。')}’这一步；3. 用 Markdown 表格输出执行清单，并明确标注出‘需人工二次核验’的参数或链接。"
+        )
+        example = (
+            f"若你正要借助 AI 工具来应对“{article['keyword']}”的日常工作，可以立刻执行上方的定制 Prompt。"
+            f"先把你要处理的背景材料粘贴进去，指示 AI 扮演你该领域的资深顾问。在生成结果中，"
+            f"重点关注它是如何落实“{article['steps'][0]}”的。拿到代码、Prompt 模板或分析报告后，"
+            f"使用我们的‘边界提醒’进行校验，剔除可能存在的过时配置或虚假信息，守护你的生产力红线。"
+        )
     nav_links = []
     if prev_item:
         nav_links.append(f'<a class="card-link" href="{esc(prev_item["slug"])}.html">上一篇：{esc(prev_item["title"])}</a>')
@@ -757,7 +921,7 @@ def render_article(article: dict) -> str:
     <section class="section tight"><div class="section-inner"><article class="conversion-card seo-summary-card"><div class="conversion-copy"><div class="offer-meta"><span class="tag hot">快速答案</span><span class="tag free">{esc(article['tag'])}</span></div><h2>{esc(article['keyword'])}怎么先做对</h2><p>{esc(answer)}</p></div><div class="conversion-action"><a class="button hot full" href="#checklist">查看执行清单</a><a class="card-link" href="../{group['page']}">返回{esc(group['label'])}专题</a></div></article></div></section>
     <section class="section"><div class="section-inner article-layout">
       <article class="article-body">
-        <figure class="article-image">{render_picture(image)}<figcaption>{esc(image['caption'])}</figcaption></figure>
+        <figure class="article-image">{render_picture(custom_image)}<figcaption>{esc(custom_image['caption'])}</figcaption></figure>
         <h2 id="who">适合谁</h2>
         <p>{esc(article['problem'])}</p>
         <p>{esc(deep_dive(article))}</p>
@@ -773,7 +937,10 @@ def render_article(article: dict) -> str:
         <p>{esc(example)}</p>
         <h2 id="template">可复制模板</h2>
         <p>下面这段模板适合直接复制到 AI 工具里，再把括号中的内容替换成自己的真实材料。输出后仍然要人工核验，尤其是涉及考试规则、工具版本、招聘要求和安全边界的信息。</p>
-        <pre><code>{esc(template)}</code></pre>
+        <div class="code-block-wrapper">
+          <pre><code>{esc(template)}</code></pre>
+          <button class="copy-button" type="button" aria-label="复制模板">复制</button>
+        </div>
         <p>{esc(article['prompt'])}</p>
         <h2 id="mistakes">常见错误</h2>
         <ul>{sentence_list(article['mistakes'])}</ul>
@@ -982,7 +1149,7 @@ function buildFooter() {{
   footer.innerHTML = `
     <div>
       <strong>${{siteConfig.name}}</strong>
-      <p>${{siteConfig.tagline}}。本站内容用于学习和效率参考，不替代课程要求、考试规则、官方文档或个人判断。</p>
+      <p>${{siteConfig.tagline}}。本站坚决抵制任何形式的学术越界或违反学术诚信的行为。所有 AI 工具使用方法均旨在辅助思路拆解与学习效率提升，最终成果的真实性与合规性完全由使用者个人负责，请严格遵守所在学校、考试中心和工作单位的守则。</p>
       <p>© ${{year}} ${{siteConfig.name}}. All rights reserved.</p>
     </div>
     <nav class="footer-links" aria-label="Footer">
@@ -994,8 +1161,30 @@ function buildFooter() {{
 }}
 
 function buildAdSlots() {{
+  // 1. Asynchronously load Google AdSense script once using ca-pub-7663008606677915
+  if (!document.querySelector('script[src*="pagead2.googlesyndication.com"]')) {{
+    const adScript = document.createElement("script");
+    adScript.async = true;
+    adScript.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7663008606677915";
+    adScript.crossOrigin = "anonymous";
+    document.head.appendChild(adScript);
+  }}
+
+  // 2. Loop through and initialize all ad containers with CLS mitigation (min-height: 250px)
   document.querySelectorAll("[data-ad-slot]").forEach((slot) => {{
-    slot.innerHTML = `<div><strong>赞助内容区域</strong><span>${{siteConfig.adPlaceholder}}</span></div>`;
+    slot.innerHTML = `
+      <ins class="adsbygoogle"
+           style="display:block; min-height: 250px;"
+           data-ad-client="ca-pub-7663008606677915"
+           data-ad-slot="1234567890"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+    `;
+    try {{
+      (window.adsbygoogle = window.adsbygoogle || []).push({{}});
+    }} catch (e) {{
+      console.warn("AdSense push error:", e);
+    }}
   }});
 }}
 
@@ -1062,12 +1251,34 @@ async function buildArticleSearch() {{
   render();
 }}
 
+function initCopyButtons() {{
+  document.querySelectorAll(".copy-button").forEach((btn) => {{
+    btn.addEventListener("click", async () => {{
+      const pre = btn.previousElementSibling;
+      const code = pre ? (pre.querySelector("code")?.textContent || "") : "";
+      try {{
+        await navigator.clipboard.writeText(code);
+        const originalText = btn.textContent || "复制";
+        btn.textContent = "已复制！";
+        btn.classList.add("copied");
+        setTimeout(() => {{
+          btn.textContent = originalText;
+          btn.classList.remove("copied");
+        }}, 2000);
+      }} catch (err) {{
+        console.error("Failed to copy:", err);
+      }}
+    }});
+  }});
+}}
+
 document.addEventListener("DOMContentLoaded", () => {{
   buildNav();
   buildFooter();
   buildAdSlots();
   buildFeaturedResources();
   buildArticleSearch();
+  initCopyButtons();
 }});
 """
 

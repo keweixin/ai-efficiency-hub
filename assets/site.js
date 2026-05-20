@@ -35,7 +35,7 @@ function buildFooter() {
   footer.innerHTML = `
     <div>
       <strong>${siteConfig.name}</strong>
-      <p>${siteConfig.tagline}。本站内容用于学习和效率参考，不替代课程要求、考试规则、官方文档或个人判断。</p>
+      <p>${siteConfig.tagline}。本站坚决抵制任何形式的学术越界或违反学术诚信的行为。所有 AI 工具使用方法均旨在辅助思路拆解与学习效率提升，最终成果的真实性与合规性完全由使用者个人负责，请严格遵守所在学校、考试中心和工作单位的守则。</p>
       <p>© ${year} ${siteConfig.name}. All rights reserved.</p>
     </div>
     <nav class="footer-links" aria-label="Footer">
@@ -47,8 +47,30 @@ function buildFooter() {
 }
 
 function buildAdSlots() {
+  // 1. Asynchronously load Google AdSense script once using ca-pub-7663008606677915
+  if (!document.querySelector('script[src*="pagead2.googlesyndication.com"]')) {
+    const adScript = document.createElement("script");
+    adScript.async = true;
+    adScript.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7663008606677915";
+    adScript.crossOrigin = "anonymous";
+    document.head.appendChild(adScript);
+  }
+
+  // 2. Loop through and initialize all ad containers with CLS mitigation (min-height: 250px)
   document.querySelectorAll("[data-ad-slot]").forEach((slot) => {
-    slot.innerHTML = `<div><strong>赞助内容区域</strong><span>${siteConfig.adPlaceholder}</span></div>`;
+    slot.innerHTML = `
+      <ins class="adsbygoogle"
+           style="display:block; min-height: 250px;"
+           data-ad-client="ca-pub-7663008606677915"
+           data-ad-slot="1234567890"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+    `;
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {
+      console.warn("AdSense push error:", e);
+    }
   });
 }
 
@@ -115,10 +137,32 @@ async function buildArticleSearch() {
   render();
 }
 
+function initCopyButtons() {
+  document.querySelectorAll(".copy-button").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const pre = btn.previousElementSibling;
+      const code = pre ? (pre.querySelector("code")?.textContent || "") : "";
+      try {
+        await navigator.clipboard.writeText(code);
+        const originalText = btn.textContent || "复制";
+        btn.textContent = "已复制！";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.classList.remove("copied");
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   buildNav();
   buildFooter();
   buildAdSlots();
   buildFeaturedResources();
   buildArticleSearch();
+  initCopyButtons();
 });
