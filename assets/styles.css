@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
+
 :root {
   --bg: #f7f8fb;
   --surface: #ffffff;
@@ -13,7 +15,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light-theme) {
     --bg: #0f1319;
     --surface: #161b22;
     --surface-soft: #1f2630;
@@ -25,78 +27,165 @@
     --amber: #f0883e;
     --coral: #ff7b72;
     --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    --ink-soft: #c9d1d9;
   }
 
-  img {
+  :root:not(.light-theme) img {
     filter: brightness(0.82) contrast(1.03);
     transition: filter 0.3s ease;
   }
-  img:hover {
+  :root:not(.light-theme) img:hover {
     filter: brightness(1);
   }
 
-  .site-header {
+  :root:not(.light-theme) .site-header {
     border-bottom: 1px solid var(--line);
     background: rgba(15, 19, 25, 0.92);
   }
 
-  .hero {
+  :root:not(.light-theme) .hero {
     background:
       linear-gradient(90deg, rgba(46, 160, 67, 0.14), rgba(56, 139, 253, 0.09)),
       url("data:image/svg+xml,%3Csvg width='1400' height='760' viewBox='0 0 1400 760' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1400' height='760' fill='%230f1319'/%3E%3Cg fill='none' stroke='%2321262d' stroke-width='1'%3E%3Cpath d='M0 120H1400M0 240H1400M0 360H1400M0 480H1400M0 600H1400M120 0V760M300 0V760M480 0V760M660 0V760M840 0V760M1020 0V760M1200 0V760'/%3E%3C/g%3E%3C/svg%3E") !important;
   }
 
-  .hero-panel {
+  :root:not(.light-theme) .hero-panel {
     border: 1px solid rgba(48, 54, 61, 0.85);
     background: rgba(22, 27, 34, 0.9);
   }
 
-  .offer-card {
+  :root:not(.light-theme) .offer-card {
     background: linear-gradient(90deg, #1b2028, #161b22) !important;
     border-color: rgba(255, 123, 114, 0.28) !important;
   }
 
-  .tag.hot {
+  :root:not(.light-theme) .tag.hot {
     background: #2b1d1c;
     color: #ff7b72;
   }
 
-  .tag.paid {
+  :root:not(.light-theme) .tag.paid {
     background: #2b2214;
     color: #f0883e;
   }
 
-  .tag.free {
+  :root:not(.light-theme) .tag.free {
     background: #172b20;
     color: #2ea043;
   }
 
-  .filter-chip.is-active {
+  :root:not(.light-theme) .filter-chip.is-active {
     background: var(--green) !important;
     color: #fff !important;
   }
 
-  .filter-chip {
+  :root:not(.light-theme) .filter-chip {
     background: var(--surface-soft);
     border-color: var(--line);
     color: var(--muted);
   }
 
-  .filter-chip:hover {
+  :root:not(.light-theme) .filter-chip:hover {
     background: var(--line);
     color: var(--ink);
   }
 
-  pre code {
+  :root:not(.light-theme) pre code {
     background: #0d1117 !important;
     color: #c9d1d9 !important;
   }
 
-  .seo-focus-card,
-  .seo-summary-card {
+  :root:not(.light-theme) .seo-focus-card,
+  :root:not(.light-theme) .seo-summary-card {
     background: linear-gradient(90deg, #1b2028, #161b22) !important;
     border-color: var(--line) !important;
   }
+}
+
+.dark-theme {
+  --bg: #0f1319;
+  --surface: #161b22;
+  --surface-soft: #1f2630;
+  --ink: #e6edf3;
+  --muted: #8b949e;
+  --line: #30363d;
+  --green: #2ea043;
+  --blue: #388bfd;
+  --amber: #f0883e;
+  --coral: #ff7b72;
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --ink-soft: #c9d1d9;
+}
+
+.dark-theme img {
+  filter: brightness(0.82) contrast(1.03);
+  transition: filter 0.3s ease;
+}
+.dark-theme img:hover {
+  filter: brightness(1);
+}
+
+.dark-theme .site-header {
+  border-bottom: 1px solid var(--line);
+  background: rgba(15, 19, 25, 0.92);
+}
+
+.dark-theme .hero {
+  background:
+    linear-gradient(90deg, rgba(46, 160, 67, 0.14), rgba(56, 139, 253, 0.09)),
+    url("data:image/svg+xml,%3Csvg width='1400' height='760' viewBox='0 0 1400 760' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1400' height='760' fill='%230f1319'/%3E%3Cg fill='none' stroke='%2321262d' stroke-width='1'%3E%3Cpath d='M0 120H1400M0 240H1400M0 360H1400M0 480H1400M0 600H1400M120 0V760M300 0V760M480 0V760M660 0V760M840 0V760M1020 0V760M1200 0V760'/%3E%3C/g%3E%3C/svg%3E") !important;
+}
+
+.dark-theme .hero-panel {
+  border: 1px solid rgba(48, 54, 61, 0.85);
+  background: rgba(22, 27, 34, 0.9);
+}
+
+.dark-theme .offer-card {
+  background: linear-gradient(90deg, #1b2028, #161b22) !important;
+  border-color: rgba(255, 123, 114, 0.28) !important;
+}
+
+.dark-theme .tag.hot {
+  background: #2b1d1c;
+  color: #ff7b72;
+}
+
+.dark-theme .tag.paid {
+  background: #2b2214;
+  color: #f0883e;
+}
+
+.dark-theme .tag.free {
+  background: #172b20;
+  color: #2ea043;
+}
+
+.dark-theme .filter-chip.is-active {
+  background: var(--green) !important;
+  color: #fff !important;
+}
+
+.dark-theme .filter-chip {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.dark-theme .filter-chip:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.dark-theme pre code {
+  background: #0d1117 !important;
+  color: #c9d1d9 !important;
+}
+
+.dark-theme .seo-focus-card,
+.dark-theme .seo-summary-card {
+  background: linear-gradient(90deg, #1b2028, #161b22) !important;
+  border-color: var(--line) !important;
 }
 
 
@@ -112,7 +201,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   line-height: 1.65;
   overflow-x: hidden;
 }
@@ -224,6 +313,35 @@ svg {
   color: var(--ink);
 }
 
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.6rem;
+  font-size: 1.1rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.theme-toggle:hover {
+  transform: scale(1.08) rotate(15deg);
+  border-color: var(--green);
+  background: var(--surface-soft);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
 .hero {
   overflow: hidden;
   background:
@@ -269,8 +387,9 @@ h1,
 h2,
 h3 {
   color: var(--ink);
+  font-family: 'Outfit', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   line-height: 1.18;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -1147,4 +1266,346 @@ p {
     line-break: anywhere;
     word-break: break-all;
   }
+}
+
+/* ==========================================
+   Interactive Checklist & Progress Bar Styles
+   ========================================== */
+.interactive-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0;
+}
+
+.checklist-item {
+  position: relative;
+  display: block;
+  margin-bottom: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ink-soft);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.checklist-item:hover {
+  transform: translateX(4px);
+  border-color: var(--green);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.checklist-item label {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+  width: 100%;
+}
+
+.checklist-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  margin-right: 0.9rem;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  accent-color: var(--green);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.checklist-checkbox:checked {
+  transform: scale(1.08);
+}
+
+.checklist-item.completed {
+  border-left-color: var(--green);
+  background: rgba(25, 112, 90, 0.03);
+}
+
+:root:not(.light-theme) .checklist-item.completed,
+.dark-theme .checklist-item.completed {
+  background: rgba(25, 112, 90, 0.08);
+}
+
+.checklist-item.completed span {
+  color: var(--ink-soft);
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+/* Progress bar */
+.progress-bar-container {
+  margin: 1.8rem 0 1.2rem 0;
+  padding: 1.1rem 1.3rem;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.01);
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+  margin-bottom: 0.65rem;
+}
+
+.progress-percent {
+  font-family: monospace;
+  font-size: 0.95rem;
+  color: var(--green);
+  background: rgba(25, 112, 90, 0.08);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
+.progress-bar-bg {
+  height: 8px;
+  width: 100%;
+  background: var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), #4cd964);
+  width: 0%;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 4px;
+}
+
+/* ==========================================
+   Prompt Customizer Card Styles
+   ========================================== */
+.prompt-customizer-card {
+  margin: 1.8rem 0;
+  padding: 1.6rem 1.8rem;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.03);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+:root:not(.light-theme) .prompt-customizer-card,
+.dark-theme .prompt-customizer-card {
+  background: rgba(25, 25, 30, 0.4);
+  backdrop-filter: blur(10px);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.customizer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+}
+
+@media (max-width: 600px) {
+  .customizer-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.customizer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.customizer-field.full-width {
+  grid-column: span 2;
+}
+
+@media (max-width: 600px) {
+  .customizer-field.full-width {
+    grid-column: span 1;
+  }
+}
+
+.customizer-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.customizer-field input,
+.customizer-field textarea {
+  padding: 0.75rem 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.9rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.01);
+}
+
+.customizer-field input:focus,
+.customizer-field textarea:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(25, 112, 90, 0.12);
+  background: var(--surface);
+}
+
+/* Highlight Output on Change */
+#custom-prompt-output {
+  transition: background-color 0.2s ease;
+}
+#custom-prompt-output.updating {
+  background-color: rgba(25, 112, 90, 0.1);
+}
+
+
+
+/* ==========================================================================
+   Ultimate UX & Premium Aesthetic Extensions (Smooth Transitions & Animations)
+   ========================================================================== */
+
+/* 1. Global smooth state shifts */
+body, .site-header, .card, .article-card, .resource-card, .ad-slot, 
+.article-body, pre, code, .checklist-item, .progress-bar-container, 
+.prompt-customizer-card, input, textarea, button, .filter-chip {
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 2. Premium active state for filter chips */
+.filter-chip.is-active {
+  background: var(--green) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(25, 112, 90, 0.25) !important;
+  border-color: var(--green) !important;
+}
+
+/* 3. Smooth page fade-in on mount */
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+#main {
+  animation: pageFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 4. Elegant code terminal editor headers */
+.code-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1.1rem;
+  background: #1e242b;
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.dark-theme .code-editor-header,
+:root:not(.light-theme) .code-editor-header {
+  background: #0d1117;
+  border-bottom: 1px solid var(--line);
+}
+.editor-buttons {
+  display: flex;
+  gap: 0.45rem;
+}
+.editor-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.editor-dot.red { background: #ff5f56; }
+.editor-dot.yellow { background: #ffbd2e; }
+.editor-dot.green { background: #27c93f; }
+.editor-title {
+  color: #8b949e;
+  font-size: 0.76rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-weight: 600;
+}
+.code-block-wrapper pre {
+  margin: 0;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+/* 5. Modern glassmorphism floating Back to Top button */
+.back-to-top {
+  position: fixed;
+  bottom: 2.2rem;
+  right: 2.2rem;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(25, 112, 90, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(15px) scale(0.85);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  z-index: 99;
+}
+.back-to-top.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+.back-to-top:hover {
+  background: var(--green);
+  transform: translateY(-5px) scale(1.08);
+  box-shadow: 0 14px 34px rgba(25, 112, 90, 0.38);
+}
+.back-to-top:active {
+  transform: translateY(-1px) scale(0.95);
+}
+
+/* 6. Satisfying physical elastic bounce for checklist completion */
+@keyframes checkElastic {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.03); }
+  75% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+.checklist-item.completed {
+  animation: checkElastic 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* 7. Enhanced premium card container dynamics */
+.card, .article-card, .resource-card {
+  border-radius: 12px;
+}
+.card:hover, .article-card:hover, .resource-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 42px rgba(25, 112, 90, 0.07), 0 5px 15px rgba(0, 0, 0, 0.02);
+}
+.dark-theme .card:hover, .dark-theme .article-card:hover, .dark-theme .resource-card:hover {
+  box-shadow: 0 22px 42px rgba(46, 160, 67, 0.16), 0 5px 15px rgba(0, 0, 0, 0.28);
 }

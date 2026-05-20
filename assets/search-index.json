@@ -177,7 +177,7 @@
     "group": "career",
     "groupLabel": "求职冲刺",
     "tag": "UI 自动化",
-    "keyword": "UI 自动化不稳定面试回答"
+    "keyword": "UI 自动化稳定性优化"
   },
   {
     "title": "接口自动化 token 和鉴权怎么处理",
@@ -222,7 +222,7 @@
     "group": "career",
     "groupLabel": "求职冲刺",
     "tag": "测试报告",
-    "keyword": "测试报告 日志 截图 定位问题"
+    "keyword": "自动化测试问题排查"
   },
   {
     "title": "自动化测试接入 CI 先跑哪些用例",
@@ -243,13 +243,13 @@
     "keyword": "接口测试 数据库校验"
   },
   {
-    "title": "测试岗简历项目经历怎么写",
-    "description": "测试岗简历项目经历要写清模块、测试点、方法、工具、结果和可追问细节。",
+    "title": "测试简历项目描述怎么写",
+    "description": "测试简历项目描述要写清模块、测试点、方法、工具、结果和可追问细节。",
     "href": "articles/test-resume-project-description.html",
     "group": "career",
     "groupLabel": "求职冲刺",
     "tag": "简历",
-    "keyword": "测试岗简历项目经历"
+    "keyword": "测试简历项目描述"
   },
   {
     "title": "AI 润色简历怎样避免编造经历",
@@ -267,7 +267,7 @@
     "group": "career",
     "groupLabel": "求职冲刺",
     "tag": "STAR",
-    "keyword": "应届生项目 STAR"
+    "keyword": "STAR 原则项目表达"
   },
   {
     "title": "没有实习经历怎么写测试岗简历",
@@ -276,7 +276,7 @@
     "group": "career",
     "groupLabel": "求职冲刺",
     "tag": "简历",
-    "keyword": "没有实习测试岗简历"
+    "keyword": "无实习简历突破"
   },
   {
     "title": "测试岗面试自我介绍怎么准备",
@@ -294,7 +294,7 @@
     "group": "career",
     "groupLabel": "求职冲刺",
     "tag": "缺陷报告",
-    "keyword": "缺陷报告复现步骤"
+    "keyword": "缺陷报告编写规范"
   },
   {
     "title": "零基础测试工程师学习路线",
