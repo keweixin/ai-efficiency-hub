@@ -94,6 +94,15 @@ GROUPS = {
 
 GROUP_ORDER = ["volume", "channels", "packing"]
 
+# Future pSEO expansion is intentionally disabled until Search Console data
+# proves which route and product combinations deserve dedicated pages.
+PSEO_EXPANSION_ENABLED = False
+PSEO_PILOT_DIMENSIONS = {
+    "routes": ["china-to-usa", "china-to-germany", "china-to-uk", "china-to-canada"],
+    "channels": ["air-freight", "express", "fba-first-leg"],
+    "products": ["electronics", "apparel", "small-appliances", "accessories"],
+}
+
 
 IMAGES = {
     "volume": {
@@ -1125,10 +1134,25 @@ def render_articles_index() -> str:
 def render_tools() -> str:
     schema = {
         "@context": "https://schema.org",
-        "@type": "WebApplication",
+        "@type": "SoftwareApplication",
         "name": "多 SKU 体积重与计费重计算器",
+        "description": "浏览器本地运行的多 SKU 体积重、CBM、计费重和渠道分母复核工具。",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Any",
+        "inLanguage": ["zh-CN", "en"],
+        "isAccessibleForFree": True,
+        "offers": {
+            "@type": "Offer",
+            "price": 0,
+            "priceCurrency": "USD",
+        },
+        "featureList": [
+            "多 SKU 外箱尺寸和实重录入",
+            "DHL 5000、EMS 6000、标准空运 6000 和自定义分母对比",
+            "CBM、体积重、计费重和长边复核提示",
+            "浏览器本地自动保存和 PDF 报告导出",
+            "中文与英文界面切换",
+        ],
         "url": site_path("tools.html"),
     }
     return f"""<!doctype html>
@@ -1156,7 +1180,7 @@ def render_tools() -> str:
             <div>
               <span class="eyebrow" data-i18n="localTool">Local Tool</span>
               <h2 data-i18n="calcTitle">发货前复核表</h2>
-              <p data-i18n="calcLead">数据只在浏览器内计算，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。</p>
+              <p data-i18n="calcLead">数据只在浏览器内计算，并自动保存在当前浏览器本地，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。</p>
             </div>
             <div class="tool-actions">
               <button class="button small" type="button" data-add-row data-i18n="addSku">添加 SKU</button>
@@ -1165,6 +1189,7 @@ def render_tools() -> str:
               <button class="button accent small" type="button" data-export-report data-i18n="exportPdf">导出 PDF 报告</button>
             </div>
           </div>
+          <p class="tool-status" role="status" aria-live="polite" data-save-status></p>
           <p class="tool-status" role="status" aria-live="polite" data-export-status></p>
           <div class="calculator-grid">
             <div class="sku-panel">
@@ -1380,11 +1405,15 @@ def render_site_js() -> str:
       visualCaption: '站内生成插图：用于表示体积重、CBM 和计费重核算。',
       localTool: 'Local Tool',
       calcTitle: '发货前复核表',
-      calcLead: '数据只在浏览器内计算，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。',
+      calcLead: '数据只在浏览器内计算，并自动保存在当前浏览器本地，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。',
       addSku: '添加 SKU',
       loadSample: '载入示例',
       resetRows: '清空',
       exportPdf: '导出 PDF 报告',
+      saveReady: '已自动保存到当前浏览器。',
+      saveRestored: '已恢复上次在本浏览器保存的录入内容。',
+      saveCleared: '已清空本地保存的录入内容。',
+      saveUnavailable: '当前浏览器未允许本地保存，本次录入仅保留在页面内。',
       thSku: 'SKU / 箱型',
       thQty: '箱数',
       thLength: '长 cm',
@@ -1457,11 +1486,15 @@ def render_site_js() -> str:
       visualCaption: 'Site-generated illustration for volumetric weight, CBM and chargeable weight review.',
       localTool: 'Local Tool',
       calcTitle: 'Pre-shipment Review Sheet',
-      calcLead: 'All calculations run locally in your browser. The EMS long-side reminder uses 40cm as a review point; final rules should follow official quotes and acceptance confirmation.',
+      calcLead: 'All calculations run locally in your browser and autosave on this device only. Nothing is uploaded. The EMS long-side reminder uses 40cm as a review point; final rules should follow official quotes and acceptance confirmation.',
       addSku: 'Add SKU',
       loadSample: 'Load sample',
       resetRows: 'Clear',
       exportPdf: 'Export PDF report',
+      saveReady: 'Autosaved in this browser.',
+      saveRestored: 'Restored the last saved entries from this browser.',
+      saveCleared: 'Cleared locally saved calculator entries.',
+      saveUnavailable: 'Local saving is not available in this browser; entries only stay on the page.',
       thSku: 'SKU / carton',
       thQty: 'Cartons',
       thLength: 'L cm',
@@ -1519,8 +1552,34 @@ def render_site_js() -> str:
     return location.pathname.includes('/articles/') ? '../' : '';
   }}
 
+  function storageGet(key) {{
+    try {{
+      return window.localStorage.getItem(key);
+    }} catch (error) {{
+      return null;
+    }}
+  }}
+
+  function storageSet(key, value) {{
+    try {{
+      window.localStorage.setItem(key, value);
+      return true;
+    }} catch (error) {{
+      return false;
+    }}
+  }}
+
+  function storageRemove(key) {{
+    try {{
+      window.localStorage.removeItem(key);
+      return true;
+    }} catch (error) {{
+      return false;
+    }}
+  }}
+
   function currentLang() {{
-    return localStorage.getItem('shipping-lang') === 'en' ? 'en' : 'zh';
+    return storageGet('shipping-lang') === 'en' ? 'en' : 'zh';
   }}
 
   function t(key) {{
@@ -1566,7 +1625,7 @@ def render_site_js() -> str:
   function initLanguage() {{
     document.querySelectorAll('[data-lang-toggle]').forEach((button) => {{
       button.addEventListener('click', () => {{
-        localStorage.setItem('shipping-lang', currentLang() === 'en' ? 'zh' : 'en');
+        storageSet('shipping-lang', currentLang() === 'en' ? 'zh' : 'en');
         applyLanguage();
       }});
     }});
@@ -1575,14 +1634,14 @@ def render_site_js() -> str:
 
   function initTheme() {{
     const root = document.documentElement;
-    const saved = localStorage.getItem('shipping-theme');
+    const saved = storageGet('shipping-theme');
     if (saved === 'dark') root.classList.add('dark-theme');
     if (saved === 'light') root.classList.add('light-theme');
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {{
       button.addEventListener('click', () => {{
         const isDark = root.classList.toggle('dark-theme');
         root.classList.remove('light-theme');
-        localStorage.setItem('shipping-theme', isDark ? 'dark' : 'light');
+        storageSet('shipping-theme', isDark ? 'dark' : 'light');
       }});
     }});
   }}
@@ -1673,8 +1732,12 @@ def render_site_js() -> str:
     const suggestion = root.querySelector('[data-suggestion]');
     const exportButton = root.querySelector('[data-export-report]');
     const exportStatus = root.querySelector('[data-export-status]');
+    const saveStatus = root.querySelector('[data-save-status]');
+    const storageKey = 'shipping-calculator-state-v1';
     let rowId = 0;
     let lastReport = null;
+    let restoreReady = false;
+    let saveTimer = 0;
 
     const channels = [
       ['dhlChannel', 5000],
@@ -1683,26 +1746,120 @@ def render_site_js() -> str:
       ['customChannel', 'custom']
     ];
 
+    function setSaveStatus(key, delay = 2200) {{
+      if (!saveStatus) return;
+      saveStatus.textContent = key ? t(key) : '';
+      if (key && delay) {{
+        window.clearTimeout(saveStatus.dataset.timer || 0);
+        const timer = window.setTimeout(() => {{
+          if (saveStatus.textContent === t(key)) saveStatus.textContent = '';
+        }}, delay);
+        saveStatus.dataset.timer = String(timer);
+      }}
+    }}
+
+    function getRawRows() {{
+      return Array.from(rowsBody.querySelectorAll('tr')).map((tr) => {{
+        const value = (field) => {{
+          const node = tr.querySelector(`[data-field="${{field}}"]`);
+          return node ? String(node.value || '').trim() : '';
+        }};
+        return {{
+          name: value('name').slice(0, 120),
+          qty: value('qty'),
+          l: value('l'),
+          w: value('w'),
+          h: value('h'),
+          kg: value('kg')
+        }};
+      }}).filter((row) => Object.values(row).some(Boolean));
+    }}
+
+    function sanitizeStoredRows(rows) {{
+      if (!Array.isArray(rows)) return [];
+      return rows.slice(0, 300).map((row) => {{
+        const safe = row && typeof row === 'object' ? row : {{}};
+        return {{
+          name: String(safe.name || '').slice(0, 120),
+          qty: String(safe.qty || ''),
+          l: String(safe.l || ''),
+          w: String(safe.w || ''),
+          h: String(safe.h || ''),
+          kg: String(safe.kg || '')
+        }};
+      }}).filter((row) => Object.values(row).some(Boolean));
+    }}
+
+    function readSavedState() {{
+      const raw = storageGet(storageKey);
+      if (!raw) return null;
+      try {{
+        const parsed = JSON.parse(raw);
+        if (!parsed || parsed.version !== 1) throw new Error('Unsupported calculator state');
+        const rows = sanitizeStoredRows(parsed.rows);
+        const custom = Math.max(1000, Number(parsed.customDivisor) || 6000);
+        return {{ rows, customDivisor: String(custom) }};
+      }} catch (error) {{
+        storageRemove(storageKey);
+        return null;
+      }}
+    }}
+
+    function saveStateNow(statusKey = 'saveReady') {{
+      if (!restoreReady) return;
+      const payload = {{
+        version: 1,
+        savedAt: new Date().toISOString(),
+        customDivisor: String(customDivisor.value || '6000'),
+        rows: getRawRows()
+      }};
+      if (storageSet(storageKey, JSON.stringify(payload))) {{
+        setSaveStatus(statusKey);
+      }} else {{
+        setSaveStatus('saveUnavailable', 3600);
+      }}
+    }}
+
+    function scheduleSave() {{
+      if (!restoreReady) return;
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => saveStateNow(), 350);
+    }}
+
+    function clearSavedState() {{
+      window.clearTimeout(saveTimer);
+      storageRemove(storageKey);
+      setSaveStatus('saveCleared');
+    }}
+
     function rowTemplate(data = {{}}) {{
       rowId += 1;
       const id = rowId;
       const defaults = Object.assign({{ name: '', qty: 1, l: '', w: '', h: '', kg: '' }}, data);
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><label class="sr-only" for="sku-name-${{id}}" data-row-label="thSku">${{t('thSku')}}</label><input id="sku-name-${{id}}" type="text" value="${{defaults.name}}" placeholder="${{t('skuPlaceholder')}}" data-field="name"></td>
-        <td><label class="sr-only" for="sku-qty-${{id}}" data-row-label="thQty">${{t('thQty')}}</label><input id="sku-qty-${{id}}" type="number" min="1" step="1" value="${{defaults.qty}}" data-field="qty"></td>
-        <td><label class="sr-only" for="sku-l-${{id}}" data-row-label="thLength">${{t('thLength')}}</label><input id="sku-l-${{id}}" type="number" min="0" step="0.1" value="${{defaults.l}}" data-field="l"></td>
-        <td><label class="sr-only" for="sku-w-${{id}}" data-row-label="thWidth">${{t('thWidth')}}</label><input id="sku-w-${{id}}" type="number" min="0" step="0.1" value="${{defaults.w}}" data-field="w"></td>
-        <td><label class="sr-only" for="sku-h-${{id}}" data-row-label="thHeight">${{t('thHeight')}}</label><input id="sku-h-${{id}}" type="number" min="0" step="0.1" value="${{defaults.h}}" data-field="h"></td>
-        <td><label class="sr-only" for="sku-kg-${{id}}" data-row-label="thWeight">${{t('thWeight')}}</label><input id="sku-kg-${{id}}" type="number" min="0" step="0.01" value="${{defaults.kg}}" data-field="kg"></td>
+        <td><label class="sr-only" for="sku-name-${{id}}" data-row-label="thSku">${{t('thSku')}}</label><input id="sku-name-${{id}}" type="text" placeholder="${{t('skuPlaceholder')}}" data-field="name"></td>
+        <td><label class="sr-only" for="sku-qty-${{id}}" data-row-label="thQty">${{t('thQty')}}</label><input id="sku-qty-${{id}}" type="number" min="1" step="1" data-field="qty"></td>
+        <td><label class="sr-only" for="sku-l-${{id}}" data-row-label="thLength">${{t('thLength')}}</label><input id="sku-l-${{id}}" type="number" min="0" step="0.1" data-field="l"></td>
+        <td><label class="sr-only" for="sku-w-${{id}}" data-row-label="thWidth">${{t('thWidth')}}</label><input id="sku-w-${{id}}" type="number" min="0" step="0.1" data-field="w"></td>
+        <td><label class="sr-only" for="sku-h-${{id}}" data-row-label="thHeight">${{t('thHeight')}}</label><input id="sku-h-${{id}}" type="number" min="0" step="0.1" data-field="h"></td>
+        <td><label class="sr-only" for="sku-kg-${{id}}" data-row-label="thWeight">${{t('thWeight')}}</label><input id="sku-kg-${{id}}" type="number" min="0" step="0.01" data-field="kg"></td>
         <td><button class="icon-button" type="button" aria-label="${{t('deleteRow')}}" data-remove-row>${{t('deleteShort')}}</button></td>
       `;
       rowsBody.appendChild(tr);
-      tr.querySelectorAll('input').forEach((input) => input.addEventListener('input', calculate));
+      ['name', 'qty', 'l', 'w', 'h', 'kg'].forEach((field) => {{
+        const input = tr.querySelector(`[data-field="${{field}}"]`);
+        if (input) input.value = defaults[field] ?? '';
+      }});
+      tr.querySelectorAll('input').forEach((input) => input.addEventListener('input', () => {{
+        calculate();
+        scheduleSave();
+      }}));
       tr.querySelector('[data-remove-row]').addEventListener('click', () => {{
         tr.remove();
         if (!rowsBody.children.length) addRow();
         calculate();
+        scheduleSave();
       }});
       calculate();
     }}
@@ -1978,28 +2135,58 @@ def render_site_js() -> str:
       rowTemplate(data);
     }}
 
-    root.querySelector('[data-add-row]').addEventListener('click', () => addRow());
+    function restoreSavedState() {{
+      const saved = readSavedState();
+      if (!saved) return false;
+      rowsBody.innerHTML = '';
+      rowId = 0;
+      customDivisor.value = saved.customDivisor;
+      if (saved.rows.length) {{
+        saved.rows.forEach((row) => addRow(row));
+      }} else {{
+        addRow();
+      }}
+      setSaveStatus('saveRestored', 3000);
+      return true;
+    }}
+
+    root.querySelector('[data-add-row]').addEventListener('click', () => {{
+      addRow();
+      calculate();
+      scheduleSave();
+    }});
     root.querySelector('[data-load-sample]').addEventListener('click', () => {{
       rowsBody.innerHTML = '';
       rowId = 0;
       addRow({{ name: '自拍杆长条箱', qty: 4, l: 75, w: 35, h: 28, kg: 8 }});
       addRow({{ name: '配件重货箱', qty: 3, l: 42, w: 30, h: 24, kg: 14 }});
       calculate();
+      saveStateNow();
     }});
     root.querySelector('[data-reset-rows]').addEventListener('click', () => {{
+      clearSavedState();
       rowsBody.innerHTML = '';
       rowId = 0;
+      customDivisor.value = '6000';
       addRow();
       calculate();
+      saveStateNow('saveCleared');
     }});
-    customDivisor.addEventListener('input', calculate);
+    customDivisor.addEventListener('input', () => {{
+      calculate();
+      scheduleSave();
+    }});
     exportButton.addEventListener('click', exportPdfReport);
     document.addEventListener('shipping:languagechange', () => {{
       translateRows();
       calculate();
     }});
-    addRow({{ name: '示例轻泡箱', qty: 2, l: 60, w: 45, h: 40, kg: 8 }});
-    addRow({{ name: '示例重货箱', qty: 1, l: 38, w: 28, h: 22, kg: 12 }});
+    const restored = restoreSavedState();
+    restoreReady = true;
+    if (!restored) {{
+      addRow({{ name: '示例轻泡箱', qty: 2, l: 60, w: 45, h: 40, kg: 8 }});
+      addRow({{ name: '示例重货箱', qty: 1, l: 38, w: 28, h: 22, kg: 12 }});
+    }}
     calculate();
   }}
 

@@ -244,14 +244,34 @@ def validate_tools(errors: list[str]) -> None:
         "data-channel-results",
         "data-export-report",
         "data-lang-toggle",
+        "data-save-status",
+        "SoftwareApplication",
+        "featureList",
+        '"offers"',
+        '"price":0',
         "DHL 5000",
         "EMS 6000",
         "标准空运 6000",
     ]:
         if marker not in text:
             errors.append(f"tools.html missing {marker}")
+    for forbidden in ["aggregateRating", '"review"']:
+        if forbidden in text:
+            errors.append(f"tools.html should not include unverified structured data marker {forbidden}")
     js = read(ROOT / "assets" / "site.js") if (ROOT / "assets" / "site.js").exists() else ""
-    for marker in ["initCalculator", "initLanguage", "exportPdfReport", "JSPDF_SRC", "5000", "6000", "40cm"]:
+    for marker in [
+        "initCalculator",
+        "initLanguage",
+        "exportPdfReport",
+        "JSPDF_SRC",
+        "shipping-calculator-state-v1",
+        "saveStateNow",
+        "readSavedState",
+        "storageSet",
+        "5000",
+        "6000",
+        "40cm",
+    ]:
         if marker not in js:
             errors.append(f"site.js missing calculator marker {marker}")
 
