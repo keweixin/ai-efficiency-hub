@@ -242,6 +242,8 @@ def validate_tools(errors: list[str]) -> None:
         "data-logistics-calculator",
         "data-sku-rows",
         "data-channel-results",
+        "data-export-report",
+        "data-lang-toggle",
         "DHL 5000",
         "EMS 6000",
         "标准空运 6000",
@@ -249,7 +251,7 @@ def validate_tools(errors: list[str]) -> None:
         if marker not in text:
             errors.append(f"tools.html missing {marker}")
     js = read(ROOT / "assets" / "site.js") if (ROOT / "assets" / "site.js").exists() else ""
-    for marker in ["initCalculator", "5000", "6000", "40cm"]:
+    for marker in ["initCalculator", "initLanguage", "exportPdfReport", "JSPDF_SRC", "5000", "6000", "40cm"]:
         if marker not in js:
             errors.append(f"site.js missing calculator marker {marker}")
 

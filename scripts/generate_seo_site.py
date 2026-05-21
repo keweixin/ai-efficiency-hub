@@ -709,15 +709,20 @@ def page_head(
 
 def layout_start(active: str = "", prefix: str = "") -> str:
     return f"""<body data-active="{esc(active)}">
-  <a class="skip-link" href="#main">跳到正文</a>
+  <a class="skip-link" href="#main" data-i18n="skip">跳到正文</a>
   <header class="site-header">
     <div class="nav-wrap">
-      <a class="brand" href="{prefix}index.html" aria-label="{SITE_NAME}首页">
+      <a class="brand" href="{prefix}index.html" aria-label="{SITE_NAME}首页" data-i18n-aria="brandAria">
         <span class="brand-mark" aria-hidden="true">CBM</span>
-        <span>{SITE_NAME}</span>
+        <span data-i18n="siteName">{SITE_NAME}</span>
       </a>
-      <nav class="site-nav" data-site-nav aria-label="主导航"></nav>
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换深浅色">◐</button>
+      <nav class="site-nav" data-site-nav aria-label="主导航" data-i18n-aria="mainNav"></nav>
+      <div class="nav-tools">
+        <button class="lang-toggle" type="button" data-lang-toggle aria-label="Switch language" aria-pressed="false">
+          <span data-lang-current>EN</span>
+        </button>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换深浅色" data-i18n-aria="themeToggle">◐</button>
+      </div>
     </div>
   </header>
   <main id="main">"""
@@ -729,17 +734,17 @@ def layout_end(prefix: str = "") -> str:
   <footer class="site-footer">
     <div class="section-inner footer-grid">
       <div>
-        <strong>{SITE_NAME}</strong>
-        <p>用于发货前复核体积重、CBM、计费重和渠道口径。规则会变化，具体发货请以官方报价和承运商确认为准。</p>
+        <strong data-i18n="siteName">{SITE_NAME}</strong>
+        <p data-i18n="footerDesc">用于发货前复核体积重、CBM、计费重和渠道口径。规则会变化，具体发货请以官方报价和承运商确认为准。</p>
       </div>
       <nav aria-label="页脚导航">
-        <a href="{prefix}articles.html">文章索引</a>
-        <a href="{prefix}tools.html">计算工具</a>
-        <a href="{prefix}smoke-test.html">内测说明</a>
-        <a href="{prefix}privacy.html">隐私政策</a>
-        <a href="{prefix}contact.html">联系</a>
+        <a href="{prefix}articles.html" data-i18n="footerArticles">文章索引</a>
+        <a href="{prefix}tools.html" data-i18n="footerTools">计算工具</a>
+        <a href="{prefix}smoke-test.html" data-i18n="footerSmoke">内测说明</a>
+        <a href="{prefix}privacy.html" data-i18n="footerPrivacy">隐私政策</a>
+        <a href="{prefix}contact.html" data-i18n="footerContact">联系</a>
       </nav>
-      <p class="copyright">© {year} {SITE_NAME}. 本站不提供承运商报价承诺。</p>
+      <p class="copyright" data-i18n="copyright">© {year} {SITE_NAME}. 本站不提供承运商报价承诺。</p>
     </div>
   </footer>
   <script src="{prefix}assets/site.js"></script>
@@ -1133,15 +1138,15 @@ def render_tools() -> str:
     <section class="page-hero">
       <div class="section-inner hero-grid">
         <div>
-          <span class="eyebrow">Calculator</span>
-          <h1>多 SKU 体积重 / CBM / 计费重计算器</h1>
-          <p>录入每类货物的箱数、外箱尺寸和实重，本地计算 DHL 5000、EMS 6000、标准空运 6000 和自定义分母下的计费重，并提示长边复核项。</p>
+          <span class="eyebrow" data-i18n="toolsEyebrow">Calculator</span>
+          <h1 data-i18n="toolsH1">多 SKU 体积重 / CBM / 计费重计算器</h1>
+          <p data-i18n="toolsLead">录入每类货物的箱数、外箱尺寸和实重，本地计算 DHL 5000、EMS 6000、标准空运 6000 和自定义分母下的计费重，并提示长边复核项。</p>
           <div class="hero-actions">
-            <a class="button" href="#calculator">开始计算</a>
-            <a class="button ghost" href="articles/volumetric-weight-formula-dhl-ems-sf.html">先看公式说明</a>
+            <a class="button" href="#calculator" data-i18n="startCalc">开始计算</a>
+            <a class="button ghost" href="articles/volumetric-weight-formula-dhl-ems-sf.html" data-i18n="formulaLink">先看公式说明</a>
           </div>
         </div>
-        <figure class="hero-visual">{render_picture(IMAGES['volume'], eager=True)}<figcaption>{esc(IMAGES['volume']['caption'])}</figcaption></figure>
+        <figure class="hero-visual">{render_picture(IMAGES['volume'], eager=True)}<figcaption data-i18n="visualCaption">{esc(IMAGES['volume']['caption'])}</figcaption></figure>
       </div>
     </section>
     <section class="section" id="calculator">
@@ -1149,47 +1154,49 @@ def render_tools() -> str:
         <div class="tool-shell" data-logistics-calculator>
           <div class="tool-header">
             <div>
-              <span class="eyebrow">Local Tool</span>
-              <h2>发货前复核表</h2>
-              <p>数据只在浏览器内计算，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。</p>
+              <span class="eyebrow" data-i18n="localTool">Local Tool</span>
+              <h2 data-i18n="calcTitle">发货前复核表</h2>
+              <p data-i18n="calcLead">数据只在浏览器内计算，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。</p>
             </div>
             <div class="tool-actions">
-              <button class="button small" type="button" data-add-row>添加 SKU</button>
-              <button class="button ghost small" type="button" data-load-sample>载入示例</button>
-              <button class="button ghost small" type="button" data-reset-rows>清空</button>
+              <button class="button small" type="button" data-add-row data-i18n="addSku">添加 SKU</button>
+              <button class="button ghost small" type="button" data-load-sample data-i18n="loadSample">载入示例</button>
+              <button class="button ghost small" type="button" data-reset-rows data-i18n="resetRows">清空</button>
+              <button class="button accent small" type="button" data-export-report data-i18n="exportPdf">导出 PDF 报告</button>
             </div>
           </div>
+          <p class="tool-status" role="status" aria-live="polite" data-export-status></p>
           <div class="calculator-grid">
             <div class="sku-panel">
               <div class="table-scroll">
                 <table class="sku-table">
                   <thead>
                     <tr>
-                      <th>SKU / 箱型</th>
-                      <th>箱数</th>
-                      <th>长 cm</th>
-                      <th>宽 cm</th>
-                      <th>高 cm</th>
-                      <th>单箱实重 kg</th>
-                      <th>操作</th>
+                      <th data-i18n="thSku">SKU / 箱型</th>
+                      <th data-i18n="thQty">箱数</th>
+                      <th data-i18n="thLength">长 cm</th>
+                      <th data-i18n="thWidth">宽 cm</th>
+                      <th data-i18n="thHeight">高 cm</th>
+                      <th data-i18n="thWeight">单箱实重 kg</th>
+                      <th data-i18n="thAction">操作</th>
                     </tr>
                   </thead>
                   <tbody data-sku-rows></tbody>
                 </table>
               </div>
-              <label class="custom-divisor" for="custom-divisor">自定义分母
+              <label class="custom-divisor" for="custom-divisor"><span data-i18n="customDivisor">自定义分母</span>
                 <input id="custom-divisor" type="number" min="1000" step="100" value="6000" data-custom-divisor>
               </label>
             </div>
             <aside class="result-panel" aria-live="polite">
               <div class="metric-grid">
-                <div><span>总实重</span><strong data-total-actual>0 kg</strong></div>
-                <div><span>总 CBM</span><strong data-total-cbm>0</strong></div>
-                <div><span>最长边提醒</span><strong data-long-side>待录入</strong></div>
+                <div><span data-i18n="metricActual">总实重</span><strong data-total-actual>0 kg</strong></div>
+                <div><span data-i18n="metricCbm">总 CBM</span><strong data-total-cbm>0</strong></div>
+                <div><span data-i18n="metricLongSide">最长边提醒</span><strong data-long-side>待录入</strong></div>
               </div>
               <div class="table-scroll">
                 <table class="result-table">
-                  <thead><tr><th>渠道</th><th>分母</th><th>体积重</th><th>计费重</th></tr></thead>
+                  <thead><tr><th data-i18n="channel">渠道</th><th data-i18n="divisor">分母</th><th data-i18n="volumeWeight">体积重</th><th data-i18n="chargeableWeight">计费重</th></tr></thead>
                   <tbody data-channel-results></tbody>
                 </table>
               </div>
@@ -1202,13 +1209,13 @@ def render_tools() -> str:
     <section class="section">
       <div class="section-inner">
         <div class="section-head">
-          <span class="eyebrow">How to Read</span>
-          <h2>工具输出怎么看</h2>
+          <span class="eyebrow" data-i18n="howToRead">How to Read</span>
+          <h2 data-i18n="readTitle">工具输出怎么看</h2>
         </div>
         <div class="card-grid">
-          <article class="card"><h3>计费重不是最终报价</h3><p>它只是报价复核入口。还要确认进位、附加项、目的地限制和服务类型。</p></article>
-          <article class="card"><h3>长边提醒不是拦截规则</h3><p>默认按 EMS 40cm 口径提醒，目的是提示你回到官方页面或客服确认。</p></article>
-          <article class="card"><h3>拆分建议只做复核</h3><p>工具只提示可能需要复核，不承诺某个方案一定更优。</p></article>
+          <article class="card"><h3 data-i18n="readCard1Title">计费重不是最终报价</h3><p data-i18n="readCard1Text">它只是报价复核入口。还要确认进位、附加项、目的地限制和服务类型。</p></article>
+          <article class="card"><h3 data-i18n="readCard2Title">长边提醒不是拦截规则</h3><p data-i18n="readCard2Text">默认按 EMS 40cm 口径提醒，目的是提示你回到官方页面或客服确认。</p></article>
+          <article class="card"><h3 data-i18n="readCard3Title">拆分建议只做复核</h3><p data-i18n="readCard3Text">工具只提示可能需要复核，不承诺某个方案一定更优。</p></article>
         </div>
       </div>
     </section>
@@ -1334,13 +1341,13 @@ def render_search_index() -> str:
 
 def render_site_js() -> str:
     nav_items = [
-        {"href": "index.html", "label": "首页", "key": "home"},
-        {"href": "articles.html", "label": "文章", "key": "articles"},
-        {"href": GROUPS["volume"]["page"], "label": "体积重", "key": "volume"},
-        {"href": GROUPS["channels"]["page"], "label": "渠道", "key": "channels"},
-        {"href": GROUPS["packing"]["page"], "label": "包装", "key": "packing"},
-        {"href": "tools.html", "label": "工具", "key": "tools"},
-        {"href": "smoke-test.html", "label": "内测", "key": "smoke"},
+        {"href": "index.html", "label": "首页", "labelEn": "Home", "key": "home"},
+        {"href": "articles.html", "label": "文章", "labelEn": "Articles", "key": "articles"},
+        {"href": GROUPS["volume"]["page"], "label": "体积重", "labelEn": "Volumetric", "key": "volume"},
+        {"href": GROUPS["channels"]["page"], "label": "渠道", "labelEn": "Channels", "key": "channels"},
+        {"href": GROUPS["packing"]["page"], "label": "包装", "labelEn": "Packing", "key": "packing"},
+        {"href": "tools.html", "label": "工具", "labelEn": "Tools", "key": "tools"},
+        {"href": "smoke-test.html", "label": "内测", "labelEn": "Beta", "key": "smoke"},
     ]
     return f"""(() => {{
   const site = {{
@@ -1349,19 +1356,221 @@ def render_site_js() -> str:
     nav: {json.dumps(nav_items, ensure_ascii=False)}
   }};
 
+  const JSPDF_SRC = 'https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js';
+
+  const i18n = {{
+    zh: {{
+      siteName: '跨境运费避坑工具箱',
+      skip: '跳到正文',
+      brandAria: '跨境运费避坑工具箱首页',
+      mainNav: '主导航',
+      themeToggle: '切换深浅色',
+      footerDesc: '用于发货前复核体积重、CBM、计费重和渠道口径。规则会变化，具体发货请以官方报价和承运商确认为准。',
+      footerArticles: '文章索引',
+      footerTools: '计算工具',
+      footerSmoke: '内测说明',
+      footerPrivacy: '隐私政策',
+      footerContact: '联系',
+      copyright: '© 2026 跨境运费避坑工具箱. 本站不提供承运商报价承诺。',
+      toolsEyebrow: 'Calculator',
+      toolsH1: '多 SKU 体积重 / CBM / 计费重计算器',
+      toolsLead: '录入每类货物的箱数、外箱尺寸和实重，本地计算 DHL 5000、EMS 6000、标准空运 6000 和自定义分母下的计费重，并提示长边复核项。',
+      startCalc: '开始计算',
+      formulaLink: '先看公式说明',
+      visualCaption: '站内生成插图：用于表示体积重、CBM 和计费重核算。',
+      localTool: 'Local Tool',
+      calcTitle: '发货前复核表',
+      calcLead: '数据只在浏览器内计算，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。',
+      addSku: '添加 SKU',
+      loadSample: '载入示例',
+      resetRows: '清空',
+      exportPdf: '导出 PDF 报告',
+      thSku: 'SKU / 箱型',
+      thQty: '箱数',
+      thLength: '长 cm',
+      thWidth: '宽 cm',
+      thHeight: '高 cm',
+      thWeight: '单箱实重 kg',
+      thAction: '操作',
+      customDivisor: '自定义分母',
+      metricActual: '总实重',
+      metricCbm: '总 CBM',
+      metricLongSide: '最长边提醒',
+      channel: '渠道',
+      divisor: '分母',
+      volumeWeight: '体积重',
+      chargeableWeight: '计费重',
+      howToRead: 'How to Read',
+      readTitle: '工具输出怎么看',
+      readCard1Title: '计费重不是最终报价',
+      readCard1Text: '它只是报价复核入口。还要确认进位、附加项、目的地限制和服务类型。',
+      readCard2Title: '长边提醒不是拦截规则',
+      readCard2Text: '默认按 EMS 40cm 口径提醒，目的是提示你回到官方页面或客服确认。',
+      readCard3Title: '拆分建议只做复核',
+      readCard3Text: '工具只提示可能需要复核，不承诺某个方案一定更优。',
+      langButton: 'EN',
+      skuPlaceholder: '如 自拍杆 A 箱',
+      deleteShort: '删',
+      deleteRow: '删除这一行',
+      pending: '待录入',
+      needReview: '，需复核',
+      emptySuggestion: '录入箱规后显示复核提示。',
+      longSideWarning: '存在最长边达到 40cm 口径的箱子，EMS 等渠道需要单独复核。',
+      divisorWarning: 'DHL 5000 与 6000 分母模拟差异约 {{diff}} kg，建议不要只比较每千克单价。',
+      densityWarning: '当前密度约 {{density}} kg/CBM，偏轻泡，建议重点复核体积重。',
+      normalWarning: '当前样本未出现明显长边或轻泡提醒，但仍需确认渠道分母、进位和附加项。',
+      dhlChannel: 'DHL 官方常见口径',
+      emsChannel: 'EMS 复核口径',
+      airChannel: '标准空运模拟',
+      customChannel: '自定义分母',
+      exportReady: 'PDF 报告已生成。',
+      exportLoading: '正在生成 PDF 报告...',
+      exportEmpty: '请先录入至少一行完整箱规。',
+      exportFailed: 'PDF 生成失败，请稍后重试。',
+      reportTitle: '货柜装载与计费重复核报告',
+      reportSubtitle: '本报告由浏览器本地生成，不上传数据；结果仅用于发货前复核。',
+      reportGenerated: '生成时间',
+      reportSummary: '汇总指标',
+      reportSku: 'SKU / 箱型明细',
+      reportChannels: '渠道计费重对比',
+      reportNotes: '复核提醒',
+      reportDisclaimer: '说明：本报告不替代承运商报价、收寄确认、进位规则和附加项确认。'
+    }},
+    en: {{
+      siteName: 'Cross-border Freight Review Toolbox',
+      skip: 'Skip to content',
+      brandAria: 'Cross-border Freight Review Toolbox home',
+      mainNav: 'Main navigation',
+      themeToggle: 'Toggle color theme',
+      footerDesc: 'Review volumetric weight, CBM, chargeable weight and channel assumptions before shipment. Rules change, so final shipment decisions should follow carrier quotes and confirmation.',
+      footerArticles: 'Articles',
+      footerTools: 'Calculator',
+      footerSmoke: 'Beta notes',
+      footerPrivacy: 'Privacy',
+      footerContact: 'Contact',
+      copyright: '© 2026 Cross-border Freight Review Toolbox. This site does not promise carrier quotes.',
+      toolsEyebrow: 'Calculator',
+      toolsH1: 'Multi-SKU Volumetric Weight / CBM / Chargeable Weight Calculator',
+      toolsLead: 'Enter carton counts, outer dimensions and actual weight. The browser compares DHL 5000, EMS 6000, standard air 6000 and a custom divisor, then flags long-side review points.',
+      startCalc: 'Start calculating',
+      formulaLink: 'Read the formula guide',
+      visualCaption: 'Site-generated illustration for volumetric weight, CBM and chargeable weight review.',
+      localTool: 'Local Tool',
+      calcTitle: 'Pre-shipment Review Sheet',
+      calcLead: 'All calculations run locally in your browser. The EMS long-side reminder uses 40cm as a review point; final rules should follow official quotes and acceptance confirmation.',
+      addSku: 'Add SKU',
+      loadSample: 'Load sample',
+      resetRows: 'Clear',
+      exportPdf: 'Export PDF report',
+      thSku: 'SKU / carton',
+      thQty: 'Cartons',
+      thLength: 'L cm',
+      thWidth: 'W cm',
+      thHeight: 'H cm',
+      thWeight: 'Actual kg / carton',
+      thAction: 'Action',
+      customDivisor: 'Custom divisor',
+      metricActual: 'Total actual weight',
+      metricCbm: 'Total CBM',
+      metricLongSide: 'Longest side',
+      channel: 'Channel',
+      divisor: 'Divisor',
+      volumeWeight: 'Volumetric weight',
+      chargeableWeight: 'Chargeable weight',
+      howToRead: 'How to Read',
+      readTitle: 'How to interpret the output',
+      readCard1Title: 'Chargeable weight is not the final quote',
+      readCard1Text: 'It is the starting point for review. Rounding, surcharges, destination limits and service type still need confirmation.',
+      readCard2Title: 'Long-side reminders are review prompts',
+      readCard2Text: 'The default EMS 40cm reminder is meant to prompt official-page or support confirmation.',
+      readCard3Title: 'Split suggestions only indicate review points',
+      readCard3Text: 'The tool flags items worth checking; it does not guarantee one route is always better.',
+      langButton: '中文',
+      skuPlaceholder: 'e.g. selfie stick carton A',
+      deleteShort: 'Del',
+      deleteRow: 'Delete this row',
+      pending: 'Pending',
+      needReview: ', review needed',
+      emptySuggestion: 'Enter carton data to see review notes.',
+      longSideWarning: 'At least one carton reaches the 40cm long-side review point; EMS and similar routes need separate confirmation.',
+      divisorWarning: 'The simulated DHL 5000 vs 6000 divisor difference is about {{diff}} kg. Do not compare only the per-kg rate.',
+      densityWarning: 'Current density is about {{density}} kg/CBM, which looks light and bulky. Prioritize volumetric-weight review.',
+      normalWarning: 'No obvious long-side or light-bulky signal appears in this sample, but divisor, rounding and surcharges still need confirmation.',
+      dhlChannel: 'DHL common official basis',
+      emsChannel: 'EMS review basis',
+      airChannel: 'Standard air simulation',
+      customChannel: 'Custom divisor',
+      exportReady: 'PDF report generated.',
+      exportLoading: 'Generating PDF report...',
+      exportEmpty: 'Enter at least one complete carton row first.',
+      exportFailed: 'PDF generation failed. Please try again later.',
+      reportTitle: 'Container Loading and Chargeable Weight Review Report',
+      reportSubtitle: 'Generated locally in the browser. No data is uploaded; use the result for pre-shipment review only.',
+      reportGenerated: 'Generated at',
+      reportSummary: 'Summary',
+      reportSku: 'SKU / carton details',
+      reportChannels: 'Channel comparison',
+      reportNotes: 'Review notes',
+      reportDisclaimer: 'Note: this report does not replace carrier quotes, acceptance confirmation, rounding rules or surcharge checks.'
+    }}
+  }};
+
   function resolvePrefix() {{
     return location.pathname.includes('/articles/') ? '../' : '';
+  }}
+
+  function currentLang() {{
+    return localStorage.getItem('shipping-lang') === 'en' ? 'en' : 'zh';
+  }}
+
+  function t(key) {{
+    const lang = currentLang();
+    return (i18n[lang] && i18n[lang][key]) || i18n.zh[key] || key;
   }}
 
   function initNav() {{
     const prefix = resolvePrefix();
     const active = document.body.dataset.active || '';
+    const lang = currentLang();
     document.querySelectorAll('[data-site-nav]').forEach((nav) => {{
       nav.innerHTML = site.nav.map((item) => {{
         const cls = active === item.key ? ' class="is-active"' : '';
-        return `<a${{cls}} href="${{prefix}}${{item.href}}">${{item.label}}</a>`;
+        const label = lang === 'en' ? item.labelEn : item.label;
+        return `<a${{cls}} href="${{prefix}}${{item.href}}">${{label}}</a>`;
       }}).join('');
     }});
+  }}
+
+  function applyLanguage() {{
+    const lang = currentLang();
+    document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+    document.querySelectorAll('[data-i18n]').forEach((node) => {{
+      node.textContent = t(node.dataset.i18n);
+    }});
+    document.querySelectorAll('[data-i18n-aria]').forEach((node) => {{
+      node.setAttribute('aria-label', t(node.dataset.i18nAria));
+    }});
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => {{
+      node.setAttribute('placeholder', t(node.dataset.i18nPlaceholder));
+    }});
+    document.querySelectorAll('[data-lang-toggle]').forEach((button) => {{
+      button.setAttribute('aria-pressed', String(lang === 'en'));
+    }});
+    document.querySelectorAll('[data-lang-current]').forEach((node) => {{
+      node.textContent = t('langButton');
+    }});
+    initNav();
+    document.dispatchEvent(new CustomEvent('shipping:languagechange', {{ detail: {{ lang }} }}));
+  }}
+
+  function initLanguage() {{
+    document.querySelectorAll('[data-lang-toggle]').forEach((button) => {{
+      button.addEventListener('click', () => {{
+        localStorage.setItem('shipping-lang', currentLang() === 'en' ? 'zh' : 'en');
+        applyLanguage();
+      }});
+    }});
+    applyLanguage();
   }}
 
   function initTheme() {{
@@ -1462,13 +1671,16 @@ def render_site_js() -> str:
     const longSide = root.querySelector('[data-long-side]');
     const channelResults = root.querySelector('[data-channel-results]');
     const suggestion = root.querySelector('[data-suggestion]');
+    const exportButton = root.querySelector('[data-export-report]');
+    const exportStatus = root.querySelector('[data-export-status]');
     let rowId = 0;
+    let lastReport = null;
 
     const channels = [
-      ['DHL 官方常见口径', 5000],
-      ['EMS 复核口径', 6000],
-      ['标准空运模拟', 6000],
-      ['自定义分母', 'custom']
+      ['dhlChannel', 5000],
+      ['emsChannel', 6000],
+      ['airChannel', 6000],
+      ['customChannel', 'custom']
     ];
 
     function rowTemplate(data = {{}}) {{
@@ -1477,13 +1689,13 @@ def render_site_js() -> str:
       const defaults = Object.assign({{ name: '', qty: 1, l: '', w: '', h: '', kg: '' }}, data);
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><label class="sr-only" for="sku-name-${{id}}">SKU 或箱型</label><input id="sku-name-${{id}}" type="text" value="${{defaults.name}}" placeholder="如 自拍杆 A 箱" data-field="name"></td>
-        <td><label class="sr-only" for="sku-qty-${{id}}">箱数</label><input id="sku-qty-${{id}}" type="number" min="1" step="1" value="${{defaults.qty}}" data-field="qty"></td>
-        <td><label class="sr-only" for="sku-l-${{id}}">长厘米</label><input id="sku-l-${{id}}" type="number" min="0" step="0.1" value="${{defaults.l}}" data-field="l"></td>
-        <td><label class="sr-only" for="sku-w-${{id}}">宽厘米</label><input id="sku-w-${{id}}" type="number" min="0" step="0.1" value="${{defaults.w}}" data-field="w"></td>
-        <td><label class="sr-only" for="sku-h-${{id}}">高厘米</label><input id="sku-h-${{id}}" type="number" min="0" step="0.1" value="${{defaults.h}}" data-field="h"></td>
-        <td><label class="sr-only" for="sku-kg-${{id}}">单箱实重千克</label><input id="sku-kg-${{id}}" type="number" min="0" step="0.01" value="${{defaults.kg}}" data-field="kg"></td>
-        <td><button class="icon-button" type="button" aria-label="删除这一行" data-remove-row>删</button></td>
+        <td><label class="sr-only" for="sku-name-${{id}}" data-row-label="thSku">${{t('thSku')}}</label><input id="sku-name-${{id}}" type="text" value="${{defaults.name}}" placeholder="${{t('skuPlaceholder')}}" data-field="name"></td>
+        <td><label class="sr-only" for="sku-qty-${{id}}" data-row-label="thQty">${{t('thQty')}}</label><input id="sku-qty-${{id}}" type="number" min="1" step="1" value="${{defaults.qty}}" data-field="qty"></td>
+        <td><label class="sr-only" for="sku-l-${{id}}" data-row-label="thLength">${{t('thLength')}}</label><input id="sku-l-${{id}}" type="number" min="0" step="0.1" value="${{defaults.l}}" data-field="l"></td>
+        <td><label class="sr-only" for="sku-w-${{id}}" data-row-label="thWidth">${{t('thWidth')}}</label><input id="sku-w-${{id}}" type="number" min="0" step="0.1" value="${{defaults.w}}" data-field="w"></td>
+        <td><label class="sr-only" for="sku-h-${{id}}" data-row-label="thHeight">${{t('thHeight')}}</label><input id="sku-h-${{id}}" type="number" min="0" step="0.1" value="${{defaults.h}}" data-field="h"></td>
+        <td><label class="sr-only" for="sku-kg-${{id}}" data-row-label="thWeight">${{t('thWeight')}}</label><input id="sku-kg-${{id}}" type="number" min="0" step="0.01" value="${{defaults.kg}}" data-field="kg"></td>
+        <td><button class="icon-button" type="button" aria-label="${{t('deleteRow')}}" data-remove-row>${{t('deleteShort')}}</button></td>
       `;
       rowsBody.appendChild(tr);
       tr.querySelectorAll('input').forEach((input) => input.addEventListener('input', calculate));
@@ -1524,6 +1736,19 @@ def render_site_js() -> str:
       return {{ volume: round(volume), chargeable: round(chargeable) }};
     }}
 
+    function translateRows() {{
+      rowsBody.querySelectorAll('[data-row-label]').forEach((label) => {{
+        label.textContent = t(label.dataset.rowLabel);
+      }});
+      rowsBody.querySelectorAll('[data-field="name"]').forEach((input) => {{
+        input.setAttribute('placeholder', t('skuPlaceholder'));
+      }});
+      rowsBody.querySelectorAll('[data-remove-row]').forEach((button) => {{
+        button.textContent = t('deleteShort');
+        button.setAttribute('aria-label', t('deleteRow'));
+      }});
+    }}
+
     function calculate() {{
       const rows = getRows();
       const actual = rows.reduce((sum, row) => sum + row.kg * row.qty, 0);
@@ -1531,29 +1756,222 @@ def render_site_js() -> str:
       const longest = rows.reduce((max, row) => Math.max(max, row.l, row.w, row.h), 0);
       totalActual.textContent = `${{round(actual)}} kg`;
       totalCbm.textContent = `${{round(cbm, 4)}} CBM`;
-      longSide.textContent = longest ? `${{round(longest, 1)}} cm${{longest >= 40 ? '，需复核' : ''}}` : '待录入';
+      longSide.textContent = longest ? `${{round(longest, 1)}} cm${{longest >= 40 ? t('needReview') : ''}}` : t('pending');
 
       const custom = Math.max(1000, Number(customDivisor.value) || 6000);
-      channelResults.innerHTML = channels.map(([name, divisor]) => {{
+      const channelData = channels.map(([nameKey, divisor]) => {{
         const realDivisor = divisor === 'custom' ? custom : divisor;
         const result = channelCalc(rows, realDivisor);
-        return `<tr><td>${{name}}</td><td>${{realDivisor}}</td><td>${{result.volume}} kg</td><td><strong>${{result.chargeable}} kg</strong></td></tr>`;
+        return {{ name: t(nameKey), divisor: realDivisor, volume: result.volume, chargeable: result.chargeable }};
+      }});
+      channelResults.innerHTML = channelData.map((item) => {{
+        return `<tr><td>${{item.name}}</td><td>${{item.divisor}}</td><td>${{item.volume}} kg</td><td><strong>${{item.chargeable}} kg</strong></td></tr>`;
       }}).join('');
 
       if (!rows.length) {{
-        suggestion.textContent = '录入箱规后显示复核提示。';
+        suggestion.textContent = t('emptySuggestion');
+        lastReport = {{ rows, actual, cbm, longest, channelData, warnings: [] }};
         return;
       }}
       const dhl = channelCalc(rows, 5000).chargeable;
       const ems = channelCalc(rows, 6000).chargeable;
       const diff = round(Math.abs(dhl - ems));
       const warnings = [];
-      if (longest >= 40) warnings.push('存在最长边达到 40cm 口径的箱子，EMS 等渠道需要单独复核。');
-      if (diff > 0) warnings.push(`DHL 5000 与 6000 分母模拟差异约 ${{diff}} kg，建议不要只比较每千克单价。`);
+      if (longest >= 40) warnings.push(t('longSideWarning'));
+      if (diff > 0) warnings.push(t('divisorWarning').replace('{{diff}}', diff));
       const density = cbm ? actual / cbm : 0;
-      if (density && density < 120) warnings.push(`当前密度约 ${{round(density)}} kg/CBM，偏轻泡，建议重点复核体积重。`);
-      if (!warnings.length) warnings.push('当前样本未出现明显长边或轻泡提醒，但仍需确认渠道分母、进位和附加项。');
+      if (density && density < 120) warnings.push(t('densityWarning').replace('{{density}}', round(density)));
+      if (!warnings.length) warnings.push(t('normalWarning'));
       suggestion.textContent = warnings.join(' ');
+      lastReport = {{ rows, actual: round(actual), cbm: round(cbm, 4), longest: round(longest, 1), channelData, warnings }};
+    }}
+
+    function loadJsPdf() {{
+      if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+      return new Promise((resolve, reject) => {{
+        const existing = document.querySelector('script[data-jspdf]');
+        if (existing) {{
+          existing.addEventListener('load', () => resolve(window.jspdf.jsPDF), {{ once: true }});
+          existing.addEventListener('error', reject, {{ once: true }});
+          return;
+        }}
+        const script = document.createElement('script');
+        script.src = JSPDF_SRC;
+        script.async = true;
+        script.defer = true;
+        script.dataset.jspdf = 'true';
+        script.onload = () => resolve(window.jspdf.jsPDF);
+        script.onerror = reject;
+        document.head.appendChild(script);
+      }});
+    }}
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {{
+      const chars = Array.from(String(text || ''));
+      let line = '';
+      let cursorY = y;
+      chars.forEach((char) => {{
+        const test = line + char;
+        if (ctx.measureText(test).width > maxWidth && line) {{
+          ctx.fillText(line, x, cursorY);
+          line = char.trimStart();
+          cursorY += lineHeight;
+        }} else {{
+          line = test;
+        }}
+      }});
+      if (line) ctx.fillText(line, x, cursorY);
+      return cursorY + lineHeight;
+    }}
+
+    function drawTable(ctx, title, headers, rows, x, y, widths) {{
+      const rowHeight = 42;
+      ctx.fillStyle = '#20252b';
+      ctx.font = '700 26px Microsoft YaHei, Noto Sans SC, Arial, sans-serif';
+      ctx.fillText(title, x, y);
+      y += 22;
+      ctx.fillStyle = '#eef3f7';
+      ctx.fillRect(x, y, widths.reduce((sum, width) => sum + width, 0), rowHeight);
+      ctx.strokeStyle = '#d8e0ea';
+      ctx.lineWidth = 2;
+      let cursorX = x;
+      ctx.font = '700 18px Microsoft YaHei, Noto Sans SC, Arial, sans-serif';
+      ctx.fillStyle = '#20252b';
+      headers.forEach((header, index) => {{
+        ctx.strokeRect(cursorX, y, widths[index], rowHeight);
+        ctx.fillText(header, cursorX + 12, y + 27);
+        cursorX += widths[index];
+      }});
+      y += rowHeight;
+      ctx.font = '18px Microsoft YaHei, Noto Sans SC, Arial, sans-serif';
+      rows.forEach((row, rowIndex) => {{
+        cursorX = x;
+        ctx.fillStyle = rowIndex % 2 ? '#fbfcfd' : '#ffffff';
+        ctx.fillRect(x, y, widths.reduce((sum, width) => sum + width, 0), rowHeight);
+        ctx.fillStyle = '#20252b';
+        row.forEach((cell, index) => {{
+          ctx.strokeRect(cursorX, y, widths[index], rowHeight);
+          ctx.fillText(String(cell), cursorX + 12, y + 27);
+          cursorX += widths[index];
+        }});
+        y += rowHeight;
+      }});
+      return y + 34;
+    }}
+
+    function createReportCanvas(report) {{
+      const width = 1240;
+      const rowCount = report.rows.length + report.channelData.length + report.warnings.length;
+      const height = Math.max(980, 760 + rowCount * 54);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f6f8fb';
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = '#19705a';
+      ctx.fillRect(0, 0, width, 14);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(68, 72, width - 136, height - 144);
+      ctx.strokeStyle = '#d8e0ea';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(68, 72, width - 136, height - 144);
+
+      let y = 132;
+      ctx.fillStyle = '#20252b';
+      ctx.font = '700 38px Microsoft YaHei, Noto Sans SC, Arial, sans-serif';
+      ctx.fillText(t('reportTitle'), 104, y);
+      y += 42;
+      ctx.fillStyle = '#5f6874';
+      ctx.font = '20px Microsoft YaHei, Noto Sans SC, Arial, sans-serif';
+      y = wrapText(ctx, t('reportSubtitle'), 104, y, 920, 28);
+      ctx.fillText(t('reportGenerated') + ': ' + new Date().toLocaleString(), 104, y + 10);
+      y += 68;
+
+      const summaryRows = [
+        [t('metricActual'), round(report.actual) + ' kg'],
+        [t('metricCbm'), report.cbm + ' CBM'],
+        [t('metricLongSide'), report.longest ? report.longest + ' cm' : t('pending')]
+      ];
+      y = drawTable(ctx, t('reportSummary'), [t('channel'), t('chargeableWeight')], summaryRows, 104, y, [360, 300]);
+
+      const skuRows = report.rows.map((row) => [
+        row.name || '-',
+        row.qty,
+        row.l + ' x ' + row.w + ' x ' + row.h,
+        row.kg + ' kg'
+      ]);
+      y = drawTable(ctx, t('reportSku'), [t('thSku'), t('thQty'), 'L x W x H cm', t('thWeight')], skuRows, 104, y, [360, 130, 270, 220]);
+
+      const channelRows = report.channelData.map((item) => [
+        item.name,
+        item.divisor,
+        item.volume + ' kg',
+        item.chargeable + ' kg'
+      ]);
+      y = drawTable(ctx, t('reportChannels'), [t('channel'), t('divisor'), t('volumeWeight'), t('chargeableWeight')], channelRows, 104, y, [360, 150, 220, 240]);
+
+      ctx.fillStyle = '#20252b';
+      ctx.font = '700 26px Microsoft YaHei, Noto Sans SC, Arial, sans-serif';
+      ctx.fillText(t('reportNotes'), 104, y);
+      y += 36;
+      ctx.font = '20px Microsoft YaHei, Noto Sans SC, Arial, sans-serif';
+      ctx.fillStyle = '#3f4853';
+      (report.warnings.length ? report.warnings : [t('normalWarning')]).forEach((note) => {{
+        y = wrapText(ctx, '• ' + note, 124, y, 920, 30);
+      }});
+      y += 18;
+      ctx.fillStyle = '#5f6874';
+      ctx.font = '18px Microsoft YaHei, Noto Sans SC, Arial, sans-serif';
+      wrapText(ctx, t('reportDisclaimer'), 104, y, 930, 26);
+      return canvas;
+    }}
+
+    function addCanvasToPdf(jsPDF, canvas) {{
+      const doc = new jsPDF({{ orientation: 'p', unit: 'mm', format: 'a4', compress: true }});
+      const margin = 10;
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const contentWidth = pageWidth - margin * 2;
+      const pxPerMm = canvas.width / contentWidth;
+      const sliceHeight = Math.floor((pageHeight - margin * 2) * pxPerMm);
+      let offset = 0;
+      let page = 0;
+      while (offset < canvas.height) {{
+        const partHeight = Math.min(sliceHeight, canvas.height - offset);
+        const slice = document.createElement('canvas');
+        slice.width = canvas.width;
+        slice.height = partHeight;
+        const sliceCtx = slice.getContext('2d');
+        sliceCtx.drawImage(canvas, 0, offset, canvas.width, partHeight, 0, 0, canvas.width, partHeight);
+        if (page > 0) doc.addPage();
+        doc.addImage(slice.toDataURL('image/png'), 'PNG', margin, margin, contentWidth, partHeight / pxPerMm);
+        offset += partHeight;
+        page += 1;
+      }}
+      return doc;
+    }}
+
+    async function exportPdfReport() {{
+      calculate();
+      if (!lastReport || !lastReport.rows.length) {{
+        exportStatus.textContent = t('exportEmpty');
+        return;
+      }}
+      exportButton.disabled = true;
+      exportStatus.textContent = t('exportLoading');
+      try {{
+        const jsPDF = await loadJsPdf();
+        const canvas = createReportCanvas(lastReport);
+        const doc = addCanvasToPdf(jsPDF, canvas);
+        const stamp = new Date().toISOString().slice(0, 10);
+        doc.save('chargeable-weight-report-' + stamp + '.pdf');
+        exportStatus.textContent = t('exportReady');
+      }} catch (error) {{
+        exportStatus.textContent = t('exportFailed');
+      }} finally {{
+        exportButton.disabled = false;
+      }}
     }}
 
     function addRow(data) {{
@@ -1575,12 +1993,17 @@ def render_site_js() -> str:
       calculate();
     }});
     customDivisor.addEventListener('input', calculate);
+    exportButton.addEventListener('click', exportPdfReport);
+    document.addEventListener('shipping:languagechange', () => {{
+      translateRows();
+      calculate();
+    }});
     addRow({{ name: '示例轻泡箱', qty: 2, l: 60, w: 45, h: 40, kg: 8 }});
     addRow({{ name: '示例重货箱', qty: 1, l: 38, w: 28, h: 22, kg: 12 }});
     calculate();
   }}
 
-  initNav();
+  initLanguage();
   initTheme();
   initAdSlots();
   initArticleFilter();
