@@ -1,1959 +1,1739 @@
 from __future__ import annotations
 
-import json
 from html import escape
 from pathlib import Path
+import json
+import math
 import re
+
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTICLES_DIR = ROOT / "articles"
+ASSETS_DIR = ROOT / "assets"
+IMAGE_DIR = ASSETS_DIR / "images"
+ARTICLE_IMAGE_DIR = IMAGE_DIR / "articles"
+
 SITE_URL = "https://ai-efficiency-hub.pages.dev"
-TODAY = "2026-05-20"
+SITE_NAME = "跨境运费避坑工具箱"
+SITE_DESCRIPTION = "面向外贸员、跨境电商卖家、独立站卖家和 FBA 新手的体积重、CBM、计费重与渠道复核静态工具站。"
+TODAY = "2026-05-21"
+
 
 SOURCES = {
-    "google_helpful": ("Google Search Central：Creating helpful, reliable, people-first content", "https://developers.google.com/search/docs/fundamentals/creating-helpful-content"),
-    "google_ai": ("Google Search Central：Guidance on generative AI content", "https://developers.google.com/search/docs/fundamentals/using-gen-ai-content"),
-    "google_image": ("Google Search Central：Image SEO best practices", "https://developers.google.com/search/docs/advanced/guidelines/google-images"),
-    "google_spam": ("Google Search Central：Spam policies for Google web search", "https://developers.google.com/search/docs/essentials/spam-policies"),
-    "baidu_quality": ("百度搜索资源平台：百度搜索优质内容指南", "https://ziyuan.baidu.com/college/articleinfo?id=2947"),
-    "baidu_page": ("百度搜索资源平台：百度搜索页面质量标准", "https://ziyuan.baidu.com/college/articleinfo?id=3436"),
-    "cet": ("中国教育考试网：全国大学英语四、六级考试(CET)", "https://cet.neea.edu.cn/"),
-    "selenium_waits": ("Selenium Documentation：Waiting Strategies", "https://www.selenium.dev/documentation/webdriver/waits/"),
-    "selenium_locators": ("Selenium Documentation：Locating elements", "https://www.selenium.dev/documentation/webdriver/elements/locators/"),
-    "pytest_parametrize": ("pytest documentation：Parametrizing tests", "https://docs.pytest.org/en/stable/how-to/parametrize.html"),
-    "pytest_fixtures": ("pytest documentation：How to use fixtures", "https://docs.pytest.org/en/stable/how-to/fixtures.html"),
-    "owasp_llm": ("OWASP：Top 10 for Large Language Model Applications", "https://owasp.org/www-project-top-10-for-large-language-model-applications/"),
-    "owasp_prompt": ("OWASP：Prompt Injection", "https://owasp.org/www-community/attacks/PromptInjection"),
+    "dhl_dct": (
+        "DHL DCT Help：Volumetric weight",
+        "https://dct.dhl.com/help",
+    ),
+    "ems_product": (
+        "中国 EMS：国际及港澳台 EMS 产品概况",
+        "https://my.ems.com.cn/intl/shipping/product/product_1.html",
+    ),
+    "ems_notice": (
+        "中国 EMS：关于调整部分国际及港澳台邮件计泡规则的通知",
+        "https://my.ems.com.cn/pcp-web/f/pcp/indexController/tonoticeindex?ntificationId=af3b06f2d6c6c51244472ad090c23ef9",
+    ),
+    "sf_rate": (
+        "顺丰官网：Rates & Transit Time 支持说明",
+        "https://www.sf-express.com/chn/en/price-query",
+    ),
+    "amazon_fba_pack": (
+        "Amazon Seller Central Help：Packaging and prep requirements",
+        "https://sellercentral.amazon.com/help/hub/reference/G201079430",
+    ),
+    "amazon_sp_api": (
+        "Amazon SP-API：Create shipment without carton info",
+        "https://developer-docs.amazon.com/sp-api/lang-en_EN/docs/create-shipment-without-carton-info",
+    ),
+    "google_helpful": (
+        "Google Search Central：Creating helpful, reliable, people-first content",
+        "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+    ),
+    "google_spam": (
+        "Google Search Central：Spam policies for Google web search",
+        "https://developers.google.com/search/docs/essentials/spam-policies",
+    ),
+    "baidu_quality": (
+        "百度搜索资源平台：百度搜索优质内容指南",
+        "https://ziyuan.baidu.com/college/articleinfo?id=2947",
+    ),
 }
 
+
+GROUPS = {
+    "volume": {
+        "label": "体积重与 CBM",
+        "short": "体积重",
+        "page": "volume.html",
+        "eyebrow": "Volumetric Weight",
+        "accent": "accent-green",
+        "image": "volume",
+        "lead": "先把长宽高、实重、体积重、CBM 和计费重算清楚，再看渠道报价是否需要复核。",
+        "groups": ["体积重公式", "CBM", "混装核算", "进位复核"],
+    },
+    "channels": {
+        "label": "渠道规则复核",
+        "short": "渠道复核",
+        "page": "channels.html",
+        "eyebrow": "Channel Rules",
+        "accent": "accent-blue",
+        "image": "channels",
+        "lead": "把 DHL、EMS、顺丰、标准空运和 FBA 头程分开看，避免用一个分母套所有渠道。",
+        "groups": ["DHL", "EMS", "顺丰", "FBA 头程"],
+    },
+    "packing": {
+        "label": "包装与拆单决策",
+        "short": "包装拆单",
+        "page": "packing.html",
+        "eyebrow": "Packing Decisions",
+        "accent": "accent-amber",
+        "image": "packing",
+        "lead": "围绕外箱尺寸、长边、空隙、混装和拆箱做复核，给发货前多一道可执行检查。",
+        "groups": ["外箱测量", "拆箱判断", "装箱优化", "仓库复核"],
+    },
+}
+
+GROUP_ORDER = ["volume", "channels", "packing"]
+
+
 IMAGES = {
-    "campus": {
-        "src": "../assets/images/articles/campus-study.jpg",
-        "alt": "学生在笔记本电脑前整理学习资料",
-        "caption": "学习类文章配图，图片来源：Unsplash。",
+    "volume": {
+        "src": "assets/images/articles/logistics-calculator.png",
+        "webp": "assets/images/articles/logistics-calculator.webp",
+        "alt": "计算器、纸箱和计量线条组成的跨境运费核算插图",
+        "caption": "站内生成插图：用于表示体积重、CBM 和计费重核算。",
+        "width": 1200,
+        "height": 675,
     },
-    "career": {
-        "src": "../assets/images/articles/career-team.jpg",
-        "alt": "团队围绕笔记本电脑讨论项目和求职材料",
-        "caption": "求职与项目表达类文章配图，图片来源：Unsplash。",
+    "channels": {
+        "src": "assets/images/articles/channel-routes.png",
+        "webp": "assets/images/articles/channel-routes.webp",
+        "alt": "不同物流渠道路线和纸箱节点组成的复核插图",
+        "caption": "站内生成插图：用于表示不同承运渠道的规则差异。",
+        "width": 1200,
+        "height": 675,
     },
-    "tools": {
-        "src": "../assets/images/articles/ai-tools-code.jpg",
-        "alt": "笔记本电脑上的代码编辑器和工作台",
-        "caption": "AI 工具和提示词类文章配图，图片来源：Unsplash。",
+    "packing": {
+        "src": "assets/images/articles/carton-checklist.png",
+        "webp": "assets/images/articles/carton-checklist.webp",
+        "alt": "纸箱、卷尺和检查清单组成的包装复核插图",
+        "caption": "站内生成插图：用于表示外箱尺寸、包装和拆箱检查。",
+        "width": 1200,
+        "height": 675,
     },
 }
 
 
 def source(*keys: str) -> list[tuple[str, str]]:
-    return [SOURCES[k] for k in keys]
+    return [SOURCES[key] for key in keys]
 
 
 ARTICLES = [
-    # campus
-    {"slug": "cet-14-day-study-plan", "group": "campus", "category": "校园效率", "tag": "四六级", "title": "四六级 14 天备考计划怎么安排", "description": "适合大学生的四六级 14 天备考计划，把词汇、阅读、听力、作文和翻译拆成每天可执行任务。", "keyword": "四六级 14 天备考计划", "problem": "距离考试不远，但复习材料很多，容易今天背单词、明天刷阅读，最后没有形成稳定节奏。", "method": "先做一次真题诊断，把低分模块排出来，再按词汇、阅读、听力、作文翻译四条线轮换训练。每天只设置一个主任务和一个可检查交付物。", "steps": ["第 1 天做完整诊断，记录四项得分和耗时。", "第 2 到 5 天补词汇和阅读定位，复盘同义替换。", "第 6 到 9 天练听力场景词、转折词和答案句。", "第 10 到 13 天集中写作文、翻译并让 AI 做结构检查。", "第 14 天只看错题和自己的句型库。"], "prompt": "你是四六级备考教练。根据我的四项得分和错题类型，为我安排未来 14 天复习表，每天不超过 90 分钟，并写清当天交付物。", "mistakes": ["只收藏资料但不复盘错题。", "把 AI 生成作文整篇背下来。", "每天目标太多，无法检查完成情况。"], "sources": source("cet", "google_helpful", "baidu_quality")},
-    {"slug": "cet-writing-template-safe-use", "group": "campus", "category": "校园效率", "tag": "作文", "title": "四六级作文模板怎么用才不生硬", "description": "说明四六级作文模板的安全用法：保留结构、替换主题、准备理由库，不机械背诵整篇范文。", "keyword": "四六级作文模板", "problem": "很多同学找到了模板，却写出来像套话，题目稍微变化就不会改。模板真正有用的部分是结构，不是整篇照抄。", "method": "把模板拆成开头、观点、理由、例子和结尾五个部件。每个部件准备 2 到 3 个稳定句型，再用自己的校园例子填进去。", "steps": ["先判断题目是观点类、问题解决类还是利弊类。", "只保留段落结构，不固定整篇内容。", "每个主题准备两个可替换理由。", "用简单准确的词，少堆复杂从句。", "写完后检查是否回应题目关键词。"], "prompt": "请根据作文题目生成三段式提纲，要求包含两个普通大学生能写出来的理由和一个校园生活例子，不要直接写完整作文。", "mistakes": ["开头万能但后文和题目无关。", "理由过空，只写 important、good、bad。", "让 AI 写得太高级，考试现场无法复现。"], "sources": source("cet", "google_ai", "baidu_page")},
-    {"slug": "cet-listening-review-method", "group": "campus", "category": "校园效率", "tag": "听力", "title": "四六级听力错题怎么复盘", "description": "把四六级听力错题复盘拆成场景词、转折词、答案句和下次动作，避免只对答案。", "keyword": "四六级听力错题复盘", "problem": "听力错题如果只看答案，下次依然会被同样的场景词和转折信息卡住。复盘要找到答案出现前后的信号。", "method": "每道错题记录题号、场景、错选原因、原文线索、信号词和下次训练动作。重点不在听懂每个词，而在听懂信息变化。", "steps": ["先标出题目问的是时间、地点、原因还是态度。", "回到原文找答案句前后各一句。", "记录 however、actually、instead 等转折词。", "把场景词放入自己的听力词表。", "第二天跟读答案句并复听同类题。"], "prompt": "请根据这段听力原文和我的错题，指出答案句、干扰信息、关键词和下次听题时应该注意的信号词。", "mistakes": ["听到原词就选，没有等完整句子。", "只写没听懂，不写具体卡点。", "复听时盲目循环，不做句子级跟读。"], "sources": source("cet", "google_helpful", "baidu_quality")},
-    {"slug": "cet-reading-question-strategy", "group": "campus", "category": "校园效率", "tag": "阅读", "title": "四六级阅读题定位和排除法", "description": "讲解四六级阅读题如何先看题干、找定位句、识别同义替换，并排除范围扩大和偷换概念。", "keyword": "四六级阅读定位法", "problem": "阅读题不是比谁通读得快，而是比谁能把题干和原文对应起来。很多错题来自只找原词，不找同义表达。", "method": "先看题干圈关键词，再回原文找同义替换。定位后读前后各一句，最后用排除法处理过度绝对、偷换对象和范围扩大。", "steps": ["题干先圈数字、人名、专有名词和限定词。", "不要只找原词，重点找同义表达。", "定位后读前后各一句，确认上下文。", "排除 always、never 等过度绝对选项。", "复盘时写出原文依据，而不是只抄答案。"], "prompt": "请帮我分析这道阅读错题，输出题干关键词、原文定位句、同义替换、干扰项类型和下次解题步骤。", "mistakes": ["先通读全文导致时间不够。", "只看选项熟不熟悉，不回原文。", "推断题凭感觉选，没有写出依据。"], "sources": source("cet", "google_helpful", "baidu_page")},
-    {"slug": "cet-translation-common-patterns", "group": "campus", "category": "校园效率", "tag": "翻译", "title": "四六级翻译常见句型和拆句方法", "description": "整理四六级翻译中常见的中文长句拆分方法、传统文化和社会发展类表达。", "keyword": "四六级翻译句型", "problem": "翻译长句最容易逐字硬译，结果主干不清、修饰语堆在一起。正确做法是先找主谓宾，再处理时间、地点、原因和定语。", "method": "把中文句子拆成主干和附加信息。遇到长定语可以拆成两个英文句子，先保证准确，再考虑表达丰富。", "steps": ["先找主语、谓语和宾语。", "把随着、由于、为了等状语单独处理。", "传统文化类词汇建立固定表达表。", "过长中文定语可以拆句。", "翻译后检查时态、单复数和搭配。"], "prompt": "请把这句中文翻译题拆成主干、修饰成分和英文表达建议。不要直接给唯一答案，请说明为什么这样拆。", "mistakes": ["中文顺序照搬到英文。", "为了高级词牺牲准确性。", "忽略名词单复数和动词时态。"], "sources": source("cet", "google_ai", "baidu_quality")},
-    {"slug": "final-paper-topic-selection", "group": "campus", "category": "校园效率", "tag": "期末作业", "title": "期末论文选题怎么用 AI 辅助", "description": "说明如何用 AI 辅助期末论文选题：拆老师要求、评估资料可得性、控制题目范围。", "keyword": "期末论文选题 AI", "problem": "期末论文最常见的问题不是不会写，而是题目太大、资料难找、和课程知识点关系弱。AI 可以帮忙发散，但不能替你决定事实依据。", "method": "先把老师要求拆成评分项，再让 AI 给出候选题目。每个题目都要检查资料来源、可写范围、课程关联和风险。", "steps": ["复制老师要求并提取字数、引用和格式要求。", "列出自己熟悉的课程概念。", "让 AI 生成 5 个小题目并说明难度。", "筛掉资料难核验或范围过大的题目。", "把题目改成能回答的研究问题。"], "prompt": "课程名是【】，老师要求是【】，我熟悉的知识点是【】。请生成 5 个适合期末论文的小选题，并说明资料来源、难度和偏题风险。", "mistakes": ["题目大到像毕业论文。", "只看题目新不新，不看资料能不能核验。", "让 AI 直接写全文，忽略课程要求。"], "sources": source("google_ai", "google_helpful", "baidu_quality")},
-    {"slug": "final-paper-outline-ai", "group": "campus", "category": "校园效率", "tag": "提纲", "title": "课程论文提纲怎么拆到三级标题", "description": "用 AI 辅助课程论文提纲，按研究问题、章节任务、证据材料拆成三级标题。", "keyword": "课程论文提纲", "problem": "很多课程论文提纲只有背景、现状、问题、对策，看似完整，实际每章不知道写什么。三级标题能把章节任务具体化。", "method": "一级标题回答大问题，二级标题说明分析角度，三级标题放证据、案例或步骤。AI 适合帮你检查标题之间是否重复。", "steps": ["先写一句研究问题。", "把问题拆成背景、分析、建议和结论。", "每个一级标题下写 2 到 3 个二级标题。", "三级标题只放证据、案例或操作步骤。", "检查每章是否回应题目。"], "prompt": "请根据我的论文题目和老师要求，生成三级标题提纲。每个标题后写一句本节要解决的问题，并指出哪些位置需要补资料。", "mistakes": ["一级标题太空，像模板套话。", "二级标题互相重复。", "没有证据位置，导致正文只能堆观点。"], "sources": source("google_helpful", "baidu_page")},
-    {"slug": "course-report-source-check", "group": "campus", "category": "校园效率", "tag": "资料核验", "title": "课程作业资料来源怎么核验", "description": "讲解课程作业引用资料如何判断可靠性，区分教材、官网、论文、报告和普通经验文章。", "keyword": "课程作业资料核验", "problem": "AI 可以快速列资料，但也可能给出不存在或不适合引用的来源。课程作业真正需要的是可核验、可追溯、和题目相关的材料。", "method": "把资料分成核心依据和辅助材料。教材、官网、论文适合做核心依据，普通文章适合做现象观察，不能随便当权威结论。", "steps": ["检查来源主体是谁。", "确认发布时间和原文链接。", "判断资料和题目哪一章相关。", "把没有来源的数据标记为待核验。", "引用前回到原文确认上下文。"], "prompt": "请检查这 5 条资料是否适合放进课程作业，按可靠性、适用章节、需要核验的问题和引用风险做表格。", "mistakes": ["把 AI 编出来的参考文献当真。", "只看标题相关，不看正文依据。", "用自媒体观点替代课程概念。"], "sources": source("google_ai", "google_spam", "baidu_quality")},
-    {"slug": "ai-homework-integrity", "group": "campus", "category": "校园效率", "tag": "学习边界", "title": "用 AI 做作业怎样避免越界", "description": "说明大学生使用 AI 辅助作业的边界：可以拆题、做提纲、查漏洞，但不能替代个人完成要求。", "keyword": "AI 作业边界", "problem": "AI 能提高效率，也容易让学生跳过思考过程。对课程作业来说，最重要的是让工具辅助学习，而不是替代个人完成要求。", "method": "把 AI 用在理解要求、拆提纲、检查逻辑和改表达。观点、数据、案例选择和最终判断应由自己完成，并保留资料核验过程。", "steps": ["先自己读懂题目和评分标准。", "让 AI 帮你拆任务，不让它直接输出终稿。", "所有事实、引用和案例回到来源核验。", "保留自己的观点和课程概念。", "提交前检查学校和课程规则。"], "prompt": "请帮我检查这份作业提纲是否偏题、是否缺少证据、是否有逻辑跳跃。不要代替我写正文。", "mistakes": ["把生成内容原样提交。", "引用没有核验的资料。", "观点和课程知识点脱节。"], "sources": source("google_ai", "google_helpful", "baidu_page")},
-    {"slug": "presentation-defense-prep", "group": "campus", "category": "校园效率", "tag": "答辩", "title": "期末汇报和答辩怎么准备", "description": "整理期末汇报和答辩准备方法：PPT 结构、开场讲稿、老师追问和材料自查。", "keyword": "期末答辩准备", "problem": "很多同学 PPT 做完才发现不会讲。汇报不是把正文搬到幻灯片，而是用有限时间讲清问题、方法、结果和不足。", "method": "先写 60 秒开场，再准备每页 2 到 3 句讲稿。答辩问题按选题、资料、方法、局限和改进来准备。", "steps": ["第一页说明题目、课程和汇报人。", "第二页讲研究背景和问题。", "中间页只放关键证据和结论。", "最后页讲不足和改进方向。", "提前准备 5 个老师可能追问的问题。"], "prompt": "请根据我的课程作业提纲，生成 8 页 PPT 汇报结构和每页 2 句讲稿，并列出 6 个可能被问到的答辩问题。", "mistakes": ["PPT 字太多，像 Word 截图。", "只讲做了什么，不讲为什么。", "没有准备资料来源和局限说明。"], "sources": source("google_helpful", "baidu_quality")},
-    {"slug": "club-event-plan-structure", "group": "campus", "category": "校园效率", "tag": "活动策划", "title": "社团活动策划案基本结构", "description": "社团活动策划案应包含背景、目标、流程、分工、预算、风险和复盘指标。", "keyword": "社团活动策划案结构", "problem": "活动策划案如果只写意义和口号，很难真正执行。审批和落地更关心时间、场地、负责人、预算和风险。", "method": "把策划案写成执行文件：目标可衡量，流程有时间，分工有负责人，预算有说明，风险有预案。", "steps": ["用一句话说明为什么办活动。", "把目标写成报名人数、到场人数和传播结果。", "按时间顺序写活动流程。", "列出每个小组负责人。", "写清设备、人员、场地和安全预案。"], "prompt": "请根据活动主题、人数、预算和场地，生成一份活动策划案框架，必须包含流程表、分工表、预算表、风险预案和复盘指标。", "mistakes": ["目标不可衡量。", "预算只有总价没有明细。", "没有安全负责人和备用流程。"], "sources": source("google_helpful", "baidu_page")},
-    {"slug": "campus-singer-event-plan", "group": "campus", "category": "校园效率", "tag": "校园活动", "title": "校园十佳歌手比赛策划思路", "description": "以校园十佳歌手比赛为例，说明活动目标、报名、彩排、决赛流程、宣传和复盘。", "keyword": "校园十佳歌手策划案", "problem": "校园歌手比赛看似简单，实际涉及报名、曲目、伴奏、彩排、评分、现场秩序和后续传播。缺一项就容易现场混乱。", "method": "按 T-14 到 T+3 做排期。前期解决报名和场地，中期解决彩排和物料，活动当天解决流程和秩序，结束后做复盘。", "steps": ["T-14 确认场地、预算和负责人。", "T-10 发布报名通知并收伴奏。", "T-5 做第一次彩排。", "T-1 检查音响、座位和签到表。", "T+1 发布结果和活动图文。"], "prompt": "请为校园十佳歌手比赛生成活动执行排期，包含报名、初选、彩排、决赛、宣传和复盘，每一项写负责人和交付物。", "mistakes": ["只写决赛当天流程。", "没有伴奏格式和备用设备要求。", "活动后不记录数据，下一次无法改进。"], "sources": source("google_helpful", "baidu_quality")},
-    {"slug": "activity-budget-table", "group": "campus", "category": "校园效率", "tag": "预算", "title": "活动预算表怎么做才清楚", "description": "说明校园活动预算表如何列费用项、单价、数量、负责人、用途和备用金。", "keyword": "活动预算表", "problem": "预算表不是写一个总金额就结束。审批人需要知道每笔钱买什么、为什么需要、谁负责、是否有备用方案。", "method": "预算表至少包含费用项、单价、数量、小计、用途、负责人和备注。对于不确定费用，单独列备用金并说明使用条件。", "steps": ["先按宣传、物料、奖品、设备和备用金分类。", "每项写清单价和数量。", "注明采购负责人。", "把可借用资源和必须采购资源分开。", "活动后记录实际支出和差异。"], "prompt": "请根据活动主题、预计人数和预算上限，生成一张活动预算表，包含费用项、单价、数量、小计、用途、负责人和是否可替代。", "mistakes": ["只有总预算，没有明细。", "奖品费用过高，忽略基础物料。", "没有预留突发费用。"], "sources": source("google_helpful", "baidu_page")},
-    {"slug": "club-promo-copywriting", "group": "campus", "category": "校园效率", "tag": "宣传文案", "title": "社团活动宣传文案怎么写", "description": "校园活动宣传文案要说明对象、时间、地点、亮点和报名方式，避免只写情绪口号。", "keyword": "社团活动宣传文案", "problem": "很多活动文案很好看，但用户看完不知道谁能参加、什么时候开始、在哪里报名。宣传文案首先要降低行动成本。", "method": "文案分成标题、开头、亮点、信息块和行动提示。标题吸引注意，信息块负责说清时间地点和报名条件。", "steps": ["标题直接点出活动和人群。", "开头用一个真实场景引入。", "亮点控制在 3 条以内。", "时间、地点、报名方式单独成块。", "结尾提醒截止时间和联系人。"], "prompt": "请为这个校园活动写 3 个标题、1 段推文开头和 1 个报名信息块。要求清楚说明时间、地点、对象、亮点和报名方式。", "mistakes": ["只写热血口号，缺少基础信息。", "标题太长，手机端不易读。", "没有报名截止时间。"], "sources": source("google_helpful", "baidu_quality")},
-    {"slug": "student-time-management-ai", "group": "campus", "category": "校园效率", "tag": "时间管理", "title": "大学生怎么用 AI 做时间管理", "description": "讲解大学生如何用 AI 拆分课程、考试、社团和求职任务，形成周计划和复盘表。", "keyword": "大学生 AI 时间管理", "problem": "大学生的时间管理难点不是没有工具，而是课程、考试、社团和求职任务混在一起，优先级经常变化。", "method": "让 AI 帮你把任务拆成必须完成、可以简化、可以延期三类，再给每类设置完成标准。每天只追踪关键交付物。", "steps": ["列出本周所有任务和截止时间。", "标出必须完成的课程和考试任务。", "把大任务拆成 30 到 60 分钟动作。", "每天结束只复盘完成、卡点和明天动作。", "每周删除低价值任务。"], "prompt": "我本周有这些任务和截止时间，请帮我按重要程度和紧急程度排序，并拆成每天可执行计划，每天不超过 3 个核心任务。", "mistakes": ["把计划排满，没有缓冲。", "只记录待办，不写完成标准。", "每天换工具，反而增加负担。"], "sources": source("google_ai", "google_helpful", "baidu_quality")},
-    {"slug": "exam-wrong-question-review", "group": "campus", "category": "校园效率", "tag": "错题复盘", "title": "考试错题复盘表怎么做", "description": "适合学生的错题复盘表：记录题型、错因、依据、下次动作，而不是只抄正确答案。", "keyword": "错题复盘表", "problem": "错题本如果只是题目和答案，很快会变成另一本看不完的资料。复盘的重点是找到重复错因。", "method": "每道错题写题型、知识点、错因、正确依据和下次动作。错因要具体到概念不清、审题遗漏、计算失误或时间分配。", "steps": ["当天只复盘最有代表性的错题。", "给错因做固定分类。", "写出正确答案的依据。", "设置下一次训练动作。", "每周统计重复错因。"], "prompt": "请根据我的错题记录，帮我整理错因分类、正确依据和下次训练动作，输出成表格。", "mistakes": ["所有错题都写没掌握。", "复盘耗时超过做题时间。", "没有回看重复错因。"], "sources": source("google_helpful", "baidu_page")},
-    {"slug": "undergraduate-project-proposal", "group": "campus", "category": "校园效率", "tag": "项目开题", "title": "本科课程项目开题思路怎么写", "description": "课程项目开题应说明问题、目标、功能范围、技术路线、交付物和风险，不要一开始写大而全。", "keyword": "本科课程项目开题", "problem": "课程项目开题最怕目标过大。一个学期能完成的项目需要范围清楚、交付物明确、技术路线不过度复杂。", "method": "用问题、用户、功能、数据、技术、风险六个维度来写。每个维度都要落到能做出来的内容。", "steps": ["先写项目解决什么小问题。", "定义目标用户和使用场景。", "列出最小功能范围。", "说明数据从哪里来。", "写技术路线和工具。", "列出可能延期的风险。"], "prompt": "请根据我的课程项目想法，帮我写一份开题思路，包含问题背景、目标用户、核心功能、技术路线、交付物和风险控制。", "mistakes": ["功能堆太多，最后都做不深。", "技术路线写流行词，自己解释不了。", "没有风险和最小版本。"], "sources": source("google_helpful", "baidu_quality")},
-    {"slug": "group-assignment-collaboration", "group": "campus", "category": "校园效率", "tag": "小组作业", "title": "小组作业怎么分工和复盘", "description": "小组作业分工要明确交付物、截止时间和检查人，避免最后由一个人补全部内容。", "keyword": "小组作业分工", "problem": "小组作业翻车通常不是没人做，而是任务边界不清、交付格式不同、最后整合时发现内容不匹配。", "method": "把任务拆成资料、提纲、正文、PPT、讲稿和终审，每项指定负责人、截止时间和交付格式。AI 可以帮助统一风格和检查遗漏。", "steps": ["先确定共同题目和评分标准。", "把任务拆成具体交付物。", "约定文件命名和格式。", "设置整合人和终审人。", "结束后复盘延期和返工原因。"], "prompt": "请根据我们的小组作业题目和成员人数，生成分工表，包含任务、负责人、截止时间、交付格式、检查标准和风险。", "mistakes": ["只按章节分工，没有统一观点。", "没有中间检查环节。", "最后一天才整合格式。"], "sources": source("google_helpful", "baidu_page")},
+    {
+        "slug": "volumetric-weight-formula-dhl-ems-sf",
+        "group": "volume",
+        "tag": "体积重公式",
+        "title": "体积重公式怎么计算：DHL、EMS、顺丰口径对照",
+        "description": "用跨境发货场景解释体积重公式，区分 DHL 5000、EMS 6000 与顺丰不同产品口径，帮助发货前复核计费重。",
+        "keyword": "体积重公式",
+        "scenario": "新手卖家拿到报价单时，常只看每千克运费，却没有把外箱长宽高换算成体积重。对于自拍杆、收纳盒、灯具、毛绒类商品，外箱占用舱位可能比实际重量更关键。",
+        "method": "先以单箱为单位记录长、宽、高和实重，再按渠道分母计算体积重，最后用实重与体积重较大值作为计费重的复核基准。DHL 官方帮助页给出的标准分母是 5000；中国 EMS 国际 EMS/e 特快页面显示超过计泡条件后按长宽高除以 6000；顺丰公开页则按产品列出不同分母，需要回到具体服务确认。",
+        "example": "一箱货外箱为 75cm × 35cm × 28cm，实重 8kg。按 DHL 5000 计算，体积重为 14.7kg；按 6000 计算，体积重为 12.25kg。两个结果都高于实重，因此报价复核时不能只拿 8kg 去乘单价。",
+        "table": ["箱号", "长宽高 cm", "实重 kg", "分母", "体积重 kg", "计费重 kg", "备注"],
+        "steps": ["先确认尺寸是外箱尺寸，不是产品裸尺寸。", "按渠道分别套用 5000、6000 或承运商给出的分母。", "实重和体积重取较大值，再看是否需要进位。", "把长边超过阈值的箱子单独标记。", "拿计算结果与报价单逐行核对。"],
+        "mistakes": ["把厘米和米混在一起计算。", "用产品尺寸替代外箱尺寸。", "把某个渠道的分母套到所有渠道。", "忽略多箱货每箱分别计费的可能性。"],
+        "sources": source("dhl_dct", "ems_product", "sf_rate"),
+    },
+    {
+        "slug": "cbm-calculation-cross-border",
+        "group": "volume",
+        "tag": "CBM",
+        "title": "CBM 怎么算：外贸装箱前的体积核算",
+        "description": "解释 CBM 的计算方式，以及它和体积重、装箱、空运海运复核之间的关系。",
+        "keyword": "CBM 计算",
+        "scenario": "外贸报价和头程发货里经常出现 CBM。很多卖家知道它代表立方米，却没有把每个 SKU 的外箱数量、箱规和总体积连起来核算，导致装箱和报价复核都缺少基准。",
+        "method": "CBM 的基础公式是长 × 宽 × 高，再把立方厘米换算成立方米。以厘米为单位时，单箱 CBM 等于长 × 宽 × 高 ÷ 1,000,000，再乘以箱数得到总 CBM。它不等同于计费重，但能帮助判断货物是偏轻泡还是偏重货。",
+        "example": "单箱 60cm × 40cm × 50cm，箱数 20 箱，单箱 CBM 是 0.12，总 CBM 是 2.4。如果总实重只有 180kg，平均密度约 75kg/CBM，通常应重点复核体积重和舱位占用。",
+        "table": ["SKU", "箱数", "单箱尺寸", "单箱 CBM", "总 CBM", "总实重", "密度 kg/CBM"],
+        "steps": ["每个 SKU 单独记录箱规和箱数。", "先算单箱 CBM，再汇总总 CBM。", "用总实重除以总 CBM 估算密度。", "密度偏低时重点复核体积重。", "把 CBM、实重、计费重同时交给货代复核。"],
+        "mistakes": ["只统计产品数量，不统计箱数。", "把毫米、厘米、米单位混用。", "只看 CBM，不看实际重量。", "没有保留原始箱规来源。"],
+        "sources": source("dhl_dct", "sf_rate", "google_helpful"),
+    },
+    {
+        "slug": "chargeable-weight-actual-vs-volume",
+        "group": "volume",
+        "tag": "计费重",
+        "title": "计费重为什么取实重和体积重较大值",
+        "description": "面向跨境卖家解释计费重的底层逻辑，说明为什么实际重量很轻也可能按更高重量计费。",
+        "keyword": "计费重",
+        "scenario": "同样是 8kg 的货，一个小箱重货和一个大箱轻货占用的运输资源不同。跨境快递和空运通常会比较实重与体积重，用较大值作为计费重，这一点是报价复核的核心。",
+        "method": "计费重的复核顺序是：先称实重，再量外箱尺寸，按渠道分母算体积重，然后取较大值。DHL 的说明明确会比较体积重和实际重量，并使用较高者计算运费；顺丰公开说明也列出实际重量与体积重量取较大值的逻辑。",
+        "example": "某箱实重 6kg，外箱 50cm × 45cm × 40cm。按 6000 算体积重 15kg，按 5000 算体积重 18kg。即使实重只有 6kg，复核报价时也要按 15kg 或 18kg 这类计费重口径看。",
+        "table": ["项目", "实重", "体积重", "较大值", "是否需复核", "复核说明"],
+        "steps": ["先用同一单位整理实重和尺寸。", "按实际渠道使用对应分母。", "体积重大于实重时标记轻泡风险。", "多箱货按箱汇总计费重。", "复核报价是否说明了进位方式。"],
+        "mistakes": ["只把总实重发给货代。", "认为轻货一定更便宜。", "没有区分单箱计费和整票汇总。", "漏看计费重的小数进位。"],
+        "sources": source("dhl_dct", "sf_rate"),
+    },
+    {
+        "slug": "divisor-5000-vs-6000",
+        "group": "volume",
+        "tag": "分母差异",
+        "title": "分母 5000 和 6000 差在哪里",
+        "description": "说明体积重分母越小计费重越高，并用跨境发货案例比较 5000 与 6000 的差异。",
+        "keyword": "分母 5000 6000",
+        "scenario": "报价单里常见长宽高除以 5000 或 6000。很多卖家只把它当成渠道差别，没有意识到同一箱货在两个分母下可能出现明显计费重差异。",
+        "method": "在尺寸相同的情况下，分母越小，体积重越大。DHL 官方支持页面列出标准分母 5000；中国 EMS 页面和 2022 通知显示体积重量公式为长宽高除以 6000。计算时应把不同分母并排比较，而不是只算一个结果。",
+        "example": "80cm × 35cm × 30cm 的外箱，体积为 84,000 立方厘米。除以 5000 是 16.8kg，除以 6000 是 14kg。若实重为 10kg，两种渠道都会按体积重方向复核，但 DHL 口径下更高。",
+        "table": ["箱规", "分母 5000", "分母 6000", "实重", "计费重差异", "复核动作"],
+        "steps": ["把外箱体积先算出来。", "并排计算 5000、6000 和自定义分母。", "看差异是否足以影响渠道选择。", "向承运商确认是否还有进位和附加规则。", "把结论写入报价复核表。"],
+        "mistakes": ["以为 6000 一定适用于所有空运。", "只比较单价，不比较计费重。", "忽略长边规则对 EMS 的影响。", "没有记录报价使用的分母。"],
+        "sources": source("dhl_dct", "ems_product", "ems_notice"),
+    },
+    {
+        "slug": "multi-sku-mixed-cargo-weight",
+        "group": "volume",
+        "tag": "混装核算",
+        "title": "多 SKU 混装货物怎么核算计费重",
+        "description": "讲解多 SKU 混装时如何按箱或按 SKU 整理尺寸、重量和分母，避免总重口径掩盖轻泡货差异。",
+        "keyword": "多 SKU 混装计费重",
+        "scenario": "跨境卖家常把配件、轻泡品和重货混在一票发走。只看总实重会掩盖箱规差异，尤其是大件轻货和小件重货混装时，报价复核必须拆到箱或 SKU 级别。",
+        "method": "先按箱号建立明细，每箱记录包含哪些 SKU、数量、外箱尺寸和实重。再按渠道分母计算每箱体积重，最后汇总计费重。若某些箱子的长边或体积重显著偏高，应单独做拆分比较。",
+        "example": "一票货有 5 箱自拍杆、8 箱配件和 3 箱重型支架。自拍杆箱长边 75cm，配件箱体积小但实重大。把三类货混在一个总表里会看不出触发点，分箱表能直接暴露哪个 SKU 需要复核。",
+        "table": ["箱号", "SKU 组成", "数量", "长宽高", "实重", "体积重", "计费重", "异常标签"],
+        "steps": ["先按箱号整理，而不是只按产品整理。", "给每箱标注主 SKU 和混装 SKU。", "分别计算不同渠道计费重。", "筛出长边或体积重异常的箱子。", "对异常箱做拆箱或换渠道模拟。"],
+        "mistakes": ["只给货代总件数和总重量。", "把混装箱当成标准箱处理。", "没有记录每箱实际装了什么。", "拆箱建议没有回到仓库可执行性。"],
+        "sources": source("dhl_dct", "ems_product", "sf_rate"),
+    },
+    {
+        "slug": "carton-vs-product-size",
+        "group": "volume",
+        "tag": "尺寸口径",
+        "title": "产品尺寸和外箱尺寸为什么不能混用",
+        "description": "解释跨境发货复核中产品裸尺寸、内盒尺寸、外箱尺寸的区别，避免体积重计算失真。",
+        "keyword": "外箱尺寸",
+        "scenario": "产品详情页上的尺寸通常是裸产品或零售包装尺寸，实际发货还会多出内盒、缓冲材料和外箱。用产品尺寸算体积重，常会低估计费重。",
+        "method": "复核计费重时应使用承运环节可测量的外箱尺寸。产品尺寸用于选品和页面展示，内盒尺寸用于包装规划，外箱尺寸用于物流报价。三者必须分列，不要混在一个字段里。",
+        "example": "一个灯具裸产品长 38cm，零售盒长 45cm，加缓冲后外箱长 58cm。如果只用 38cm 算，体积重会明显偏低；若发 EMS，还要关注外箱任一单边是否达到计泡条件。",
+        "table": ["尺寸类型", "用途", "测量位置", "是否用于计费重复核", "备注"],
+        "steps": ["给产品尺寸、内盒尺寸、外箱尺寸分列。", "拍照记录外箱测量方式。", "使用外箱最长边做阈值检查。", "更新装箱后再复核一次。", "把最终箱规写入发货交接单。"],
+        "mistakes": ["直接拿商品页面尺寸报价。", "忽略缓冲材料带来的体积变化。", "只量最长边，不量宽和高。", "仓库换箱后没有同步表格。"],
+        "sources": source("ems_product", "dhl_dct", "amazon_fba_pack"),
+    },
+    {
+        "slug": "round-up-chargeable-weight",
+        "group": "volume",
+        "tag": "进位复核",
+        "title": "计费重进位规则怎么影响报价复核",
+        "description": "说明计费重小数进位、按箱进位和整票进位可能造成的差异，提醒跨境卖家复核报价单口径。",
+        "keyword": "计费重进位",
+        "scenario": "同样算出 12.25kg，有的报价会按 12.5kg，有的会按 13kg，有的多箱货每箱单独进位后再汇总。进位方式不清楚，报价复核就会差一截。",
+        "method": "把进位规则作为单独字段询问承运商或货代。需要确认按 0.1kg、0.5kg 还是 1kg 进位，是单箱进位还是整票汇总后进位。顺丰公开页面就列出不同服务的进位说明，说明该规则不应被忽略。",
+        "example": "10 箱货每箱计费重 2.26kg。若按单箱 0.5kg 进位，每箱可能按 2.5kg，合计 25kg；若整票汇总后进位，可能是 22.6kg 后再按规则处理。复核时要问清口径。",
+        "table": ["箱数", "单箱计费重", "单箱进位", "整票进位", "差异", "待确认问题"],
+        "steps": ["先保留未进位的原始计费重。", "询问进位单位和应用层级。", "多箱货同时计算单箱进位和整票进位。", "把差异写入报价复核备注。", "最终以承运商实际确认口径为准。"],
+        "mistakes": ["只算公式，不算进位。", "把单箱进位误认为整票进位。", "报价单没有说明时直接默认。", "对小数差异不做记录。"],
+        "sources": source("sf_rate", "dhl_dct"),
+    },
+    {
+        "slug": "long-side-volume-trigger",
+        "group": "volume",
+        "tag": "长边提醒",
+        "title": "长边超过阈值时为什么要单独复核",
+        "description": "说明长边阈值对 EMS 等渠道体积重复核的重要性，并提醒规则可能随产品、地区和时间调整。",
+        "keyword": "长边计泡",
+        "scenario": "自拍杆、灯架、瑜伽垫、海报筒这类长条货，实际重量可能不高，但单边尺寸会触发计泡或特殊尺寸限制。旧经验容易过时，发货前应回到官方页面和报价工具确认。",
+        "method": "对每箱计算最长边，并与渠道阈值对照。中国 EMS 产品页面显示国际 EMS/e 特快在任一单边长度超过 40cm 时开始计泡；2022 通知也说明部分国际及港澳台邮件从 60cm 调整到 40cm。实际发货仍需按产品和目的地复核。",
+        "example": "一箱外箱 75cm × 18cm × 16cm、实重 3kg 的长条货，按 6000 算体积重 3.6kg。看起来差异不大，但长边已经值得单独标记，因为尺寸限制、计泡条件和渠道接受范围都要确认。",
+        "table": ["箱号", "最长边", "渠道", "阈值口径", "是否标记", "复核结论"],
+        "steps": ["每箱自动计算最长边。", "超过 40cm 的箱子先标记复核。", "查询对应渠道和目的地尺寸限制。", "必要时做拆箱或换箱模拟。", "保留承运商确认记录。"],
+        "mistakes": ["仍按旧的 60cm 经验判断。", "只看体积重，不看尺寸限制。", "把一个产品的规则套到所有 EMS 产品。", "没有把长条货从混装中单独标出。"],
+        "sources": source("ems_product", "ems_notice"),
+    },
+    {
+        "slug": "density-ratio-light-bulky-goods",
+        "group": "volume",
+        "tag": "轻泡货",
+        "title": "轻泡货和重货怎么用密度判断",
+        "description": "用 kg/CBM 的密度思路帮助卖家判断货物偏轻泡还是偏重，从而决定复核重点。",
+        "keyword": "轻泡货密度",
+        "scenario": "选品阶段很难只凭感觉判断货物是否容易被体积重影响。用总实重除以总 CBM 得到密度，可以帮助卖家把风险提前放到包装和渠道复核环节。",
+        "method": "密度不是承运商统一计费规则，但它是内部判断工具。密度低说明单位体积承载的重量少，通常要优先复核体积重；密度高则要关注限重、搬运和包装承压。",
+        "example": "2.4CBM 的货总实重 180kg，密度约 75kg/CBM；0.5CBM 的金属配件总实重 220kg，密度 440kg/CBM。前者优先复核体积重，后者优先复核单箱重量、箱体强度和搬运要求。",
+        "table": ["SKU", "总 CBM", "总实重", "密度 kg/CBM", "复核重点", "备注"],
+        "steps": ["先算总 CBM 和总实重。", "用实重除以 CBM 得到密度。", "低密度货标记体积重复核。", "高密度货标记包装承重。", "根据密度决定是否拆分渠道比较。"],
+        "mistakes": ["把密度当成最终运费。", "只看单个产品，不看整票混装。", "低密度货没有提前压缩包装。", "高密度货忽略单箱限重。"],
+        "sources": source("dhl_dct", "sf_rate", "google_helpful"),
+    },
+    {
+        "slug": "spreadsheet-cbm-template",
+        "group": "volume",
+        "tag": "表格模板",
+        "title": "用表格做 CBM 与计费重复核模板",
+        "description": "给跨境卖家一套可复制的表格字段，用于记录多 SKU 的 CBM、体积重、计费重和渠道分母。",
+        "keyword": "CBM 计费重表格",
+        "scenario": "一票货只有几箱时，手算还能勉强处理；一旦 SKU、箱数和渠道变多，就需要固定表格。表格的价值不是好看，而是让每次复核都能追溯字段来源。",
+        "method": "表格应至少包含 SKU、箱号、箱数、长宽高、实重、CBM、渠道分母、体积重、计费重、长边提醒和报价备注。关键字段都用公式生成，人工只录入测量数据和承运商确认信息。",
+        "example": "把 DHL、EMS、标准空运放成三列分母，并用同一组箱规自动计算三套计费重。这样报价单来之后，不需要重新手算，只要核对承运商采用的分母和进位规则。",
+        "table": ["SKU", "箱号", "箱数", "长", "宽", "高", "实重", "CBM", "分母", "体积重", "计费重", "长边提醒"],
+        "steps": ["录入字段只保留测量数据。", "计算字段统一用公式。", "渠道分母做成可切换列。", "异常提示单独高亮。", "每次报价保留一份快照。"],
+        "mistakes": ["手动改公式结果。", "没有区分录入字段和计算字段。", "报价后覆盖原始箱规。", "多人协作时没有版本记录。"],
+        "sources": source("dhl_dct", "ems_product", "sf_rate"),
+    },
+    {
+        "slug": "dhl-volumetric-divisor-5000",
+        "group": "channels",
+        "tag": "DHL",
+        "title": "DHL 体积重分母 5000 怎么用于报价复核",
+        "description": "基于 DHL 官方帮助页说明，解释 DHL 体积重分母 5000 的计算和复核方式。",
+        "keyword": "DHL 体积重 5000",
+        "scenario": "DHL 报价常被新手拿来和空运、EMS 直接比每千克单价，但如果没有先按 5000 分母算计费重，单价对比就没有共同基础。",
+        "method": "DHL 官方帮助页说明，体积重等于长 × 宽 × 高 ÷ 体积重分母，使用厘米和千克时标准分母为 5000，并与实际重量比较取较大值。复核时应按单箱外尺寸计算，再考虑多件货汇总。",
+        "example": "一箱 60cm × 45cm × 40cm，实重 16kg。DHL 体积重为 21.6kg，因此报价复核应围绕 21.6kg 及其进位结果，而不是 16kg。",
+        "table": ["箱号", "长宽高", "实重", "DHL 体积重", "复核计费重", "待确认进位"],
+        "steps": ["确认箱规是厘米。", "用 5000 分母算每箱体积重。", "与实重取较大值。", "问清进位单位。", "把结果和 DHL 报价逐项核对。"],
+        "mistakes": ["只比较 DHL 每千克单价。", "用 6000 分母估算 DHL。", "多箱货只算平均尺寸。", "不确认目的地和服务附加条件。"],
+        "sources": source("dhl_dct", "google_helpful"),
+    },
+    {
+        "slug": "ems-40cm-volume-weight-rule",
+        "group": "channels",
+        "tag": "EMS",
+        "title": "EMS 40cm 计泡规则如何影响跨境发货复核",
+        "description": "解释中国 EMS 国际 EMS/e 特快 40cm 起计泡和 /6000 公式，并提醒旧 60cm 认知已经可能过时。",
+        "keyword": "EMS 40cm 计泡",
+        "scenario": "很多卖家仍记得较早的长边经验，但中国 EMS 公开页面和 2022 调整通知都显示，部分国际及港澳台邮件的计泡标准已经调整到任一单边达到或超过 40cm 的口径。",
+        "method": "复核 EMS 时，先检查任一单边是否达到计泡条件，再按长 × 宽 × 高 ÷ 6000 计算体积重。页面同时提醒查询结果仅供参考，以实际收寄计费为准，因此工具只能做发货前复核，不替代官方报价。",
+        "example": "外箱 42cm × 32cm × 28cm，实重 4kg。最长边达到 40cm 口径，应进入 EMS 计泡复核。体积重约 6.27kg，高于实重，报价时要关注是否按体积重方向处理。",
+        "table": ["箱号", "最长边", "是否达到 40cm", "实重", "体积重 /6000", "复核备注"],
+        "steps": ["每箱计算最长边。", "达到 40cm 口径就标记复核。", "按 6000 分母算体积重。", "查目的地尺寸和限重。", "以官方报价工具或收寄确认为准。"],
+        "mistakes": ["继续使用旧的 60cm 经验。", "只看重量不看长边。", "把 EMS 所有产品视为同一规则。", "没有保存官方确认口径。"],
+        "sources": source("ems_product", "ems_notice"),
+    },
+    {
+        "slug": "sf-express-volume-weight-rules",
+        "group": "channels",
+        "tag": "顺丰",
+        "title": "顺丰体积重规则怎么保守理解",
+        "description": "基于顺丰公开支持页，说明不同顺丰服务可能使用不同体积重分母，国际服务可见 /5000 口径。",
+        "keyword": "顺丰体积重",
+        "scenario": "顺丰服务类型多，国内、港澳台、国际、冷链和大件规则不完全一致。如果把某一个页面片段当成全部服务统一口径，很容易做出错误复核。",
+        "method": "顺丰公开支持页列出实际重量与体积重量取较大值，并按不同服务列出 12000、6000、5000、3000 等体积系数。对于国际服务，页面可见长宽高除以 5000 的口径。实际发货时仍需以服务、流向和客服确认为准。",
+        "example": "同一箱 55cm × 40cm × 35cm，按 6000 体积重约 12.83kg，按 5000 约 15.4kg。若选择顺丰不同服务，不能只拿一个结果判断，要把具体产品名称写进复核表。",
+        "table": ["服务类型", "公开分母口径", "适用提醒", "需确认问题", "复核记录"],
+        "steps": ["确认服务名称和寄递流向。", "查官方页面或询问客服。", "用可能分母并排试算。", "标注最终确认口径。", "保存报价截图或文本记录。"],
+        "mistakes": ["把国内件规则套到国际件。", "只记住 6000 一个分母。", "忽略服务名称差异。", "没有复核进位方式。"],
+        "sources": source("sf_rate", "google_helpful"),
+    },
+    {
+        "slug": "standard-air-vs-express-divisor",
+        "group": "channels",
+        "tag": "标准空运",
+        "title": "标准空运和国际快递为什么要分开算",
+        "description": "解释标准空运、国际快递和 EMS 等渠道在分母、时效、限制和报价结构上的复核差异。",
+        "keyword": "标准空运 分母",
+        "scenario": "跨境卖家常把标准空运、国际快递和邮政渠道放在同一张表里比较。这样做可以，但前提是先把分母、时效、限制、附加项和计费重都拆清楚。",
+        "method": "标准空运常见复核口径可先按 6000 做内部模拟，但不能写成所有线路固定规则。国际快递要按承运商官方口径，例如 DHL 5000。EMS 则要看计泡条件和 /6000。最终比较应落到总计费重和附加项，而不是单价。",
+        "example": "一票轻泡货按 6000 算 80kg，按 DHL 5000 算 96kg。如果快递单价看似更低，但计费重更高，最终报价不一定更合适。工具应提示复核，而不是直接替用户下结论。",
+        "table": ["渠道", "模拟分母", "计费重", "时效", "尺寸限制", "待确认附加项"],
+        "steps": ["把渠道名称写完整。", "分别填入分母和进位口径。", "把时效和尺寸限制放在同一表里。", "计算总计费重后再比较报价。", "让承运商确认最终计费规则。"],
+        "mistakes": ["只看每千克报价。", "把模拟分母当官方承诺。", "忽略尺寸限制和目的地差异。", "没有把附加项列入复核。"],
+        "sources": source("dhl_dct", "ems_product", "sf_rate"),
+    },
+    {
+        "slug": "fba-first-leg-quote-checklist",
+        "group": "channels",
+        "tag": "FBA 头程",
+        "title": "FBA 头程报价复核清单",
+        "description": "整理 FBA 头程发货前需要复核的箱规、箱数、重量、标签、包装和渠道规则。",
+        "keyword": "FBA 头程报价复核",
+        "scenario": "FBA 新手往往把注意力放在入仓流程，却忽略头程报价里的箱规、计费重、标签和包装要求。任何一个字段不一致，都可能影响运输复核或入仓处理。",
+        "method": "先把物流计费复核和亚马逊入仓要求分开。物流侧关注箱规、重量、计费重和渠道；FBA 侧关注可扫描标签、箱内信息、包装安全和商品可接收状态。两边都要形成清单。",
+        "example": "一票货准备走空运到 FBA 仓。报价复核表里要有每箱尺寸和实重；入仓交接里要有箱标、SKU、数量和包装要求。不要只把亚马逊创建货件截图发给货代。",
+        "table": ["复核项", "物流侧字段", "FBA 侧字段", "负责人", "确认状态"],
+        "steps": ["整理每箱箱规和重量。", "确认渠道分母和进位。", "核对 FBA 箱标和商品标签。", "检查包装是否满足入仓要求。", "发货前保存最终交接表。"],
+        "mistakes": ["只核对亚马逊后台数量。", "不记录每箱尺寸。", "标签和箱内数量不一致。", "包装要求交给仓库口头处理。"],
+        "sources": source("amazon_fba_pack", "amazon_sp_api", "dhl_dct"),
+    },
+    {
+        "slug": "freight-forwarder-quote-reading",
+        "group": "channels",
+        "tag": "报价单",
+        "title": "货代报价单怎么看才不漏复核项",
+        "description": "用中性方式拆解货代报价单字段：渠道、分母、计费重、进位、附加项、时效和限制。",
+        "keyword": "货代报价单复核",
+        "scenario": "报价单通常不只是一行单价。渠道名称、计费重、分母、进位、附加项、截单时间和尺寸限制都可能影响最终决策。新手最容易漏掉口径说明。",
+        "method": "把报价单拆成两层：第一层是计算字段，第二层是服务字段。计算字段包括箱规、实重、体积重、计费重、进位；服务字段包括渠道、时效、目的地、限制和需要额外确认的项目。",
+        "example": "同一票货两个报价看起来每千克差 2 元，但一个按 5000 分母，一个按 6000 分母。只有把计费重算出来，再加上附加项和时效，才有比较意义。",
+        "table": ["字段", "应填写内容", "复核问题", "是否已确认", "证据"],
+        "steps": ["先确认渠道全称。", "找出分母和计费重口径。", "询问进位方式。", "列出可能附加项。", "把确认记录保存在报价表旁边。"],
+        "mistakes": ["只看单价最低。", "不知道报价是否含附加项。", "没有问尺寸限制。", "没有保留书面确认。"],
+        "sources": source("dhl_dct", "ems_product", "sf_rate"),
+    },
+    {
+        "slug": "sea-air-express-cost-compare",
+        "group": "channels",
+        "tag": "渠道比较",
+        "title": "海运、空运、国际快递比较时先看哪些字段",
+        "description": "整理跨境发货比较不同渠道时的字段顺序，避免只按单价做判断。",
+        "keyword": "海运 空运 快递 比较",
+        "scenario": "海运、空运和国际快递的报价结构不同。海运更常关注 CBM、整柜散货和目的港费用；空运和快递更常关注计费重、分母和尺寸限制。直接按一行单价比较容易误判。",
+        "method": "先确定货物是否急、是否轻泡、是否有长边或敏感属性，再分别整理 CBM、实重、计费重、时效、可达性和附加项。只有字段对齐后，渠道比较才有意义。",
+        "example": "2CBM、160kg 的轻泡货，如果时效不急，海运可能进入比较；如果需要快速补货，则要在空运和快递之间复核计费重与时效。工具只能提示复核方向，最终还要看目的地和承运商确认。",
+        "table": ["渠道", "主要计费基准", "适合场景", "限制项", "复核问题"],
+        "steps": ["先判断时效要求。", "计算 CBM 和计费重。", "确认货物属性和目的地。", "把附加项单独列出。", "形成可解释的渠道比较结论。"],
+        "mistakes": ["只按每千克或每立方比较。", "忽略目的地派送条件。", "没有考虑补货时间窗口。", "把一次报价当长期规则。"],
+        "sources": source("dhl_dct", "sf_rate", "google_helpful"),
+    },
+    {
+        "slug": "remote-area-surcharge-check",
+        "group": "channels",
+        "tag": "附加项",
+        "title": "偏远地区和附加项为什么要提前问清",
+        "description": "说明跨境报价中除计费重外，还应复核偏远地区、燃油、特殊处理等附加项。",
+        "keyword": "跨境物流附加项",
+        "scenario": "有些报价的计费重没问题，但最终金额仍有差异，原因可能来自目的地、特殊处理、燃油、住宅派送或其他附加项。附加项通常和渠道、国家、邮编、货物属性有关。",
+        "method": "报价复核时不要只问分母，还要列出目的地邮编、派送类型、货物属性、尺寸和重量，让承运商或货代确认是否存在附加项。页面上没有明确说明的，不能自行假设为没有。",
+        "example": "两票货计费重都是 20kg，但一个送到商业地址，一个送到偏远地址，最终金额可能不同。复核表应把邮编和派送条件列为必填字段。",
+        "table": ["附加项", "触发信息", "需要提供的数据", "确认渠道", "备注"],
+        "steps": ["整理目的地国家、城市和邮编。", "确认派送地址类型。", "提供完整箱规和重量。", "询问是否有特殊处理项。", "把确认结果写入报价单备注。"],
+        "mistakes": ["只问基础运费。", "不提供邮编。", "特殊尺寸货不提前说明。", "附加项靠口头记忆。"],
+        "sources": source("dhl_dct", "sf_rate"),
+    },
+    {
+        "slug": "fuel-surcharge-and-accessorials",
+        "group": "channels",
+        "tag": "报价结构",
+        "title": "燃油和其他费用项要怎样放进复核表",
+        "description": "解释跨境发货报价复核表中基础运费、燃油、附加项和服务条件应分列记录。",
+        "keyword": "跨境运费燃油附加",
+        "scenario": "报价沟通中经常出现基础运费、燃油、附加项、报关服务和末端派送等不同费用项。把它们混成一个数字，会让后续复盘很困难。",
+        "method": "复核表中应把基础计费重计算和费用项结构分开。先确认计费重，再确认每个费用项是否包含在报价中。若某项随时间浮动，应记录报价日期和有效期。",
+        "example": "同样是 50kg 计费重，一个报价包含燃油，另一个报价燃油另计。表面单价不能直接比较，必须把包含项和不包含项拆出来。",
+        "table": ["费用项", "是否包含", "计算基础", "有效期", "待确认问题"],
+        "steps": ["先固定计费重。", "列出基础运费和附加项。", "确认燃油是否包含。", "记录报价有效期。", "复核最终总额口径。"],
+        "mistakes": ["只保存总额。", "不记录报价日期。", "不知道哪些项目另计。", "不同报价包含项不一致仍直接比较。"],
+        "sources": source("dhl_dct", "sf_rate", "google_helpful"),
+    },
+    {
+        "slug": "customs-declared-value-basic-check",
+        "group": "channels",
+        "tag": "申报基础",
+        "title": "申报价值和物流报价为什么要分开核对",
+        "description": "以合规口径说明申报价值、货物信息和物流计费是不同问题，不能混在一起处理。",
+        "keyword": "跨境申报价值核对",
+        "scenario": "卖家在准备发货时，会同时处理申报价值、货物品名、箱规和物流报价。它们都影响发货，但性质不同：申报信息关系到合规和清关，计费重关系到运输费用复核。",
+        "method": "复核时把申报资料和物流计费资料分表管理。申报侧保留真实品名、数量、材质、用途和价值依据；物流侧保留箱规、重量、分母和渠道。不要为了让表格简单而混用字段。",
+        "example": "一箱配件的申报信息需要描述品名和数量，计费重复核需要长宽高和实重。两个表可以用同一个箱号关联，但不要用申报价值去解释运费差异。",
+        "table": ["资料类型", "字段", "用途", "责任人", "复核方式"],
+        "steps": ["给每箱设置唯一箱号。", "申报资料和物流资料分别整理。", "用箱号建立关联。", "申报信息以真实资料为准。", "物流报价以承运商确认口径为准。"],
+        "mistakes": ["把申报金额当运费计算依据。", "品名描述过于模糊。", "申报表和箱规表无法对应。", "把合规问题交给计算工具判断。"],
+        "sources": source("amazon_fba_pack", "google_spam", "baidu_quality"),
+    },
+    {
+        "slug": "split-cartons-vs-mixed-cartons",
+        "group": "packing",
+        "tag": "拆箱判断",
+        "title": "拆箱还是混装：发货前怎么做复核",
+        "description": "说明拆箱和混装不是固定答案，应根据长边、体积重、实重、SKU 管理和仓库操作成本综合复核。",
+        "keyword": "拆箱 混装",
+        "scenario": "看到长边或体积重偏高时，很多人会立刻想到拆箱。但拆箱会增加箱数、标签、仓库操作和出错概率，不一定总是更好。正确做法是先模拟，再决定是否执行。",
+        "method": "把原方案和拆箱方案并排计算：箱数、每箱尺寸、总 CBM、总实重、各渠道计费重、长边提醒和仓库可操作性。只有当差异明显且操作可控时，才进入实际拆箱。",
+        "example": "一箱 80cm 长的轻货拆成两箱后，最长边下降，但总箱数增加，包装材料也增加。工具可以提示可能更优，但最终要由仓库和承运商确认。",
+        "table": ["方案", "箱数", "总 CBM", "总计费重", "长边提醒", "操作风险"],
+        "steps": ["先记录原装箱方案。", "模拟拆箱后的新箱规。", "分别计算渠道计费重。", "加入标签和操作风险。", "只把结论写成需要复核或可能更优。"],
+        "mistakes": ["只为降低最长边而拆箱。", "忽略箱数增加后的进位。", "没有考虑仓库是否能执行。", "把工具建议当最终决定。"],
+        "sources": source("ems_product", "dhl_dct", "amazon_fba_pack"),
+    },
+    {
+        "slug": "carton-optimization-without-overpacking",
+        "group": "packing",
+        "tag": "装箱优化",
+        "title": "装箱优化不要只追求更小体积",
+        "description": "从包装安全和计费重两侧解释装箱优化，提醒不能为了降低体积而牺牲货损风险。",
+        "keyword": "装箱优化",
+        "scenario": "压缩外箱能降低体积重，但过度压缩会带来货损、变形、标签不可读和入仓异常。跨境发货的装箱优化必须同时看成本、保护和合规。",
+        "method": "先确定货物可承受的堆叠和挤压范围，再寻找减少空隙的方式，例如调整内盒摆放、减少无效填充、选择更合适的标准箱。对于易碎品，保护优先级应高于单纯体积优化。",
+        "example": "一箱玻璃制品如果为减少体积而取消缓冲材料，体积重可能下降，但破损风险明显上升。更稳的方案是减少无效空隙，同时保留必要保护。",
+        "table": ["优化动作", "体积影响", "保护影响", "执行难度", "是否建议复核"],
+        "steps": ["区分有效保护和无效空隙。", "先做样箱测试。", "记录优化前后尺寸。", "检查标签和条码位置。", "让仓库按固定标准执行。"],
+        "mistakes": ["为了降低体积去掉必要缓冲。", "每批货箱规不一致。", "只做一次样箱不复测。", "忽略入仓和派送阶段的搬运风险。"],
+        "sources": source("amazon_fba_pack", "dhl_dct", "google_helpful"),
+    },
+    {
+        "slug": "long-item-shipping-selfie-stick-case",
+        "group": "packing",
+        "tag": "长条货",
+        "title": "长条货发货复核：以自拍杆类产品为例",
+        "description": "用长条货案例说明最长边、计泡、分母、拆箱和包装安全如何一起复核。",
+        "keyword": "长条货发货",
+        "scenario": "自拍杆、支架、灯杆、卷轴类产品常见问题是长边明显，但实重不一定高。它们既可能触发体积重复核，也可能遇到尺寸限制或特殊处理要求。",
+        "method": "先把长条货从混装表里单独筛出来，记录最长边、包装后尺寸和实重。再按 EMS 40cm 口径、DHL 5000 分母和其他渠道分母分别试算。对于可拆产品，可以模拟拆成更短箱规后的计费重差异。",
+        "example": "75cm 长的自拍杆装箱后外箱长 82cm。即使总重量不高，也应先做长边提醒，再比较原箱、拆短包装和换渠道三种方案。任何方案都必须确保商品保护和仓库执行可行。",
+        "table": ["方案", "最长边", "实重", "体积重 5000", "体积重 6000", "包装风险"],
+        "steps": ["筛出最长边超过 40cm 的箱子。", "单独试算 5000 和 6000 分母。", "模拟拆短或换箱方案。", "检查产品是否允许拆分。", "让承运商确认尺寸接受范围。"],
+        "mistakes": ["长条货混在总表里不标记。", "只看重量不看尺寸。", "为了拆短破坏产品包装。", "不确认目的地限制。"],
+        "sources": source("ems_product", "ems_notice", "dhl_dct"),
+    },
+    {
+        "slug": "protect-fragile-goods-and-void-fill",
+        "group": "packing",
+        "tag": "易碎品",
+        "title": "易碎品包装如何兼顾保护和体积重",
+        "description": "说明易碎品发货时如何区分必要缓冲和无效空隙，在保护优先前提下做体积复核。",
+        "keyword": "易碎品包装体积重",
+        "scenario": "易碎品往往需要缓冲，外箱会比产品大很多。卖家既担心体积重上升，也不能牺牲保护。复核的关键是找出无效空隙，而不是简单缩箱。",
+        "method": "先确定商品破损风险和最低包装要求，再用样箱记录缓冲方案。必要缓冲保留，无效空隙优化。最终用优化后的外箱尺寸重新计算 CBM 和体积重。",
+        "example": "陶瓷杯单个产品很小，但需要防撞材料。若外箱高度多出 8cm 空隙，可以通过调整内盒排列减少高度；但杯壁周围的保护不能随意取消。",
+        "table": ["部位", "保护材料", "是否必要", "可优化空间", "复测尺寸"],
+        "steps": ["先做跌落和挤压风险判断。", "标记必要缓冲区。", "寻找无效空隙。", "优化后重新量外箱。", "保留样箱照片和尺寸记录。"],
+        "mistakes": ["只为降体积减少保护。", "优化后没有复测尺寸。", "易碎品和重货混装。", "没有把包装方案交给仓库固定执行。"],
+        "sources": source("amazon_fba_pack", "dhl_dct"),
+    },
+    {
+        "slug": "packaging-measurement-checklist",
+        "group": "packing",
+        "tag": "测量清单",
+        "title": "包装测量清单：长宽高和重量怎么记录",
+        "description": "给仓库和运营使用的包装测量清单，统一外箱长宽高、实重、箱号和照片记录。",
+        "keyword": "包装测量清单",
+        "scenario": "报价复核经常卡在仓库测量口径不统一：有人量产品，有人量外箱，有人四舍五入，有人没有拍照。清单能减少沟通成本。",
+        "method": "测量清单应规定单位、测量对象、记录精度、照片要求和复测条件。所有物流复核字段都以最终封箱后的外箱为准，重量应包含包装材料。",
+        "example": "仓库测量一箱货时，先贴箱号，再测最长边、宽、高和实重，拍一张带卷尺或标尺的照片。运营拿到表后才能计算体积重和 CBM。",
+        "table": ["箱号", "测量人", "长", "宽", "高", "实重", "照片链接", "复测原因"],
+        "steps": ["封箱后再测量。", "统一使用厘米和千克。", "每箱记录唯一箱号。", "异常箱拍照留存。", "报价前抽查复测。"],
+        "mistakes": ["未封箱先测尺寸。", "重量不含包装材料。", "箱号和照片无法对应。", "异常数据没有复测。"],
+        "sources": source("sf_rate", "dhl_dct", "amazon_fba_pack"),
+    },
+    {
+        "slug": "warehouse-remeasure-process",
+        "group": "packing",
+        "tag": "仓库复测",
+        "title": "仓库复测流程怎么设计",
+        "description": "说明何时需要仓库复测外箱尺寸和重量，以及如何把复测结果同步给运营和货代。",
+        "keyword": "仓库复测流程",
+        "scenario": "包装调整、换箱、混装、拆箱和临时补货都会让原始箱规失效。如果仓库没有复测流程，报价表会继续使用旧数据。",
+        "method": "把复测触发条件写清楚：换箱、拆箱、合箱、增加缓冲材料、箱体变形、抽检差异超过阈值。复测后更新箱规表，并保留旧版本，方便追溯报价差异。",
+        "example": "运营要求把 10 箱改成 8 箱混装。仓库执行后必须重新测量每箱长宽高和实重，而不是继续沿用原来的 10 箱数据。",
+        "table": ["触发条件", "复测动作", "同步对象", "截止时间", "记录位置"],
+        "steps": ["定义复测触发条件。", "仓库复测后更新箱规表。", "运营重新计算计费重。", "货代按新数据复核报价。", "保留调整前后版本。"],
+        "mistakes": ["换箱后不复测。", "只更新箱数不更新尺寸。", "复测数据只发聊天消息。", "旧报价和新箱规混用。"],
+        "sources": source("dhl_dct", "amazon_fba_pack", "google_helpful"),
+    },
+    {
+        "slug": "label-and-box-content-for-fba",
+        "group": "packing",
+        "tag": "FBA 标签",
+        "title": "FBA 箱标和箱内信息如何配合物流复核",
+        "description": "说明 FBA 发货中箱标、箱内信息、SKU 数量和物流箱规应如何关联，减少入仓和运输沟通问题。",
+        "keyword": "FBA 箱标 箱内信息",
+        "scenario": "FBA 头程不仅要算运费，还要让箱标、箱内 SKU、数量和实际外箱对应。物流表和 FBA 表脱节，容易让仓库、货代和运营各说各的。",
+        "method": "用唯一箱号把物流箱规表和 FBA 箱内信息表关联起来。每箱既有长宽高、实重和计费重，也有 SKU、数量、箱标状态和条码可扫描检查。",
+        "example": "箱号 A01 在物流表里是 60cm × 40cm × 38cm、18kg；在 FBA 表里应对应具体 SKU 和数量。若仓库换箱，两个表都要更新。",
+        "table": ["箱号", "SKU", "数量", "箱标状态", "外箱尺寸", "实重", "复核人"],
+        "steps": ["先建立箱号。", "每箱对应 SKU 和数量。", "贴标后检查可扫描。", "箱规表同步最终箱号。", "交接前抽查箱标和尺寸。"],
+        "mistakes": ["物流箱号和 FBA 箱号不一致。", "换箱后不更新箱内信息。", "条码被胶带遮挡。", "只保存后台截图不保存箱规表。"],
+        "sources": source("amazon_fba_pack", "amazon_sp_api"),
+    },
+    {
+        "slug": "lightweight-bulky-items-packaging",
+        "group": "packing",
+        "tag": "轻泡包装",
+        "title": "轻泡货包装怎么减少误判",
+        "description": "针对轻泡货整理包装和复核思路：压缩无效体积、固定箱规、比较渠道分母和长边。",
+        "keyword": "轻泡货包装",
+        "scenario": "轻泡货看起来重量低，但运输中占用空间大，容易在报价复核时出现体积重高于实重的情况。包装优化能帮助减少误判，但不能代替渠道确认。",
+        "method": "先用 CBM 和密度识别轻泡程度，再从包装结构入手减少无效空隙。优化后必须重新测量外箱，并分别计算 5000 与 6000 分母下的计费重。",
+        "example": "毛绒类商品如果可以真空或压缩，需要确认是否影响产品恢复和平台入仓要求。压缩前后都要记录箱规，不能只凭经验判断。",
+        "table": ["SKU", "优化前尺寸", "优化后尺寸", "恢复风险", "计费重变化", "是否执行"],
+        "steps": ["先判断是否轻泡。", "找到无效空隙。", "评估压缩或换箱风险。", "优化后复测箱规。", "按多个渠道重新计算。"],
+        "mistakes": ["压缩后产品无法恢复。", "优化只做一箱样品。", "没有同步仓库操作标准。", "忽略长边变化。"],
+        "sources": source("dhl_dct", "ems_product", "amazon_fba_pack"),
+    },
+    {
+        "slug": "heavy-small-items-mixed-loading",
+        "group": "packing",
+        "tag": "重货混装",
+        "title": "小件重货混装时要注意什么",
+        "description": "说明小件重货混装时不仅要看体积重，还要关注单箱实重、箱体承压、搬运和 SKU 对应关系。",
+        "keyword": "小件重货混装",
+        "scenario": "金属配件、工具、支架等小件重货体积不大，但单箱重量可能很高。它们和轻泡货混装时，不能只追求填满空间，还要看箱体承压和搬运安全。",
+        "method": "把重货单箱重量作为单独复核项，设置合理上限并记录箱体承压。混装时避免重货压坏轻泡货，必要时分层、分箱或增加隔板。物流侧还要确认单箱限重和搬运要求。",
+        "example": "一箱小配件体积重只有 8kg，但实重 28kg。它不属于体积重风险，却属于搬运和箱体强度复核对象。和轻泡货混装可能降低空隙，但会增加破损风险。",
+        "table": ["SKU", "单箱实重", "箱体强度", "混装对象", "风险", "处理建议"],
+        "steps": ["筛出高实重箱。", "确认单箱重量是否适合人工搬运。", "避免重货压轻货。", "记录箱体材质和承重。", "必要时单独分箱。"],
+        "mistakes": ["只关注体积重，忽略实重。", "重货和易碎轻货直接混放。", "不确认单箱限重。", "箱体强度没有标准。"],
+        "sources": source("sf_rate", "amazon_fba_pack", "dhl_dct"),
+    },
+    {
+        "slug": "quote-audit-before-confirmation",
+        "group": "packing",
+        "tag": "下单前复核",
+        "title": "确认发货前的报价复核清单",
+        "description": "汇总确认发货前应检查的箱规、重量、分母、计费重、长边、附加项和规则来源。",
+        "keyword": "发货前报价复核清单",
+        "scenario": "发货前最后一次复核最容易被省略。运营觉得箱规已经发过，仓库觉得已经打包，货代觉得报价已经确认，但任何一个字段变化都可能让结果不同。",
+        "method": "确认发货前，用一张清单把箱规、实重、分母、体积重、计费重、长边提醒、附加项、报价有效期和规则来源逐项打勾。没有确认的字段不要默认为通过。",
+        "example": "如果仓库刚把 12 箱改成 10 箱，报价单仍按 12 箱计算，就需要重新复核。工具可以快速重算，但最终要把新箱规发给承运商确认。",
+        "table": ["复核项", "当前值", "来源", "是否确认", "备注"],
+        "steps": ["确认最终箱数。", "确认最终外箱尺寸和实重。", "确认渠道分母和进位。", "确认长边和尺寸限制。", "保存报价确认记录。"],
+        "mistakes": ["改箱后沿用旧报价。", "只确认总额不确认口径。", "没有记录规则来源。", "仓库、运营、货代三方数据不一致。"],
+        "sources": source("dhl_dct", "ems_product", "sf_rate", "amazon_fba_pack"),
+    },
 ]
 
-ARTICLES += [
-    # career
-    {"slug": "automation-test-interview-roadmap", "group": "career", "category": "求职冲刺", "tag": "自动化测试", "title": "自动化测试面试准备路线", "description": "自动化测试面试准备路线，覆盖接口、UI、数据库、框架、CI 和项目复盘。", "keyword": "自动化测试面试准备", "problem": "自动化测试面试不能只背零散题目。面试官通常想知道你是否理解测试流程、能否定位失败原因、能否把项目讲清楚。", "method": "按接口、UI、数据、框架、报告和项目六个模块准备，每个模块准备一个真实例子和一个失败排查思路。", "steps": ["先梳理自己做过的项目链路。", "接口部分准备鉴权、参数化和断言。", "UI 部分准备等待、定位器和截图。", "框架部分准备分层和配置。", "项目部分准备背景、行动和结果。"], "prompt": "你是测试经理，请按接口、UI、数据库、框架和项目复盘面试我。一次只问一个问题，等我回答后指出不足并给更好的结构。", "mistakes": ["只背题，不会结合项目。", "把工具名堆满，但解释不了原理。", "结果只写完成了，没有说明价值。"], "sources": source("selenium_waits", "pytest_parametrize", "google_helpful")},
-    {"slug": "ui-automation-flaky-answer", "group": "career", "category": "求职冲刺", "tag": "UI 自动化", "title": "UI 自动化不稳定怎么回答", "description": "面试中回答 UI 自动化不稳定问题时，可从定位器、显式等待、截图日志和用例边界展开。", "keyword": "UI 自动化稳定性优化", "problem": "UI 自动化不稳定是高频面试题。简单回答加等待不够，因为它没有体现你区分原因和控制误报的能力。", "method": "回答时先说现象，再说排查，再说改进。重点包括稳定定位器、显式等待、失败截图、页面源码、重试边界和不适合自动化的场景。", "steps": ["确认是元素加载、定位器变化还是环境问题。", "把脆弱 XPath 改成稳定属性或文本组合。", "使用显式等待等待关键状态。", "失败时保留截图、日志和页面源码。", "把频繁变化的一次性流程移出自动化范围。"], "prompt": "请帮我把 UI 自动化不稳定的经历改成 STAR 面试回答，要求包含背景、排查动作、改进方案和结果。", "mistakes": ["只说加 sleep。", "没有失败证据。", "把所有流程都自动化，忽视维护成本。"], "sources": source("selenium_waits", "selenium_locators", "google_helpful")},
-    {"slug": "api-test-auth-token", "group": "career", "category": "求职冲刺", "tag": "接口测试", "title": "接口自动化 token 和鉴权怎么处理", "description": "接口自动化中 token 和鉴权处理思路：登录前置、会话上下文、角色账号和过期重试。", "keyword": "接口自动化 token 鉴权", "problem": "鉴权处理如果写死 token，用例很快失效，也难以切换环境和角色。面试时要说明如何让登录态可维护。", "method": "把登录接口封装成前置步骤，token 存在会话上下文或统一请求头。不同权限准备不同账号，关键接口验证未授权和权限不足。", "steps": ["封装登录方法，不在用例里写死 token。", "统一请求头和环境配置。", "token 过期时重新登录并记录日志。", "为普通用户、管理员和无权限用户准备账号。", "断言业务码和权限提示。"], "prompt": "请根据我的接口自动化项目，帮我组织 token 和鉴权处理的面试回答，包含为什么不能写死、如何封装、如何覆盖权限场景。", "mistakes": ["把 token 复制到每条用例。", "只测正常登录用户。", "没有覆盖未授权和权限不足。"], "sources": source("pytest_fixtures", "pytest_parametrize", "google_helpful")},
-    {"slug": "api-assertion-design", "group": "career", "category": "求职冲刺", "tag": "接口测试", "title": "接口测试断言怎么设计", "description": "接口测试断言不应只看状态码，还应覆盖业务码、字段、错误信息和关键数据结果。", "keyword": "接口测试断言设计", "problem": "接口返回 200 不等于业务正确。断言设计太浅，会让问题漏掉，也会让面试回答显得没有测试思维。", "method": "把断言分成协议层、业务层和数据层。普通接口检查状态码和业务码，关键链路再检查字段、错误提示和数据库结果。", "steps": ["协议层检查状态码和响应时间。", "业务层检查 code、message 和关键字段。", "异常场景检查错误提示是否明确。", "关键链路检查数据是否真正变化。", "失败时输出请求、响应和断言差异。"], "prompt": "请根据这个接口文档，帮我设计正常、异常、边界和鉴权场景的断言点，并说明每个断言能发现什么问题。", "mistakes": ["只断言 200。", "没有异常场景。", "断言字段太多导致维护困难。"], "sources": source("pytest_parametrize", "google_helpful", "baidu_quality")},
-    {"slug": "pytest-parametrize-fixture", "group": "career", "category": "求职冲刺", "tag": "pytest", "title": "pytest 参数化和 fixture 怎么讲", "description": "面试中讲 pytest 参数化和 fixture，可围绕减少重复、准备数据、共享前置和提高可维护性展开。", "keyword": "pytest 参数化 fixture", "problem": "很多初学者知道 pytest，但讲不清参数化和 fixture 的区别。面试时要说明它们分别解决什么问题。", "method": "参数化用于同一逻辑跑多组输入，fixture 用于准备前置条件和资源。两者结合可以让用例更短、更稳定。", "steps": ["用 parametrize 管理多组输入和预期结果。", "用 fixture 准备登录、测试数据或客户端。", "把环境配置从用例中抽离。", "失败输出应能看到是哪组参数。", "不要为了封装而隐藏业务意图。"], "prompt": "请帮我用通俗语言解释 pytest 参数化和 fixture 的区别，并给一个接口自动化场景中的面试回答。", "mistakes": ["把所有逻辑都塞进 fixture。", "参数名不清楚，失败时难定位。", "为了少写代码牺牲可读性。"], "sources": source("pytest_parametrize", "pytest_fixtures")},
-    {"slug": "selenium-explicit-wait", "group": "career", "category": "求职冲刺", "tag": "Selenium", "title": "Selenium 显式等待怎么理解", "description": "Selenium 显式等待用于等待关键条件出现，比固定 sleep 更可控，适合解释 UI 自动化稳定性。", "keyword": "Selenium 显式等待", "problem": "UI 用例失败经常不是功能错，而是页面状态还没准备好。固定 sleep 会拖慢用例，也不一定稳定。", "method": "显式等待是等待某个条件满足，例如元素可见、可点击、文本出现。回答时要说明等待的是业务关键状态，不是盲目等待时间。", "steps": ["找出用例真正依赖的页面状态。", "等待元素可见或可点击。", "对异步加载结果等待文本或列表变化。", "设置合理超时时间。", "超时后保留截图和日志。"], "prompt": "请帮我把 Selenium 显式等待解释成面试回答，要求对比固定 sleep，并结合一个登录后等待首页元素的例子。", "mistakes": ["所有地方都 sleep 3 秒。", "等待了错误元素。", "没有超时证据。"], "sources": source("selenium_waits", "selenium_locators")},
-    {"slug": "test-report-logs-screenshots", "group": "career", "category": "求职冲刺", "tag": "测试报告", "title": "测试报告、日志和截图怎么定位问题", "description": "自动化失败后应通过测试报告、请求响应、日志、截图和环境信息判断问题来源。", "keyword": "自动化测试问题排查", "problem": "测试报告如果只有通过和失败，价值很有限。好的报告应该帮助团队快速判断是脚本问题、数据问题、环境问题还是产品问题。", "method": "报告里保留用例名、步骤、环境、请求参数、响应摘要、错误堆栈和截图。失败后先分类，再决定是否重跑或提缺陷。", "steps": ["先看失败类型和错误信息。", "查看请求参数和响应内容。", "UI 用例查看截图和页面状态。", "检查测试数据是否满足前置条件。", "记录归因，避免同类问题重复出现。"], "prompt": "请根据这段失败日志和截图描述，帮我判断可能原因，并输出环境问题、数据问题、脚本问题、产品问题四类排查清单。", "mistakes": ["失败就重跑，没有归因。", "报告缺少请求和响应。", "截图没有和步骤对应。"], "sources": source("selenium_waits", "pytest_fixtures", "google_helpful")},
-    {"slug": "ci-smoke-testing", "group": "career", "category": "求职冲刺", "tag": "CI", "title": "自动化测试接入 CI 先跑哪些用例", "description": "自动化测试接入 CI 应先选择稳定的冒烟用例，覆盖核心链路，避免一开始全量导致误报。", "keyword": "自动化测试 CI 冒烟用例", "problem": "把所有自动化用例一次性接入 CI，容易因为环境和数据不稳定导致大量失败，团队会失去信任。", "method": "先接核心冒烟用例：登录、关键查询、关键提交、权限校验。用例必须稳定、执行快、失败易定位。", "steps": ["筛选业务最关键的 5 到 20 条用例。", "确保测试数据可重复准备。", "失败时输出报告和通知。", "每日定时和提交触发分开。", "稳定后再逐步扩展覆盖范围。"], "prompt": "请根据我的系统模块，帮我筛选适合 CI 冒烟测试的用例，并说明每条用例为什么值得优先执行。", "mistakes": ["一开始全量接入。", "把不稳定 UI 用例放进主流程。", "失败没有通知和报告。"], "sources": source("pytest_fixtures", "google_helpful", "baidu_quality")},
-    {"slug": "database-validation-testing", "group": "career", "category": "求职冲刺", "tag": "数据库校验", "title": "接口测试什么时候需要查数据库", "description": "数据库校验适合订单、库存、用户状态等关键链路，不是每条接口都必须查库。", "keyword": "接口测试 数据库校验", "problem": "接口返回成功只能说明响应看起来正常，不一定证明数据真正落库。但每条用例都查数据库也会增加维护成本。", "method": "关键链路查关键字段，普通查询接口以业务字段断言为主。查库前要准备独立数据，查库后要清理或隔离。", "steps": ["判断接口是否改变核心数据。", "明确要校验的字段。", "准备唯一测试数据。", "执行接口后查询数据状态。", "清理数据或使用隔离环境。"], "prompt": "请根据这个业务接口，判断是否需要数据库校验。如果需要，请列出校验字段、查询条件和可能发现的问题。", "mistakes": ["每条接口都查库，拖慢执行。", "查错环境或错数据。", "没有清理测试数据。"], "sources": source("pytest_fixtures", "google_helpful")},
-    {"slug": "test-resume-project-description", "group": "career", "category": "求职冲刺", "tag": "简历", "title": "测试简历项目描述怎么写", "description": "测试简历项目描述要写清模块、测试点、方法、工具、结果和可追问细节。", "keyword": "测试简历项目描述", "problem": "简历里只写参与项目、负责测试，很难让招聘方判断你做了什么。测试岗需要体现测试点设计、问题定位和交付物。", "method": "项目经历按背景、任务、动作、结果写。动作要包括用例设计、接口验证、缺陷记录、报告输出和复测。", "steps": ["先写项目是什么和你负责的模块。", "写覆盖哪些核心流程。", "写使用什么方法或工具。", "写输出了哪些交付物。", "准备每条描述的追问答案。"], "prompt": "请把我的测试项目经历改写成 5 条简历 bullet，要求包含动作、对象、方法和结果，不要编造数据。", "mistakes": ["写精通但解释不了。", "只写工具名没有业务对象。", "项目结果无法被追问。"], "sources": source("google_helpful", "baidu_quality")},
-    {"slug": "ai-resume-polish-guide", "group": "career", "category": "求职冲刺", "tag": "AI 简历", "title": "AI 润色简历怎样避免编造经历", "description": "用 AI 润色简历时应提供真实经历和岗位 JD，让 AI 优化表达而不是新增事实。", "keyword": "AI 润色简历", "problem": "AI 改简历容易把经历写得很漂亮，但也可能新增你没有做过的工具、结果和数据。面试时这些内容会变成风险。", "method": "把 JD 和真实经历一起给 AI，要求标注缺失信息。所有新增数据必须用待补充标记，不允许直接生成具体数字。", "steps": ["先整理真实项目和职责。", "粘贴目标岗位 JD。", "让 AI 提取匹配关键词。", "改写时要求不新增事实。", "删除自己解释不了的技术词。"], "prompt": "你是招聘经理。请根据岗位 JD 和我的真实经历，指出匹配点、缺失能力和可优化表达。不要新增经历，缺少数据请标注【需补充】。", "mistakes": ["让 AI 直接生成完整简历。", "保留不懂的技术名词。", "把课程项目写成真实商业项目。"], "sources": source("google_ai", "google_helpful", "baidu_page")},
-    {"slug": "fresh-graduate-project-star", "group": "career", "category": "求职冲刺", "tag": "STAR", "title": "应届生项目经历 STAR 表达", "description": "应届生项目经历可以用 STAR 结构讲清背景、任务、行动和结果，但不能夸大项目性质。", "keyword": "STAR 原则项目表达", "problem": "应届生项目不一定大，但只要能讲清你解决的问题和具体行动，就能成为面试材料。STAR 的价值是让经历有结构。", "method": "S 是项目背景，T 是你的任务，A 是你做了哪些具体动作，R 是交付物或改进结果。结果可以是报告、脚本、复盘，不一定是夸张数据。", "steps": ["说明项目来源和业务场景。", "明确你负责的模块。", "列出 3 个具体行动。", "说明遇到的难点。", "用交付物证明结果。"], "prompt": "请把我的课程项目整理成 STAR 面试回答，要求真实、不夸大，并列出面试官可能追问的 5 个问题。", "mistakes": ["把团队成果全写成个人成果。", "只讲技术，不讲任务背景。", "结果没有证据。"], "sources": source("google_helpful", "baidu_quality")},
-    {"slug": "no-internship-resume", "group": "career", "category": "求职冲刺", "tag": "简历", "title": "没有实习经历怎么写测试岗简历", "description": "没有实习经历时，可以用课程项目、自学练习、缺陷记录和测试报告证明测试岗能力。", "keyword": "无实习简历突破", "problem": "没有实习不是不能投测试岗，但简历必须提供能力证据。空写学习能力强，很难让招聘方相信。", "method": "把课程项目改成测试视角，把自学练习沉淀成脚本、用例、报告和复盘。重点写能被追问的内容。", "steps": ["列出课程项目和自学项目。", "为每个项目补测试点和用例。", "输出缺陷记录或测试报告。", "准备工具和流程的解释。", "删除和岗位无关的大段内容。"], "prompt": "我没有实习经历，但有这些课程项目和自学练习。请帮我筛选适合测试岗简历的内容，并改写成真实可追问的项目描述。", "mistakes": ["空写熟悉测试流程。", "把没做过的自动化写上去。", "项目描述和岗位无关。"], "sources": source("google_helpful", "baidu_quality")},
-    {"slug": "test-interview-self-introduction", "group": "career", "category": "求职冲刺", "tag": "面试", "title": "测试岗面试自我介绍怎么准备", "description": "测试岗自我介绍应控制在 60 到 90 秒，讲清方向、项目、测试能力和求职动机。", "keyword": "测试岗自我介绍", "problem": "自我介绍不是复述简历，而是给面试官一个追问入口。太长会散，太短又看不出岗位匹配。", "method": "按个人背景、目标岗位、项目经历、测试能力、期待方向五句话组织。每句话都要能接上后续追问。", "steps": ["说明学历或转行背景。", "明确应聘测试或自动化测试。", "挑一个最相关项目。", "讲用例、接口、缺陷或报告能力。", "用一句话说明想继续提升的方向。"], "prompt": "请根据我的简历，生成 60 秒测试岗自我介绍。要求自然、真实、能引导面试官追问项目，不要夸大。", "mistakes": ["背诵过于官方。", "讲兴趣太多，岗位匹配太少。", "没有提可追问项目。"], "sources": source("google_helpful", "baidu_page")},
-    {"slug": "bug-report-writing", "group": "career", "category": "求职冲刺", "tag": "缺陷报告", "title": "缺陷报告怎么写清复现步骤", "description": "缺陷报告要包含环境、前置条件、复现步骤、实际结果、预期结果、附件和影响范围。", "keyword": "缺陷报告编写规范", "problem": "缺陷报告写不清，开发就难复现，沟通成本会很高。好报告不是情绪表达，而是可验证事实。", "method": "报告按环境、版本、账号、前置数据、步骤、实际结果、预期结果、截图日志和影响范围来写。", "steps": ["先确认问题可复现。", "记录浏览器、环境和账号。", "步骤写成一条一条动作。", "实际结果和预期结果分开。", "附截图、日志或接口响应。"], "prompt": "请把我的问题描述改成规范缺陷报告，包含环境、前置条件、复现步骤、实际结果、预期结果和附件说明。", "mistakes": ["只写有 bug。", "步骤跳跃，别人无法复现。", "没有环境和版本信息。"], "sources": source("google_helpful", "baidu_quality")},
-    {"slug": "qa-learning-roadmap", "group": "career", "category": "求职冲刺", "tag": "学习路线", "title": "零基础测试工程师学习路线", "description": "零基础测试工程师可按软件基础、测试方法、接口测试、自动化、数据库和项目表达逐步学习。", "keyword": "测试工程师学习路线", "problem": "零基础学测试容易一上来追工具，结果用例设计和缺陷分析都不稳。学习路线应该先方法，再工具。", "method": "第一阶段学测试基础和用例设计，第二阶段学接口和数据库，第三阶段学自动化和报告，最后整理项目表达。", "steps": ["学习软件测试基本概念。", "练等价类、边界值和场景法。", "学习 HTTP、接口文档和断言。", "掌握 SQL 基础查询。", "用 pytest 或 Selenium 做小项目。"], "prompt": "请为零基础测试求职者制定 8 周学习路线，每周包含学习目标、练习任务、交付物和自测问题。", "mistakes": ["只看视频不做项目。", "跳过用例设计直接写脚本。", "学很多工具但没有面试材料。"], "sources": source("pytest_fixtures", "selenium_waits", "google_helpful")},
-    {"slug": "mock-interview-prompt", "group": "career", "category": "求职冲刺", "tag": "模拟面试", "title": "用 AI 做模拟面试怎么提问", "description": "AI 模拟面试应采用一问一答模式，围绕简历项目追问，并在回答后给结构化反馈。", "keyword": "AI 模拟面试 Prompt", "problem": "一次性让 AI 生成面试答案，练不出临场能力。真正有效的是让 AI 像面试官一样追问。", "method": "把简历和目标岗位给 AI，要求一次只问一个问题，回答后指出问题，再给更好的结构。最后输出复盘表。", "steps": ["提供目标岗位和简历项目。", "限定问题范围和难度。", "要求一次只问一个。", "回答后让 AI 追问细节。", "结束后整理高频漏洞。"], "prompt": "你是测试岗位面试官，请根据我的简历进行模拟面试。一次只问一个问题，等我回答后点评，再继续追问。结束后给我复盘表。", "mistakes": ["只看标准答案不练表达。", "没有把自己的项目材料放进去。", "不让 AI 追问细节。"], "sources": source("google_ai", "google_helpful", "baidu_quality")},
-]
 
-ARTICLES += [
-    # tools
-    {"slug": "gpt-claude-beginner-differences", "group": "tools", "category": "AI 工具箱", "tag": "入门", "title": "GPT 和 Claude 新手怎么选", "description": "GPT 和 Claude 新手选择指南，从任务类型、上下文、文件处理、结果核验和使用习惯比较。", "keyword": "GPT Claude 新手怎么选", "problem": "新手常把模型当成万能工具，纠结哪个更强。真正影响结果的是任务类型、上下文质量和核验方法。", "method": "先按任务选择工具：写作、总结、代码、资料分析、头脑风暴和表格处理。再用同一任务测试输出是否稳定。", "steps": ["明确任务是写作、总结还是分析。", "准备完整背景和材料。", "规定输出格式。", "让模型标出不确定信息。", "重要结论回到来源核验。"], "prompt": "我想完成任务【】，材料是【】，请先判断适合用哪类 AI 助手，并给出提问模板、输出格式和核验清单。", "mistakes": ["只问哪个模型最强。", "不给上下文就要求高质量。", "把输出直接当事实。"], "sources": source("google_ai", "google_helpful", "baidu_quality")},
-    {"slug": "prompt-four-part-formula", "group": "tools", "category": "AI 工具箱", "tag": "Prompt", "title": "稳定 Prompt 的四段式公式", "description": "稳定 Prompt 通常包含角色、目标、材料和输出格式，适合学习、求职和办公任务。", "keyword": "Prompt 四段式公式", "problem": "很多人只会说帮我优化，结果 AI 不知道优化什么、为谁优化、输出成什么样。Prompt 的稳定性来自明确约束。", "method": "四段式公式是角色、目标、材料、输出格式。复杂任务再补充限制条件和验收标准。", "steps": ["指定 AI 扮演的角色。", "说明任务目标和使用场景。", "粘贴真实材料。", "规定输出格式。", "要求标注不确定信息。"], "prompt": "你是【角色】。我需要【目标】。材料是【粘贴】。限制是【限制】。请按【表格/清单/段落】输出，并标注需要核验的信息。", "mistakes": ["没有提供材料。", "输出格式不明确。", "让 AI 自行假设关键事实。"], "sources": source("google_ai", "google_helpful", "owasp_llm")},
-    {"slug": "ai-summary-prompt", "group": "tools", "category": "AI 工具箱", "tag": "总结", "title": "AI 总结资料怎么避免漏重点", "description": "AI 总结资料时应要求列出核心观点、原文依据、不确定信息和可执行动作，避免只给概括。", "keyword": "AI 总结资料 Prompt", "problem": "只说总结一下，AI 往往会给一段漂亮但不够可用的概括。学习和工作需要的是重点、依据和下一步。", "method": "要求 AI 输出一句话概括、核心观点、原文依据、术语解释、行动清单和待核验信息。", "steps": ["先说明资料用途。", "要求逐条列核心观点。", "每个观点附原文依据。", "把不确定信息单独列出。", "最后输出行动清单。"], "prompt": "请总结以下资料，输出：一句话概括、5 个核心观点、每个观点的原文依据、术语解释、可执行动作和需要核验的信息。", "mistakes": ["只要摘要，不要依据。", "资料太长但不分段。", "不区分事实和建议。"], "sources": source("google_ai", "google_helpful", "baidu_page")},
-    {"slug": "ai-writing-polish-prompt", "group": "tools", "category": "AI 工具箱", "tag": "写作", "title": "AI 写作润色 Prompt 怎么写", "description": "AI 写作润色应保留原意、不新增事实、减少空话，并输出修改说明和证据缺口。", "keyword": "AI 写作润色 Prompt", "problem": "润色最危险的是越改越像宣传稿，甚至加入原文没有的信息。好润色应该让表达更清楚，而不是替换作者思考。", "method": "要求保留原意、不新增事实、减少重复、拆长句、标出缺少证据的位置，并说明改动原因。", "steps": ["说明读者是谁。", "说明希望语气正式还是自然。", "要求不新增事实。", "输出修改后版本和修改说明。", "标记需要补证据的句子。"], "prompt": "请润色下面文字。要求保留原意，不新增事实，减少空话，拆短长句，标注缺少证据的位置，并输出修改说明。", "mistakes": ["让 AI 自由发挥。", "保留新增的虚假事实。", "只看文字漂亮，不看逻辑是否成立。"], "sources": source("google_ai", "google_spam", "baidu_quality")},
-    {"slug": "ai-study-plan-prompt", "group": "tools", "category": "AI 工具箱", "tag": "学习计划", "title": "用 AI 制定学习计划怎么提问", "description": "用 AI 制定学习计划时，应提供目标、基础、时间、截止日期和薄弱点，并要求输出完成标准。", "keyword": "AI 学习计划 Prompt", "problem": "学习计划失败通常不是计划不够漂亮，而是没有考虑真实时间、基础和反馈。AI 需要这些信息才能拆出可执行任务。", "method": "提供目标、当前基础、每天可用时间、截止日期和薄弱点。输出必须包含每日任务、耗时、完成标准和补救方案。", "steps": ["写清目标和截止日期。", "说明当前水平。", "给出每天可投入时间。", "列出薄弱点和已有资料。", "要求计划包含复盘问题。"], "prompt": "你是学习计划教练。我的目标是【】，基础是【】，每天可投入【】，截止日期【】。请制定计划，包含每日任务、耗时、完成标准和补救方案。", "mistakes": ["计划排太满。", "没有完成标准。", "不根据执行情况调整。"], "sources": source("google_ai", "google_helpful", "baidu_quality")},
-    {"slug": "ai-meeting-notes-prompt", "group": "tools", "category": "AI 工具箱", "tag": "会议纪要", "title": "会议纪要 Prompt 怎么整理待办", "description": "AI 整理会议纪要时应输出结论、待办、负责人、截止时间、风险和待确认事项。", "keyword": "AI 会议纪要 Prompt", "problem": "会议纪要如果只记录讨论内容，后续仍然没人知道该做什么。真正有用的是结论和行动项。", "method": "把会议记录交给 AI 后，要求按结论、待办、负责人、截止时间、风险和待确认事项输出。缺失信息用待确认标记。", "steps": ["先提供完整会议记录。", "要求区分结论和讨论。", "待办必须有负责人。", "没有截止时间就标待确认。", "列出风险和下一次会议议题。"], "prompt": "请把以下会议记录整理成纪要，输出结论、待办、负责人、截止时间、风险和待确认事项。缺失负责人或时间请标注【待确认】。", "mistakes": ["把所有发言都写进去。", "待办没有负责人。", "遗漏争议点和风险。"], "sources": source("google_ai", "google_helpful")},
-    {"slug": "ai-table-analysis-prompt", "group": "tools", "category": "AI 工具箱", "tag": "表格", "title": "让 AI 整理表格和清单怎么提问", "description": "让 AI 整理表格时，应指定列名、排序规则、缺失值处理和输出格式，避免生成不可用表格。", "keyword": "AI 整理表格 Prompt", "problem": "表格任务最怕列名不清和规则不明。AI 可能把数据改写得好看，却破坏原始含义。", "method": "先规定列名、数据来源、排序规则、缺失值标记和禁止新增信息。必要时让 AI 先检查数据问题。", "steps": ["说明表格用途。", "固定列名和顺序。", "规定缺失值写待确认。", "说明排序或分组规则。", "要求保留原始数据含义。"], "prompt": "请把以下信息整理成表格，列名固定为【】。缺失信息写【待确认】，不要新增事实。最后列出数据中不一致或需要核验的位置。", "mistakes": ["没有列名。", "让 AI 自动补数据。", "输出表格太宽，手机端难读。"], "sources": source("google_ai", "google_helpful", "baidu_page")},
-    {"slug": "ai-account-security-checklist", "group": "tools", "category": "AI 工具箱", "tag": "账号安全", "title": "AI 账号安全检查清单", "description": "AI 账号安全检查清单，包括密码、二次验证、敏感信息、授权应用和设备管理。", "keyword": "AI 账号安全清单", "problem": "AI 工具经常绑定邮箱、文件和第三方授权。新手只关注怎么用，容易忽略账号和资料边界。", "method": "建立固定检查清单：不同平台不同密码、开启二次验证、不上传敏感信息、定期检查授权、重要资料先脱敏。", "steps": ["检查密码是否复用。", "开启二次验证。", "删除不再使用的第三方授权。", "上传文件前删除敏感信息。", "重要结论人工复核。"], "prompt": "请根据我的 AI 工具使用场景，生成账号安全检查清单，包含密码、授权、文件上传、敏感信息和结果核验。", "mistakes": ["把验证码或密钥发给 AI。", "长期不检查第三方授权。", "公司或个人敏感资料未脱敏。"], "sources": source("owasp_llm", "google_ai", "baidu_quality")},
-    {"slug": "prompt-injection-basics", "group": "tools", "category": "AI 工具箱", "tag": "安全", "title": "Prompt Injection 是什么", "description": "Prompt Injection 是针对大语言模型的提示词攻击，可能让模型忽略原指令或泄露敏感信息。", "keyword": "Prompt Injection 是什么", "problem": "很多人把 Prompt Injection 理解成普通提示词技巧，实际上它是 AI 应用安全中的重要风险。", "method": "理解它的关键是区分指令和不可信内容。外部网页、用户输入、文档内容都可能包含让模型改变行为的文字。", "steps": ["不要把外部内容当成可信指令。", "敏感操作前增加人工确认。", "限制模型能访问的数据和工具。", "对输出做验证和过滤。", "记录异常指令和风险来源。"], "prompt": "请用初学者能懂的方式解释 Prompt Injection，并给出在个人学习和企业应用中分别应该注意的防护动作。", "mistakes": ["以为只要提示词写得强就安全。", "让模型直接执行高风险动作。", "把外部文档中的指令当真。"], "sources": source("owasp_prompt", "owasp_llm", "google_ai")},
-    {"slug": "sensitive-info-redaction", "group": "tools", "category": "AI 工具箱", "tag": "脱敏", "title": "上传资料给 AI 前怎么脱敏", "description": "上传资料给 AI 前应删除姓名、电话、身份证、账号、密钥、客户信息和公司内部细节。", "keyword": "AI 资料脱敏", "problem": "AI 处理文档很方便，但上传前不脱敏可能暴露个人、客户或公司信息。安全使用的第一步是减少输入风险。", "method": "把敏感信息替换成占位符，例如【姓名】、【手机号】、【客户 A】、【密钥已删除】。保留任务所需结构，删除无关细节。", "steps": ["识别个人身份信息。", "删除账号、密码、token 和密钥。", "替换客户和公司内部名称。", "保留必要字段结构。", "上传前再扫一遍敏感词。"], "prompt": "请帮我检查以下文本中可能需要脱敏的信息，并输出脱敏后的版本。不要保留身份证、手机号、账号、密钥或客户真实名称。", "mistakes": ["只删除姓名，保留手机号。", "保留 token 或 API key。", "把公司内部数据原样上传。"], "sources": source("owasp_llm", "google_ai", "google_spam")},
-    {"slug": "ai-result-verification", "group": "tools", "category": "AI 工具箱", "tag": "核验", "title": "AI 输出结果怎么核验", "description": "AI 输出结果要区分事实、建议和推测，涉及时间、政策、工具版本和考试规则时回到官方来源。", "keyword": "AI 输出核验", "problem": "AI 输出流畅不代表正确。越是看起来完整的回答，越需要检查事实来源和适用条件。", "method": "把输出拆成事实、建议和推测三类。事实查来源，建议看适用场景，推测要求模型标注不确定性。", "steps": ["圈出具体数字、时间和政策。", "检查是否有来源。", "回到官方文档或原始材料核对。", "让 AI 标出不确定信息。", "保留自己的判断记录。"], "prompt": "请审查你刚才的回答，区分确定事实、推测、建议和需要外部核验的信息，并给出更谨慎的版本。", "mistakes": ["只看回答是否顺。", "不查工具版本和政策变化。", "把建议当事实。"], "sources": source("google_ai", "google_helpful", "baidu_quality")},
-    {"slug": "ai-search-research-workflow", "group": "tools", "category": "AI 工具箱", "tag": "资料检索", "title": "用 AI 做资料检索的正确流程", "description": "用 AI 做资料检索应先定义问题、找来源、提取观点、核验事实，再整理成自己的笔记。", "keyword": "AI 资料检索流程", "problem": "让 AI 直接给资料，很容易得到没有出处的概括。更稳的流程是先找来源，再让 AI 辅助阅读和整理。", "method": "先列问题和关键词，找到官方或权威来源，再把来源内容交给 AI 总结。最后保留链接和抓取时间。", "steps": ["写清研究问题。", "列出中英文关键词。", "优先找官方文档和原始资料。", "让 AI 提取观点和证据。", "整理来源清单和待核验项。"], "prompt": "请根据我的研究问题，生成检索关键词、优先来源类型、资料筛选标准和笔记模板，不要编造具体来源。", "mistakes": ["直接让 AI 编参考资料。", "只看二手文章。", "笔记没有来源链接。"], "sources": source("google_ai", "google_helpful", "baidu_page")},
-    {"slug": "personal-knowledge-base-ai", "group": "tools", "category": "AI 工具箱", "tag": "知识库", "title": "用 AI 整理个人知识库", "description": "用 AI 整理个人知识库，应把资料转成主题、适用场景、操作步骤、常见错误和下次行动。", "keyword": "AI 个人知识库", "problem": "收藏文章不等于建立知识库。真正可复用的笔记要能回答什么时候用、怎么用、容易错在哪里。", "method": "让 AI 把资料整理成标题、场景、核心结论、步骤、模板、相关概念和下次行动。每条笔记保留来源。", "steps": ["先按主题归档。", "每篇笔记写适用场景。", "提取可执行步骤。", "记录常见错误。", "用内链关联相关主题。"], "prompt": "请把以下材料整理成个人知识库笔记，包含标题、适用场景、核心结论、操作步骤、常见错误、可复用模板和相关概念。", "mistakes": ["只复制原文。", "没有适用场景。", "笔记之间没有关联。"], "sources": source("google_ai", "google_helpful")},
-    {"slug": "ai-ppt-outline-prompt", "group": "tools", "category": "AI 工具箱", "tag": "PPT", "title": "用 AI 做 PPT 大纲怎么提问", "description": "AI 做 PPT 大纲时要说明听众、目标、页数、场景和每页要回答的问题。", "keyword": "AI PPT 大纲 Prompt", "problem": "让 AI 直接做 PPT，常出现页面好看但逻辑松散。先做好大纲，才能保证每页服务于汇报目标。", "method": "输入听众、汇报目的、时长、页数和已有材料。要求每页有标题、核心信息、讲述要点和需要的图表。", "steps": ["说明听众是谁。", "说明汇报目标。", "限制页数和时间。", "提供已有材料。", "让 AI 输出每页要回答的问题。"], "prompt": "请根据我的汇报主题、听众和材料，生成 PPT 大纲。每页包含标题、核心观点、讲述要点、需要的图表和预计讲述时间。", "mistakes": ["页数太多。", "每页只有标题没有观点。", "没有考虑听众关心什么。"], "sources": source("google_ai", "google_helpful", "baidu_quality")},
-    {"slug": "ai-weekly-review", "group": "tools", "category": "AI 工具箱", "tag": "复盘", "title": "用 AI 做每周复盘怎么写", "description": "每周复盘可以让 AI 帮你整理目标、完成情况、卡点、原因和下周行动，但事实要自己提供。", "keyword": "AI 每周复盘", "problem": "复盘如果只写本周很忙，就不会带来改进。AI 可以帮你从记录中提取模式，但不能替你提供真实事实。", "method": "把本周计划、完成记录、未完成原因和情绪状态输入 AI，让它整理成目标、结果、问题、根因和下周动作。", "steps": ["列出本周目标。", "写完成和未完成事项。", "说明卡点和原因。", "让 AI 归纳重复问题。", "下周只保留 3 个重点动作。"], "prompt": "请根据我的本周记录做复盘，输出目标、实际结果、关键问题、根因分析、下周 3 个重点行动和需要放弃的低价值任务。", "mistakes": ["只总结成果，不分析未完成。", "下周动作太多。", "复盘没有数据或记录。"], "sources": source("google_ai", "google_helpful", "baidu_page")},
-]
-
-
-GROUPS = {
-    "campus": {"label": "校园效率", "page": "campus.html", "eyebrow": "Campus", "accent": "accent-green", "image": "campus"},
-    "career": {"label": "求职冲刺", "page": "career.html", "eyebrow": "Career", "accent": "accent-blue", "image": "career"},
-    "tools": {"label": "AI 工具", "page": "tools.html", "eyebrow": "Tools", "accent": "accent-amber", "image": "tools"},
-}
-
-
-def esc(text: str) -> str:
-    return escape(text, quote=True)
-
-
-def article_url(slug: str) -> str:
-    return f"articles/{slug}.html"
-
-
-def sentence_list(items: list[str]) -> str:
-    return "".join(f"<li>{esc(item)}</li>" for item in items)
-
-
-def source_list(items: list[tuple[str, str]]) -> str:
-    return "".join(f'<li><a href="{esc(url)}">{esc(title)}</a></li>' for title, url in items)
-
-
-def related_for(article: dict) -> list[dict]:
-    same = [item for item in ARTICLES if item["group"] == article["group"] and item["slug"] != article["slug"]]
-    return same[:3]
-
-
-def article_body_text(article: dict) -> str:
-    parts = [
-        article["problem"], article["method"], article["prompt"],
-        *article["steps"], *article["mistakes"],
-    ]
-    return "".join(parts)
-
-
-def render_article(article: dict) -> str:
-    group = GROUPS[article["group"]]
-    image = IMAGES[group["image"]]
-    related = related_for(article)
-    h1 = article["title"]
-    title = f"{h1} - AI效率资源站"
-    summary = (
-        f"{article['keyword']}这类问题，适合先拆清场景，再按步骤执行。"
-        f"本文围绕{article['tag']}给出可操作方法、Prompt 模板、常见错误和安全边界。"
-    )
-    extra = (
-        f"从搜索用户的角度看，{article['keyword']}不是一个只需要概念解释的问题。"
-        f"真正有帮助的页面应该告诉读者先做什么、怎样检查结果、哪些地方需要回到官方资料或原始材料核验。"
-        f"所以本文不追求堆关键词，而是把流程拆成能照着做的动作。"
-    )
-    example = (
-        f"举个简单场景：如果你今天就要处理{article['keyword']}，不要先打开一堆网页来回收藏。"
-        f"更稳的做法是先写下当前任务、可用时间、已有材料和最终要交付的东西，再按本文步骤逐项推进。"
-        f"完成后用一个小清单检查：目标是否明确，材料是否真实，步骤是否能执行，结果是否能被别人复查。"
-        f"这种写法对搜索用户也更友好，因为读者进入页面后能马上判断自己是否适用，而不是读完仍然不知道下一步该做什么。"
-    )
-    template = (
-        f"【任务】我正在处理：{article['keyword']}。\n"
-        f"【背景】{article['problem']}\n"
-        "【输出】请按步骤、检查表、常见错误、下一步行动输出。"
-    )
-    html = f"""<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{esc(title)}</title>
-  <meta name="description" content="{esc(article['description'])}">
-  <link rel="icon" href="../assets/images/favicon.png" type="image/png">
-  <link rel="apple-touch-icon" href="../assets/images/apple-touch-icon.png">
-  <link rel="stylesheet" href="../assets/styles.css">
-</head>
-<body>
-  <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header"><div class="nav-wrap"><a class="brand" href="../index.html"><span class="brand-mark">AI</span><span>AI效率资源站</span></a><nav class="site-nav" data-site-nav aria-label="主导航"></nav></div></header>
-  <main id="main">
-    <section class="article-hero"><div class="section-inner"><span class="eyebrow">{esc(group['eyebrow'])}</span><h1>{esc(h1)}</h1><div class="article-meta"><span>{esc(article['category'])}</span><span>更新：{TODAY}</span><span>阅读约 6 分钟</span></div></div></section>
-    <section class="section tight"><div class="section-inner"><article class="conversion-card seo-summary-card"><div class="conversion-copy"><div class="offer-meta"><span class="tag hot">本文重点</span><span class="tag free">{esc(article['tag'])}</span></div><h2>{esc(article['keyword'])}，先解决真实使用场景</h2><p>{esc(summary)}</p></div><div class="conversion-action"><a class="button hot full" href="#method">查看核心方法</a><a class="card-link" href="../{group['page']}">返回{group['label']}专题</a></div></article></div></section>
-    <section class="section"><div class="section-inner article-layout">
-      <article class="article-body">
-        <figure class="article-image"><img src="{esc(image['src'])}" alt="{esc(image['alt'])}" loading="lazy"><figcaption>{esc(image['caption'])}</figcaption></figure>
-        <h2 id="who">适合谁</h2>
-        <p>{esc(article['problem'])}</p>
-        <p>{esc(extra)}</p>
-        <h2 id="method">核心方法</h2>
-        <p>{esc(article['method'])}</p>
-        <ol>{sentence_list(article['steps'])}</ol>
-        <h2 id="example">实操示例</h2>
-        <p>{esc(example)}</p>
-        <h2 id="template">可复制模板</h2>
-        <p>下面这段模板适合直接复制到 AI 工具里，再把括号中的内容替换成自己的真实材料。输出后仍然要人工核验，尤其是涉及考试规则、工具版本、招聘要求和安全边界的信息。</p>
-        <pre><code>{esc(template)}</code></pre>
-        <p>{esc(article['prompt'])}</p>
-        <h2 id="mistakes">常见错误</h2>
-        <ul>{sentence_list(article['mistakes'])}</ul>
-        <p>如果你发现自己反复遇到这些问题，不要急着增加更多资料。更有效的做法是回到任务目标，把输入材料、完成标准和检查动作补齐。搜索来的内容只能提供参考，最终是否适合你的课程、项目或岗位，还要结合自己的真实场景判断。</p>
-        <h2 id="boundary">边界提醒</h2>
-        <p>本站内容用于学习规划、效率提升和表达训练。涉及课程要求、考试安排、招聘信息、工具政策和安全风险时，应以官方说明、原始资料或任课老师要求为准。AI 可以帮助拆解任务、检查遗漏和优化表达，但不应替代个人判断，也不应生成无法核验的事实。</p>
-        <h2 id="sources">参考来源</h2>
-        <ul>{source_list(article['sources'])}</ul>
-        <h2 id="related">相关文章</h2>
-        <ul>{''.join(f'<li><a href="{esc(item["slug"])}.html">{esc(item["title"])}</a></li>' for item in related)}</ul>
-      </article>
-      <aside class="sidebar"><nav class="toc"><strong>目录</strong><a href="#who">适合谁</a><a href="#method">核心方法</a><a href="#example">实操示例</a><a href="#template">可复制模板</a><a href="#mistakes">常见错误</a><a href="#boundary">边界提醒</a><a href="#sources">参考来源</a></nav><div class="ad-slot" data-ad-slot></div></aside>
-    </div></section>
-  </main>
-  <footer class="site-footer"><div class="footer-inner" data-site-footer></div></footer><script src="../assets/site.js"></script>
-</body>
-</html>
-"""
-    return html
-
-
-def card(article: dict) -> str:
-    accent = GROUPS[article["group"]]["accent"]
-    return f"""<article class="article-card {accent}">
-  <div class="tag-list"><span class="tag free">免费文章</span><span class="tag">{esc(article['tag'])}</span></div>
-  <h2>{esc(article['title'])}</h2>
-  <p>{esc(article['description'])}</p>
-  <a class="card-link" href="{article_url(article['slug'])}">阅读文章</a>
-</article>"""
-
-
-
-def render_interactive_tools_section() -> str:
-    return """
-<section class="section interactive-tools-section" id="geek-tools">
-  <div class="section-inner">
-    <div class="section-head">
-      <div>
-        <span class="tag hot">期末周 &amp; 求职季工具</span>
-        <h2>极客互动工具箱</h2>
-        <p>所有计算在浏览器本地完成，用于绩点估算与简历表达练习。</p>
-      </div>
-      <div class="tool-tabs" role="tablist">
-        <button class="tool-tab-btn active" role="tab" aria-selected="true" data-tab="gpa-calculator">
-          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 3L1 9l11 6l9-4.91V17h2V9L12 3zM5.47 12.04L12 15.6l6.53-3.56L20 13.1V17h-2v-2.18l-6 3.27l-6-3.27V13.1l1.47-1.06z"/></svg>
-          绩点 (GPA) 计算器
-        </button>
-        <button class="tool-tab-btn" role="tab" aria-selected="false" data-tab="star-generator">
-          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2L9.19 8.63L2 9.24l5.46 4.73L5.82 21L12 17.27z"/></svg>
-          简历 STAR 生成器
-        </button>
-      </div>
-    </div>
-
-    <!-- Tab Content 1: GPA Calculator -->
-    <div class="tool-tab-content active" id="gpa-calculator-panel" role="tabpanel">
-      <div class="tool-grid">
-        <div class="tool-form-side">
-          <div class="tool-card-header">
-            <h3>课程成绩录入</h3>
-            <div class="preset-buttons">
-              <button class="btn-preset" data-preset="freshman">大一上示例</button>
-              <button class="btn-preset" data-preset="sophomore">专业课示例</button>
-            </div>
-          </div>
-          <p class="tool-card-desc">支持百分制成绩自动换算 4.0 标准学分绩点。</p>
-          <div class="course-list" id="course-rows-container">
-            <!-- Rows dynamically loaded -->
-          </div>
-          <div class="form-actions">
-            <button class="btn-action primary" id="add-course-btn">
-              <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-              添加课程
-            </button>
-            <button class="btn-action secondary" id="reset-gpa-btn">重置</button>
-          </div>
-        </div>
-
-        <div class="tool-result-side">
-          <div class="dashboard-card">
-            <div class="dashboard-header">
-              <h3>实时绩点估算</h3>
-              <span class="status-indicator">实时计算</span>
-            </div>
-
-            <div class="gpa-visual-container">
-              <div class="gpa-ring-wrapper">
-                <svg class="gpa-svg" viewBox="0 0 120 120">
-                  <circle class="gpa-ring-bg" cx="60" cy="60" r="50" />
-                  <circle class="gpa-ring-fill" id="gpa-progress-ring" cx="60" cy="60" r="50" />
-                </svg>
-                <div class="gpa-number-box">
-                  <span class="gpa-val" id="gpa-val-display">0.00</span>
-                  <span class="gpa-label">4.0 标准绩点</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="gpa-metrics-grid">
-              <div class="gpa-metric-item">
-                <span class="metric-label">加权平均分</span>
-                <strong class="metric-val" id="weighted-score-display">0.0</strong>
-              </div>
-              <div class="gpa-metric-item">
-                <span class="metric-label">总学分</span>
-                <strong class="metric-val" id="total-credits-display">0.0</strong>
-              </div>
-              <div class="gpa-metric-item">
-                <span class="metric-label">5.0 算法绩点</span>
-                <strong class="metric-val" id="gpa-5-display">0.00</strong>
-              </div>
-            </div>
-
-            <div class="gpa-tips-box">
-              <div class="tips-icon">💡</div>
-              <p id="gpa-evaluation-text">录入你的学分与百分制成绩，看看你的成绩处于什么水平吧！</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab Content 2: STAR Generator -->
-    <div class="tool-tab-content" id="star-generator-panel" role="tabpanel" style="display: none;">
-      <div class="tool-grid">
-        <div class="tool-form-side">
-          <div class="tool-card-header">
-            <h3>STAR 维度输入</h3>
-            <div class="preset-buttons">
-              <button class="btn-preset" data-star-preset="frontend">前端性能优化</button>
-              <button class="btn-preset" data-star-preset="qa">自动化测试提效</button>
-              <button class="btn-preset" data-star-preset="event">社团运营策划</button>
-            </div>
-          </div>
-          <p class="tool-card-desc">用黄金法则重塑你的项目经历，告别空洞堆砌。</p>
-
-          <div class="star-input-group">
-            <div class="star-field">
-              <div class="field-label-row">
-                <label for="star-s"><strong>S</strong> Situation (情境 / 背景)</label>
-                <span class="field-desc">你当时面临什么业务痛点、紧急挑战或系统瓶颈？</span>
-              </div>
-              <textarea id="star-s" placeholder="例如：在软件发布前夕，测试环境出现高频偶发性锁冲突，导致自动化主流程偶发性阻塞，阻塞率高达 15%，严重拖慢版本发布进度..." rows="3"></textarea>
-            </div>
-
-            <div class="star-field">
-              <div class="field-label-row">
-                <label for="star-t"><strong>T</strong> Task (任务 / 职责)</label>
-                <span class="field-desc">你的具体工作职责是什么？要实现的量化指标是什么？</span>
-              </div>
-              <textarea id="star-t" placeholder="例如：我负责牵头排查该死锁的底层根本原因，并重构相关的事务隔离级别与重试机制，要求在 3 表内将主流程锁冲突率降低至 0，保障发布顺利..." rows="2"></textarea>
-            </div>
-
-            <div class="star-field">
-              <div class="field-label-row">
-                <label for="star-a"><strong>A</strong> Action (行动 / 实施)</label>
-                <span class="field-desc">你采取了什么具体方案？运用了什么硬核工具或核心方法？</span>
-              </div>
-              <textarea id="star-a" placeholder="例如：使用 JVM 线程 Dump 分析定位到 A/B 表锁顺序不一致问题；重写了数据库锁超时自旋重试机制，并编写 Python 自动化脚本压测复现；最后对数据库索引进行了深度优化以减少排他锁范围..." rows="4"></textarea>
-            </div>
-
-            <div class="star-field">
-              <div class="field-label-row">
-                <label for="star-r"><strong>R</strong> Result (结果 / 产出)</label>
-                <span class="field-desc">取得了什么最终成效？请务必用具体百分比或量化数据描述。</span>
-              </div>
-              <textarea id="star-r" placeholder="例如：新机制上线后死锁率降低至 0%，自动化测试吞吐量提升 35%，按期保障了版本发布，并将排查经验整理成团队死锁诊断标准手册..." rows="2"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div class="tool-result-side">
-          <div class="dashboard-card preview-card">
-            <div class="dashboard-header">
-              <h3>简历表达预览</h3>
-              <div class="style-selector">
-                <label for="star-style">风格：</label>
-                <select id="star-style">
-                  <option value="hardcore" selected>硬核技术研发版</option>
-                  <option value="general">通用业务执行版</option>
-                  <option value="minimal">极简求职黄金版</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="star-output-wrapper">
-              <div class="code-editor-header">
-                <div class="editor-buttons">
-                  <span class="editor-dot red"></span>
-                  <span class="editor-dot yellow"></span>
-                  <span class="editor-dot green"></span>
-                </div>
-                <span class="editor-title">formatted-star-resume.md</span>
-              </div>
-              <pre class="star-pre"><code class="star-code" id="star-output-code">在等待输入...</code></pre>
-              <button class="btn-action primary copy-button" id="copy-star-btn">
-                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                一键复制排版
-              </button>
-            </div>
-
-            <div class="gpa-tips-box">
-              <div class="tips-icon">📋</div>
-              <p>STAR 结构适合把项目经历拆成背景、任务、行动和结果，便于在简历和面试中清楚说明自己的贡献。</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-"""
-
-
-def render_group_page(group_key: str, title: str, description: str, lead: str) -> str:
-    items = [item for item in ARTICLES if item["group"] == group_key]
-    group = GROUPS[group_key]
-    cards = "\n".join(card(item) for item in items)
-    first = items[0]
-    second = items[1]
-    return f"""<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{esc(title)} - AI效率资源站</title>
-  <meta name="description" content="{esc(description)}">
-  <link rel="icon" href="assets/images/favicon.png" type="image/png">
-  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css">
-</head>
-<body>
-  <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header"><div class="nav-wrap"><a class="brand" href="index.html"><span class="brand-mark">AI</span><span>AI效率资源站</span></a><nav class="site-nav" data-site-nav aria-label="主导航"></nav></div></header>
-  <main id="main">
-    <section class="article-hero"><div class="section-inner"><span class="eyebrow">{esc(group['eyebrow'])}</span><h1>{esc(title)}</h1><p class="hero-lede">{esc(lead)}</p></div></section>
-    <section class="section"><div class="section-inner"><article class="offer-card seo-focus-card"><div class="offer-copy"><div class="offer-meta"><span class="tag hot">专题导航</span><span class="tag free">{len(items)} 篇文章</span></div><h2>先读支柱文章，再按具体问题深入</h2><p>本专题按搜索问题拆分文章，每篇都给步骤、模板、常见错误和参考来源。</p></div><div class="offer-action"><a class="button hot" href="{article_url(first['slug'])}">阅读：{esc(first['tag'])}</a><a class="card-link" href="{article_url(second['slug'])}">继续看：{esc(second['tag'])}</a></div></article></div></section>
-    <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>{esc(title)}文章列表</h2><p>所有文章均为免费阅读，优先解决一个具体问题，避免空泛堆词。</p></div></div><div class="grid three">{cards}</div></div></section>
-  </main>
-  <footer class="site-footer"><div class="footer-inner" data-site-footer></div></footer><script src="assets/site.js"></script>
-</body>
-</html>
-"""
-
-
-def render_index() -> str:
-    featured = [
-        "cet-14-day-study-plan",
-        "automation-test-interview-roadmap",
-        "prompt-four-part-formula",
-        "final-paper-outline-ai",
-        "ai-resume-polish-guide",
-        "ai-account-security-checklist",
-    ]
-    cards = "\n".join(card(next(item for item in ARTICLES if item["slug"] == slug)) for slug in featured)
-    return f"""<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI效率资源站 - 大学生与职场新人的 AI 学习求职导航</title>
-  <meta name="description" content="AI效率资源站面向大学生和职场新人，提供 AI 学习方法、求职准备、提示词模板和工具安全内容。">
-  <link rel="icon" href="assets/images/favicon.png" type="image/png">
-  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
-  <link rel="stylesheet" href="assets/styles.css">
-</head>
-<body>
-  <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header"><div class="nav-wrap"><a class="brand" href="index.html" aria-label="AI效率资源站首页"><span class="brand-mark">AI</span><span>AI效率资源站</span></a><nav class="site-nav" data-site-nav aria-label="主导航"></nav></div></header>
-  <main id="main">
-    <section class="hero"><div class="section-inner"><div class="hero-copy"><span class="eyebrow">AI efficiency hub</span><h1><span class="hero-line">把 AI 变成学习、</span><span class="hero-line">求职和日常工作</span><span class="hero-line">的效率工具。</span></h1><p class="hero-lede"><span class="mobile-line">这里专注大学生和职场新人的真实问题：</span><span class="mobile-line">备考、作业、简历、面试、提示词和账号安全。</span><span class="mobile-line">每篇文章都给步骤、模板、常见错误和参考来源。</span></p><div class="hero-actions"><a class="button hot" href="career.html">查看求职专题</a><a class="button" href="campus.html">浏览校园专题</a><a class="button secondary" href="tools.html">学习 AI 工具</a></div></div><aside class="hero-panel" aria-label="站点内容概览"><div class="metric-grid"><div class="metric"><strong>50</strong><span>长文文章</span></div><div class="metric"><strong>3</strong><span>核心专题</span></div><div class="metric"><strong>0</strong><span>依赖构建</span></div></div></aside></div></section>
-    <section id="sections" class="section"><div class="section-inner"><div class="section-head"><div><h2>三类人群，一套效率资源</h2><p>第一阶段先做好可收录内容，不放强商业按钮，重点提升页面质量和站内结构。</p></div></div><div class="grid three"><article class="card accent-green"><h3>校园效率区</h3><p>四六级、期末作业、活动策划和小组协作。</p><div class="tag-list"><span class="tag free">18 篇</span><span class="tag">大学生</span></div><a class="card-link" href="campus.html">进入专区</a></article><article class="card accent-blue"><h3>求职冲刺区</h3><p>自动化测试、简历、项目表达和模拟面试。</p><div class="tag-list"><span class="tag free">17 篇</span><span class="tag">应届生</span></div><a class="card-link" href="career.html">进入专区</a></article><article class="card accent-amber"><h3>AI 工具箱</h3><p>GPT/Claude 入门、Prompt、资料整理和账号安全。</p><div class="tag-list"><span class="tag free">15 篇</span><span class="tag">AI 工具</span></div><a class="card-link" href="tools.html">进入专区</a></article></div></div></section>
-    <section class="section feature-band"><div class="section-inner"><div class="section-head"><div><h2>精选支柱文章</h2><p>先从搜索需求最明确的文章读起，再进入专题页继续延伸。</p></div></div><div class="grid three">{cards}</div></div></section>
-  </main>
-  <footer class="site-footer"><div class="footer-inner" data-site-footer></div></footer><script src="assets/site.js"></script>
-</body>
-</html>
-"""
-
-
-def render_site_js() -> str:
-    featured = [
-        ("四六级 14 天备考计划", "articles/cet-14-day-study-plan.html", "校园效率", "把词汇、阅读、听力、作文拆成每天可执行任务。"),
-        ("自动化测试面试准备路线", "articles/automation-test-interview-roadmap.html", "求职冲刺", "按接口、UI、数据库、框架和项目复盘准备。"),
-        ("稳定 Prompt 的四段式公式", "articles/prompt-four-part-formula.html", "AI 工具", "用角色、目标、材料、输出格式提升回答稳定性。"),
-    ]
-    resources = ",\n".join(
-        f'    {{ title: "{title}", href: "{href}", category: "{cat}", summary: "{summary}" }}'
-        for title, href, cat, summary in featured
-    )
-    return f"""const siteConfig = {{
-  name: "AI效率资源站",
-  tagline: "面向大学生和职场新人的 AI 学习、求职与工具资源库",
-  adPlaceholder: "赞助内容区域：后续展示与学习、求职和效率工具相关的合规推荐",
-  featuredResources: [
-{resources}
-  ]
-}};
-
-function resolvePath(path) {{
-  const inArticle = location.pathname.includes("/articles/");
-  if (/^https?:/.test(path) || path.startsWith("#")) return path;
-  return inArticle ? `../${{path}}` : path;
-}}
-
-function buildNav() {{
-  const nav = document.querySelector("[data-site-nav]");
-  if (!nav) return;
-  const links = [["首页", "index.html"], ["校园", "campus.html"], ["求职", "career.html"], ["工具", "tools.html"], ["关于", "about.html"]];
-  const current = location.pathname.split("/").pop() || "index.html";
-  nav.innerHTML = links.map(([label, href]) => {{
-    const active = current === href ? ' aria-current="page"' : "";
-    return `<a href="${{resolvePath(href)}}"${{active}}>${{label}}</a>`;
-  }}).join("");
-}}
-
-function buildFooter() {{
-  const footer = document.querySelector("[data-site-footer]");
-  if (!footer) return;
-  const year = new Date().getFullYear();
-  footer.innerHTML = `
-    <div>
-      <strong>${{siteConfig.name}}</strong>
-      <p>${{siteConfig.tagline}}。本站内容用于学习和效率参考，不替代课程要求、考试规则、官方文档或个人判断。</p>
-      <p>© ${{year}} ${{siteConfig.name}}. All rights reserved.</p>
-    </div>
-    <nav class="footer-links" aria-label="Footer">
-      <a href="${{resolvePath("about.html")}}">关于本站</a>
-      <a href="${{resolvePath("privacy.html")}}">隐私政策</a>
-      <a href="${{resolvePath("contact.html")}}">联系合作</a>
-      <a href="${{resolvePath("sitemap.xml")}}">站点地图</a>
-    </nav>`;
-}}
-
-function buildAdSlots() {{
-  document.querySelectorAll("[data-ad-slot]").forEach((slot) => {{
-    slot.innerHTML = `<div><strong>赞助内容区域</strong><span>${{siteConfig.adPlaceholder}}</span></div>`;
-  }});
-}}
-
-function buildFeaturedResources() {{
-  const target = document.querySelector("[data-featured-resources]");
-  if (!target) return;
-  target.innerHTML = siteConfig.featuredResources.map((item) => `
-    <article class="resource-card">
-      <span class="tag">${{item.category}}</span>
-      <h3>${{item.title}}</h3>
-      <p>${{item.summary}}</p>
-      <a class="card-link" href="${{resolvePath(item.href)}}">查看资源</a>
-    </article>
-  `).join("");
-}}
-
-document.addEventListener("DOMContentLoaded", () => {{
-  buildNav();
-  buildFooter();
-  buildAdSlots();
-  buildFeaturedResources();
-}});
-"""
-
-
-def render_sitemap() -> str:
-    urls = ["", "campus.html", "career.html", "tools.html", "about.html", "privacy.html", "contact.html"]
-    urls += [article_url(item["slug"]) for item in ARTICLES]
-    locs = "\n".join(f"  <url><loc>{SITE_URL}/{url}</loc></url>" if url else f"  <url><loc>{SITE_URL}/</loc></url>" for url in urls)
-    return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{locs}\n</urlset>\n'
-
-
-def render_attributions() -> str:
-    return """# Image Attributions
-
-Images are stored locally under `assets/images/articles/` to avoid hotlinking.
-
-- `campus-study.jpg`: Unsplash source image, used under the Unsplash License. Source URL: https://images.unsplash.com/photo-1516321318423-f06f85e504b3
-- `career-team.jpg`: Unsplash source image, used under the Unsplash License. Source URL: https://images.unsplash.com/photo-1519389950473-47ba0277781c
-- `ai-tools-code.jpg`: Unsplash source image, used under the Unsplash License. Source URL: https://images.unsplash.com/photo-1498050108023-c5249f4df085
-- Unsplash License: https://unsplash.com/license
-"""
-
-
-def main() -> None:
-    ARTICLES_DIR.mkdir(exist_ok=True)
-    for old in ARTICLES_DIR.glob("*.html"):
-        old.unlink()
-    for article in ARTICLES:
-        (ARTICLES_DIR / f"{article['slug']}.html").write_text(render_article(article), encoding="utf-8", newline="\n")
-    (ROOT / "index.html").write_text(render_index(), encoding="utf-8", newline="\n")
-    (ROOT / "campus.html").write_text(render_group_page("campus", "校园效率区", "校园效率区整理四六级备考、期末作业、活动策划和小组协作文章。", "把 AI 当成学习助教：拆计划、搭框架、查漏洞，但不替代自己的学习过程。"), encoding="utf-8", newline="\n")
-    (ROOT / "career.html").write_text(render_group_page("career", "求职冲刺区", "求职冲刺区整理自动化测试面试、简历优化、项目表达和模拟面试文章。", "面向应届生和转行新人，把简历、面试和项目表达做成可练习、可复盘的流程。"), encoding="utf-8", newline="\n")
-    (ROOT / "tools.html").write_text(render_group_page("tools", "AI 工具箱", "AI 工具箱整理 GPT/Claude 入门、提示词模板、资料核验和账号安全文章。", "给 AI 工具新手准备的合规使用路径：先理解任务，再写提示词，最后核验结果。"), encoding="utf-8", newline="\n")
-    (ROOT / "assets" / "site.js").write_text(render_site_js(), encoding="utf-8", newline="\n")
-    (ROOT / "sitemap.xml").write_text(render_sitemap(), encoding="utf-8", newline="\n")
-    (ROOT / "assets" / "images" / "ATTRIBUTIONS.md").write_text(render_attributions(), encoding="utf-8", newline="\n")
-
-
-# Optimized renderer v2. The definitions below intentionally replace the
-# first-pass renderer above while keeping the article data in one file.
-SITE_NAME = "AI效率资源站"
-SITE_DESCRIPTION = "面向大学生和职场新人的 AI 学习、求职与工具资源库"
-DEFAULT_IMAGE = "assets/images/favicon.png"
 FEATURED_SLUGS = [
-    "cet-14-day-study-plan",
-    "automation-test-interview-roadmap",
-    "prompt-four-part-formula",
-    "final-paper-outline-ai",
-    "ai-resume-polish-guide",
-    "ai-account-security-checklist",
+    "volumetric-weight-formula-dhl-ems-sf",
+    "divisor-5000-vs-6000",
+    "ems-40cm-volume-weight-rule",
+    "freight-forwarder-quote-reading",
+    "split-cartons-vs-mixed-cartons",
+    "quote-audit-before-confirmation",
 ]
-GROUP_PAGE_COPY = {
-    "campus": {
-        "title": "校园效率区",
-        "description": "校园效率区整理四六级备考、期末作业、活动策划和小组协作文章。",
-        "lead": "把 AI 当成学习助教：拆计划、搭框架、查漏洞，但不替代自己的学习过程。",
-        "buckets": [
-            ("四六级备考", ["cet-14-day-study-plan", "cet-writing-template-safe-use", "cet-listening-review-method", "cet-reading-question-strategy", "cet-translation-common-patterns"]),
-            ("期末作业", ["final-paper-topic-selection", "final-paper-outline-ai", "course-report-source-check", "ai-homework-integrity", "presentation-defense-prep"]),
-            ("校园协作", ["club-event-plan-structure", "campus-singer-event-plan", "activity-budget-table", "club-promo-copywriting", "student-time-management-ai", "exam-wrong-question-review", "undergraduate-project-proposal", "group-assignment-collaboration"]),
-        ],
-    },
-    "career": {
-        "title": "求职冲刺区",
-        "description": "求职冲刺区整理自动化测试面试、简历优化、项目表达和模拟面试文章。",
-        "lead": "面向应届生和转行新人，把简历、面试和项目表达做成可练习、可复盘的流程。",
-        "buckets": [
-            ("自动化测试", ["automation-test-interview-roadmap", "ui-automation-flaky-answer", "api-test-auth-token", "api-assertion-design", "pytest-parametrize-fixture", "selenium-explicit-wait", "test-report-logs-screenshots", "ci-smoke-testing", "database-validation-testing"]),
-            ("简历项目", ["test-resume-project-description", "ai-resume-polish-guide", "fresh-graduate-project-star", "no-internship-resume"]),
-            ("面试表达", ["test-interview-self-introduction", "bug-report-writing", "qa-learning-roadmap", "mock-interview-prompt"]),
-        ],
-    },
-    "tools": {
-        "title": "AI 工具箱",
-        "description": "AI 工具箱整理 GPT/Claude 入门、提示词模板、资料核验和账号安全文章。",
-        "lead": "给 AI 工具新手准备的合规使用路径：先理解任务，再写提示词，最后核验结果。",
-        "buckets": [
-            ("Prompt 模板", ["gpt-claude-beginner-differences", "prompt-four-part-formula", "ai-summary-prompt", "ai-writing-polish-prompt", "ai-study-plan-prompt", "ai-meeting-notes-prompt", "ai-table-analysis-prompt"]),
-            ("安全核验", ["ai-account-security-checklist", "prompt-injection-basics", "sensitive-info-redaction", "ai-result-verification"]),
-            ("资料整理", ["ai-search-research-workflow", "personal-knowledge-base-ai", "ai-ppt-outline-prompt", "ai-weekly-review"]),
-        ],
-    },
-}
+
+
 STATIC_PAGES = {
     "about.html": {
-        "title": "关于本站",
-        "description": "了解 AI效率资源站的定位、内容边界和编辑原则。",
-        "eyebrow": "About",
-        "lead": "AI效率资源站面向大学生、应届生和职场新人，整理 AI 学习、求职和工具使用资料。",
-        "sections": [
-            ("内容定位", "本站关注可执行的效率方法，例如学习计划、资料整理、简历表达、面试准备、提示词模板和工具对比。内容可以由 AI 辅助起草，但发布前会围绕准确性、可执行性和合规边界进行人工整理。"),
-            ("内容边界", "本站不提供替做作业、违反考试规则、学术不端、规避平台规则、账号买卖或任何可能伤害用户账号与设备安全的教程。"),
-            ("后续计划", "第一版先验证内容方向和页面结构。后续会根据搜索数据补充专题页、下载型清单、工具清单和更细的学习路线。"),
+        "title": f"关于 - {SITE_NAME}",
+        "description": "了解跨境运费避坑工具箱的内容边界、适合人群和信息来源原则。",
+        "h1": "关于本站",
+        "body": [
+            "跨境运费避坑工具箱面向外贸员、跨境电商卖家、独立站卖家和 FBA 新手，帮助用户在发货前整理箱规、实重、体积重、CBM、计费重和渠道规则。本站的目标不是替代承运商报价，而是给运营和仓库之间建立一套可复核的计算口径。",
+            "本站内容采用保守表达：DHL、EMS、顺丰等渠道规则均以公开页面为基础，涉及具体产品、地区、目的地、进位方式和附加项时，均提醒用户以官方报价工具、客服或承运商最终确认为准。",
+            "第一版不设置交易入口，不承诺固定节省金额，不提供灰色操作建议。所有工具都在浏览器本地运行，不需要注册登录，也不会上传用户录入的箱规和重量数据。",
         ],
     },
     "privacy.html": {
-        "title": "隐私政策与 Cookie 声明",
-        "description": "AI效率资源站隐私政策，向用户说明第三方广告 Cookie 收集、Google 个性化广告退订方式及隐私合规说明。",
-        "eyebrow": "Privacy",
-        "lead": "本隐私声明根据 Google AdSense 规范定制，向您透明化展示本网站及其合作伙伴关于 Cookie 与隐私保护的技术细节。",
-        "sections": [
-            ("Cookie 及同类技术的使用", "本站为免费提供学习与求职资源的静态网站。为了优化浏览体验并展示契合您个人偏好的广告内容，本站及第三方供应商（包括 Google 等广告发布商）可能会在您的浏览器中存储和读取 Cookie，或者使用网络信标（Web Beacons）收集与数据分析相关的日志信息。"),
-            ("第三方广告供应商与 Google AdSense 说明", "1. Google 等第三方供应商会依据您此前访问本网站或其他网站的历史记录，使用 Cookie 向您投放广告；\n2. Google 对广告 Cookie 的合理使用，使其及其合作伙伴能够根据您对本站和/或互联网上其他网站的访问行为，向您投放更具相关性的广告；\n3. 如果您不希望接收个性化广告投放，可以随时通过访问 <a href=\"https://www.google.com/settings/ads\" rel=\"noopener noreferrer\">Google 广告设置页面</a> 停用该功能；\n4. 您也可以通过访问 <a href=\"https://www.aboutads.info\" rel=\"noopener noreferrer\">AboutAds 行业标准退订页面</a>，选择停用或拒绝接受第三方广告供应商使用个性化广告 Cookie。"),
-            ("GDPR 与 CCPA 数据选择权保障", "对于来自欧盟地区（GDPR）或加利福尼亚州（CCPA）等拥有严格隐私权法案国家与地区的用户，本站全面支持您的选择权利。若您在首页面或通过浏览器设置拒绝第三方跟踪，我们只会向您展示非个性化的泛用型赞助广告。您可随时在浏览器偏好设置中彻底清除已留存的 Cookie。"),
-            ("信息保护与联系方式", "本站属于无需注册的静态演示项目，不收集诸如银行账户、密码或实名证件等任何个人敏感隐私信息。如果您因内容纠错、资源共建等目的主动向我们发送电子邮件，您邮件内包含的所有联系方式与信件内容均仅在必要合理范围内用于沟通，绝不向第三方透露或转售。"),
+        "title": f"隐私政策 - {SITE_NAME}",
+        "description": "说明跨境运费避坑工具箱如何处理本地计算数据、日志、广告和外部链接。",
+        "h1": "隐私政策",
+        "body": [
+            "本站是纯静态页面。计费重计算器在用户浏览器本地运行，录入的 SKU、尺寸、重量和渠道分母不会被本站服务器接收或保存。",
+            "站点可能使用托管平台提供的基础访问日志，用于排查可用性和页面加载问题。我们不会要求用户提交账号密码、客户资料、订单明细或承运商合同信息。",
+            "如果未来接入广告或统计服务，会在页面中补充对应说明。用户可以了解 Google 广告设置：<a href=\"https://adssettings.google.com/\" rel=\"noopener noreferrer\">Google Ads Settings</a>，也可以参考 <a href=\"https://optout.aboutads.info/\" rel=\"noopener noreferrer\">AboutAds 退订页面</a>。",
+            "外部链接用于引用官方规则或资料来源。访问外部网站时，请以对方网站的隐私政策和服务条款为准。",
         ],
         "allow_html": True,
     },
     "contact.html": {
-        "title": "联系合作",
-        "description": "联系 AI效率资源站，进行内容建议、资源合作或广告合作咨询。",
-        "eyebrow": "Contact",
-        "lead": "欢迎提供选题建议、资料纠错、工具推荐和合规广告合作。",
-        "sections": [
-            ("合作类型", "可沟通内容共创、工具测评、合规联盟链接和广告位合作。暂不接受灰色工具、账号交易、规避规则或夸大收益类推广。"),
-            ("联系方式", "邮箱：contact@example.com。如需内容合作或反馈文章选题，请通过邮箱说明需求和联系信息。"),
+        "title": f"联系 - {SITE_NAME}",
+        "description": "联系跨境运费避坑工具箱，反馈体积重、CBM、渠道规则和工具体验问题。",
+        "h1": "联系与反馈",
+        "body": [
+            "如果你发现某个渠道规则引用已经更新，或工具计算口径需要补充，请通过页面底部邮箱反馈。反馈时建议附上公开来源链接、截图日期和适用产品名称。",
+            "如果你希望参与烟雾测试，可以说明自己的角色、主要发货渠道、常见货物类型和希望工具优先解决的问题。第一版仅收集需求，不接入交易或账号系统。",
+            "联系邮箱：hello@example.com。上线前可替换为你的真实业务邮箱。",
         ],
     },
 }
 
 
-def slug_to_article() -> dict[str, dict]:
-    return {item["slug"]: item for item in ARTICLES}
+def esc(text: object) -> str:
+    return escape(str(text), quote=True)
 
 
-def site_path(path: str) -> str:
-    return f"{SITE_URL}/{path}" if path else f"{SITE_URL}/"
+def site_path(path: str = "") -> str:
+    path = path.lstrip("/")
+    return f"{SITE_URL}/{path}" if path else SITE_URL
 
 
-def path_prefix(path: str) -> str:
-    return "../" if path.startswith("articles/") else ""
+def article_href(article: dict, prefix: str = "") -> str:
+    return f"{prefix}articles/{article['slug']}.html"
 
 
-def image_file_from_src(src: str) -> Path:
-    clean = src.replace("../", "")
-    return ROOT / clean
+def sentence_list(items: list[str]) -> str:
+    return "\n".join(f"<li>{esc(item)}</li>" for item in items)
 
 
-def webp_path(src: str) -> str:
-    return re.sub(r"\.(jpg|jpeg|png)$", ".webp", src, flags=re.I)
+def source_list(items: list[tuple[str, str]]) -> str:
+    return "\n".join(
+        f'<li><a href="{esc(url)}" rel="noopener noreferrer">{esc(title)}</a></li>'
+        for title, url in items
+    )
 
 
-def image_dimensions(src: str) -> tuple[int, int]:
-    try:
-        from PIL import Image
-        with Image.open(image_file_from_src(src)) as img:
-            return img.size
-    except Exception:
-        return (1200, 675)
+def slugify_anchor(text: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9\u4e00-\u9fff]+", "-", text).strip("-")
+    return slug or "section"
 
 
-def ensure_webp_images() -> None:
-    try:
-        from PIL import Image
-    except Exception:
-        return
-    for meta in IMAGES.values():
-        src = image_file_from_src(meta["src"])
-        target = src.with_suffix(".webp")
-        if not src.exists():
-            continue
-        with Image.open(src) as img:
-            img.convert("RGB").save(target, "WEBP", quality=78, method=6)
+def related_for(article: dict) -> list[dict]:
+    same_group = [item for item in ARTICLES if item["group"] == article["group"] and item["slug"] != article["slug"]]
+    if len(same_group) >= 3:
+        return same_group[:3]
+    others = [item for item in ARTICLES if item["slug"] != article["slug"] and item not in same_group]
+    return (same_group + others)[:3]
 
 
-def json_script(data: dict | list) -> str:
-    return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-
-
-def structured_webpage(name: str, description: str, path: str, page_type: str = "WebPage") -> dict:
-    return {
-        "@context": "https://schema.org",
-        "@type": page_type,
-        "name": name,
-        "description": description,
-        "url": site_path(path),
-        "inLanguage": "zh-CN",
-        "isPartOf": {"@type": "WebSite", "name": SITE_NAME, "url": site_path("")},
-    }
-
-
-def meta_head(title: str, description: str, path: str, og_type: str = "website", image: str = DEFAULT_IMAGE, schema: dict | list | None = None, robots: str = "index, follow") -> str:
-    prefix = path_prefix(path)
+def page_head(
+    *,
+    title: str,
+    description: str,
+    path: str,
+    prefix: str = "",
+    image: str | None = None,
+    robots: str = "index, follow",
+    json_ld: list[dict] | dict | None = None,
+) -> str:
     canonical = site_path(path)
-    image_url = site_path(image.replace("../", ""))
-    schema_html = f'\n  <script type="application/ld+json">{json_script(schema)}</script>' if schema else ""
-    return f"""  <meta charset="utf-8">
+    image_url = site_path(image or "assets/images/favicon.png")
+    if json_ld is None:
+        json_ld = {
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": title,
+            "description": description,
+            "url": canonical,
+        }
+    data = json.dumps(json_ld, ensure_ascii=False, separators=(",", ":"))
+    return f"""<head>
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{esc(title)}</title>
   <meta name="description" content="{esc(description)}">
   <meta name="robots" content="{esc(robots)}">
   <link rel="canonical" href="{esc(canonical)}">
-  <meta property="og:locale" content="zh_CN">
-  <meta property="og:type" content="{esc(og_type)}">
-  <meta property="og:site_name" content="{SITE_NAME}">
   <meta property="og:title" content="{esc(title)}">
   <meta property="og:description" content="{esc(description)}">
+  <meta property="og:type" content="website">
   <meta property="og:url" content="{esc(canonical)}">
   <meta property="og:image" content="{esc(image_url)}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{esc(title)}">
   <meta name="twitter:description" content="{esc(description)}">
-  <meta name="twitter:image" content="{esc(image_url)}">
   <link rel="icon" href="{prefix}assets/images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="{prefix}assets/images/apple-touch-icon.png">
-  <link rel="stylesheet" href="{prefix}assets/styles.css">{schema_html}"""
+  <link rel="stylesheet" href="{prefix}assets/styles.css">
+  <script type="application/ld+json">{data}</script>
+</head>"""
 
 
-def header_html(prefix: str = "") -> str:
-    return f'<a class="skip-link" href="#main">跳到正文</a>\n  <header class="site-header"><div class="nav-wrap"><a class="brand" href="{prefix}index.html" aria-label="{SITE_NAME}首页"><span class="brand-mark">AI</span><span>{SITE_NAME}</span></a><nav class="site-nav" data-site-nav aria-label="主导航"></nav></div></header>'
+def layout_start(active: str = "", prefix: str = "") -> str:
+    return f"""<body data-active="{esc(active)}">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="nav-wrap">
+      <a class="brand" href="{prefix}index.html" aria-label="{SITE_NAME}首页">
+        <span class="brand-mark" aria-hidden="true">CBM</span>
+        <span>{SITE_NAME}</span>
+      </a>
+      <nav class="site-nav" data-site-nav aria-label="主导航"></nav>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换深浅色">◐</button>
+    </div>
+  </header>
+  <main id="main">"""
 
 
-def footer_html(prefix: str = "") -> str:
-    return f'<footer class="site-footer"><div class="footer-inner" data-site-footer></div></footer><script src="{prefix}assets/site.js"></script>'
+def layout_end(prefix: str = "") -> str:
+    year = "2026"
+    return f"""  </main>
+  <footer class="site-footer">
+    <div class="section-inner footer-grid">
+      <div>
+        <strong>{SITE_NAME}</strong>
+        <p>用于发货前复核体积重、CBM、计费重和渠道口径。规则会变化，具体发货请以官方报价和承运商确认为准。</p>
+      </div>
+      <nav aria-label="页脚导航">
+        <a href="{prefix}articles.html">文章索引</a>
+        <a href="{prefix}tools.html">计算工具</a>
+        <a href="{prefix}smoke-test.html">内测说明</a>
+        <a href="{prefix}privacy.html">隐私政策</a>
+        <a href="{prefix}contact.html">联系</a>
+      </nav>
+      <p class="copyright">© {year} {SITE_NAME}. 本站不提供承运商报价承诺。</p>
+    </div>
+  </footer>
+  <script src="{prefix}assets/site.js"></script>
+</body>"""
+
+
+def render_picture(image: dict, prefix: str = "", eager: bool = False) -> str:
+    loading = "eager" if eager else "lazy"
+    priority = ' fetchpriority="high"' if eager else ""
+    return f"""<picture>
+  <source srcset="{prefix}{esc(image['webp'])}" type="image/webp">
+  <img src="{prefix}{esc(image['src'])}" alt="{esc(image['alt'])}" width="{image['width']}" height="{image['height']}" loading="{loading}" decoding="async"{priority}>
+</picture>"""
 
 
 def article_card(article: dict, prefix: str = "") -> str:
-    accent = GROUPS[article["group"]]["accent"]
-    return f"""<article class="article-card {accent}" data-group="{esc(article['group'])}" data-tag="{esc(article['tag'])}">
-  <div class="tag-list"><span class="tag free">免费文章</span><span class="tag">{esc(article['tag'])}</span></div>
-  <h2>{esc(article['title'])}</h2>
+    group = GROUPS[article["group"]]
+    return f"""<article class="article-card {group['accent']}" data-card-group="{article['group']}">
+  <span class="eyebrow">{esc(group['short'])}</span>
+  <h3>{esc(article['title'])}</h3>
   <p>{esc(article['description'])}</p>
-  <a class="card-link" href="{prefix}{article_url(article['slug'])}">阅读文章</a>
+  <div class="card-meta">
+    <span>{esc(article['tag'])}</span>
+    <span>{TODAY}</span>
+  </div>
+  <a class="card-link" href="{article_href(article, prefix)}">阅读文章</a>
 </article>"""
 
 
 def quick_answer(article: dict) -> str:
-    group = article["group"]
-    keyword = article["keyword"]
-    tag = article["tag"]
-    problem = article["problem"].rstrip("。")
-    method = article["method"].rstrip("。")
-    steps = article["steps"]
-
-    if group == "campus":
-        return (
-            f"对于许多在“{tag}”中面临瓶颈或感到焦虑的在校大学生来说，面临的主要问题是：{problem}。"
-            f"本指南提供的核心解决思路是：{method}。为了确保实践时绝无遗漏，"
-            f"我们建议你将任务拆解为包含首步“{steps[0].rstrip('。')}”在内的 {len(steps)} 个关键执行动作，"
-            f"并在每阶段完成后，对照我们提供的深度执行清单进行量化自评，彻底规避学术越界风险。"
-        )
-    elif group == "career":
-        return (
-            f"在求职准备或针对“{tag}”的技术技能提升中，很多求职者最大的痛点在于：{problem}。"
-            f"对此，本篇指南向你推荐的系统级突破方案为：{method}。"
-            f"我们已将整体流程拆解为包含“{steps[0].rstrip('。')}”在内的 {len(steps)} 项连贯动作，"
-            f"并融合了高频面试追问与简历量化STAR原则，助你在面对面试官时展现出扎实的实际排错思维与工程素养。"
-        )
-    else:
-        return (
-            f"在大语言模型或 AI 交互工具的使用中，针对“{tag}”场景下高频出现的困境：{problem}，"
-            f"本站梳理出的最佳执行策略是：{method}。在实操时，"
-            f"建议以本指南给出的“{steps[0].rstrip('。')}”为出发点，规范你的输入约束（如四段式 Prompt）与边界核验，"
-            f"把 AI 从简单的‘单次问答’改造成高确定性、高复用度的‘生产力共创底座’。"
-        )
+    return (
+        f"{article['keyword']}的复核要先回到外箱尺寸和实重。"
+        f"{article['method'].split('。')[0]}。"
+        "工具计算只能帮助发现差异，最终发货仍应以官方报价工具、承运商或客服确认为准。"
+    )
 
 
-def execution_items(article: dict) -> list[str]:
-    steps = article["steps"]
-    group = article["group"]
-    keyword = article["keyword"]
-
-    items = []
-    if group == "campus":
-        items.append(f"仔细研读课程评分标准或考试说明，明确“{keyword}”的核心通过分值与答题/作业规范。")
-        items.append(f"整理出个人真实的薄弱真题、待解决题目或课程数据，作为本次训练的唯一输入材料。")
-        if len(steps) >= 3:
-            items.append(f"执行第一步：{steps[0].rstrip('。')}，通过小样本验证方法的有效性。")
-            items.append(f"执行中期步骤：{steps[1].rstrip('。')} 与 {steps[2].rstrip('。')}，完成核心内容编写。")
-        else:
-            items.append(f"核心实操步骤：依据文中指引，立即完成关于“{steps[0]}”的行动动作。")
-        items.append("对照学校与任课老师的学术诚信守则，确保没有超出合理辅助边界，不留学术安全漏洞。")
-    elif group == "career":
-        items.append(f"对标目标求职岗位 JD 描述，找出面试官或架构师针对“{keyword}”最看重的核心考察能力点。")
-        items.append(f"梳理出自己过往经历中真实的测试日志、错误堆栈、代码配置或数据环境，杜绝空泛描述。")
-        if len(steps) >= 3:
-            items.append(f"执行前期备战：{steps[0].rstrip('。')}，确保简历项目具有可追问的底层细节。")
-            items.append(f"执行核心精进：{steps[1].rstrip('。')} 与 {steps[2].rstrip('。')}，夯实异常排查机制。")
-        else:
-            items.append(f"核心实操步骤：按照“{steps[0]}”的技术流程，在本地或测试环境完成脚本部署。")
-        items.append("运用 STAR 结构重新提炼面试表述，对每项产出进行逻辑闭环自检，确保所有技术词都具备实战依据。")
-    else:
-        items.append(f"明确“{keyword}”的主体任务边界，并基于‘四段式公式’撰写包含角色、目标与格式的初始 Prompt。")
-        items.append(f"准备高纯度的上下文参考材料，剔除无用冗余信息，并显式禁止 AI 捏造任何外部链接与陈旧事实。")
-        if len(steps) >= 3:
-            items.append(f"开始第一轮交互：重点实施‘{steps[0].rstrip('。')}’，获取高确定性的初步框架。")
-            items.append(f"开启迭代校验：执行‘{steps[1].rstrip('。')}’及‘{steps[2].rstrip('。')}’，逼近终极期望交付物。")
-        else:
-            items.append(f"核心交互动作：通过‘{steps[0]}’来训练并约束模型的生成风格。")
-        items.append("执行多平台或官方文档级别的盲测校验，重点筛查大模型因幻觉生成的虚假接口、函数名或配置属性。")
-    return items
-
-
-def deep_dive(article: dict) -> str:
-    group = article["group"]
-    keyword = article["keyword"]
-    tag = article["tag"]
-    problem = article["problem"].rstrip("。")
-    method = article["method"].rstrip("。")
-
-    if group == "campus":
-        return (
-            f"在深度优化“{keyword}”的进程中，我们必须高度重视学术诚信与课程大纲的配合度。"
-            f"许多在校生容易陷入{problem}的焦灼状态，原因多在于追求‘走捷径’而丧失了独立思考能力。通过采取“{method}”的渐进式方法，"
-            f"我们可以用 AI 整理繁冗数据、构建时间表或查找语法拼写错误，但要把关观点论证、个人真实体验与最终的定稿判断。"
-            f"在应对‘{tag}’相关期末或等级性挑战时，将 AI 视作激发思维的智能教练，而不是代笔，才能获得真正的自我成长。"
-        )
-    elif group == "career":
-        return (
-            f"在求职准备和面试应对中，面对“{keyword}”这一典型考察点，"
-            f"多数候选人常因{problem}而在回答时显得过于理论化。采用“{method}”的实践逻辑，"
-            f"能帮你从底层打通‘理论与实战的壁垒’。面试官在评估你的‘{tag}’素养时，真正关心的是你在系统运行异常、"
-            f"执行效率受限时的排错路线图和故障复原思路。因此，务必以真实的工程态度去沉淀脚本文档和日志堆栈，做到有据可查、经得起层层追问。"
-        )
-    else:
-        return (
-            f"在日常办公或软件研发中使用 AI，要时刻牢记‘精细化交互’的原则。攻克“{keyword}”这一效能卡点时，"
-            f"若发生{problem}的现象，往往是因为对大语言模型的提问过于空泛。引入“{method}”的工程化工作流，"
-            f"不仅能帮我们获取高质量的首轮反馈，还能帮助我们在处理‘{tag}’高频重复操作时快速提取公共逻辑。"
-            f"时刻对大模型输出保持怀疑态度，坚持‘零信任、严核验’，才能让技术工具稳定地为你创造核心业务价值。"
-        )
+def render_table(headers: list[str], article: dict) -> str:
+    cells = "".join(f"<th>{esc(item)}</th>" for item in headers)
+    example = "".join("<td>待填写</td>" for _ in headers)
+    return f"""<div class="table-scroll">
+  <table>
+    <thead><tr>{cells}</tr></thead>
+    <tbody>
+      <tr>{example}</tr>
+      <tr><td colspan="{len(headers)}">示例：{esc(article['example'])}</td></tr>
+    </tbody>
+  </table>
+</div>"""
 
 
 def faq_items(article: dict) -> list[tuple[str, str]]:
-    group = article["group"]
-    keyword = article["keyword"]
-    tag = article["tag"]
-    problem = article["problem"].rstrip("。")
-    method = article["method"].rstrip("。")
-    steps = article["steps"]
-
-    faqs = []
-    if group == "campus":
-        faqs.append((
-            f"用 AI 辅助“{keyword}”备考或完成作业，如何彻底避免学术不端与挂科风险？",
-            f"核心在于分清“辅助”与“代替”。你可以让 AI 扮演辅导老师，协助你做学习计划（如我们的第一步：{steps[0]}）或用特定概念启发提纲。但绝对不能将 AI 直接生成的长篇文字直接粘贴为作业提交，且论文引用应一律以人工核验后的纸质教材、知网、谷歌学术等权威源文献为准。"
-        ))
-        faqs.append((
-            f"针对“{tag}”模块复习时发现自己知识储备薄弱、做题正确率极低，该如何挽救？",
-            f"这往往是由于{problem}引起的。不要一味盲目刷题或背诵范文。建议按照“{method}”的路径，先进行一次彻底的错题场景归因，找到是“词汇壁垒”、“语法定位”还是“逻辑跳跃”的问题。每天集中攻克一个卡点，做透一道真题的效益远超粗放地做十套卷子。"
-        ))
-        faqs.append((
-            f"AI 给出的学习资料、真题详解、参考文献是否全都是真实可靠的？",
-            "绝对不是。大语言模型经常会凭空捏造看似极为真实的文献名称、作者、年份或考试大纲数据（行业内称为“幻觉”）。在使用 AI 推送的任何公式、背景常识或文化典故之前，必须前往教育部官方网站、中国教育考试网等权威出处进行二次核验，不可未经考证即写入作业。"
-        ))
-    elif group == "career":
-        faqs.append((
-            f"在技术面试中，如果面试官针对我的“{keyword}”简历描述进行压力追问该怎么以STAR格式完美应对？",
-            f"面试官旨在揭穿编造的简历。你可以基于我们提供的“{method}”，结合你在项目实战中的真实痛点（如：{problem}）来回答。例如：“在进行{steps[0].rstrip('。')}时，遇到了环境依赖冲突导致失败。我通过分析测试日志和源码定位，采用了显式等待/会话封装机制解决，最终实现了交付成果。”"
-        ))
-        faqs.append((
-            f"如何把“{tag}”的项目经历修改得极具含金量，并且不容易在海投时被HR的AI初筛直接过滤掉？",
-            f"避免写‘负责某系统的手工测试/编码’等划水句。要写出高含金量的动作与量化成果。建议采用：‘引入“{method}”优化{keyword}工作流，针对协议鉴权和高频异常场景设计自动化覆盖用例，编写高可用公共脚本，缩短提缺陷确认耗时，并使脚本长期误报率降至极低。’"
-        ))
-        faqs.append((
-            f"本地自学或在校期间没有大厂正规实习经历，如何在简历中证明我在“{keyword}”上的工程实力？",
-            "大厂注重的是正规的规范与工程习惯。你可以自己在本地或借助个人云搭建完整的 CI/CD 测试流：将编写的测试用例、配置文件、失败截图、测试报告及缺陷记录，完整、优雅地呈现在你的个人 GitHub 仓库上，并在简历上附上链接。这种公开的工程文档，说服力极大。"
-        ))
-    else:
-        faqs.append((
-            f"用 AI 跑“{keyword}”的相关工作，大模型总是答非所问、输出毫无深度甚至胡说八道，怎么破？",
-            f"这多是因为你的 Prompt 缺乏对任务背景和模型角色的严格限定。请立刻尝试我们提供的‘四段式 Prompt 公式’：在首轮输入时明确给足真实约束材料，命令 AI 扮演资深专家角色，并分步引导其首先完成“{steps[0]}”这一具体分支任务。通过增设 Limit 限制，强制其标注不确定信息。"
-        ))
-        faqs.append((
-            f"在处理公司的“{tag}”任务、周报或代码段时，如何妥善防范敏感机密信息泄露的数据合规风险？",
-            "这是不可触碰的合规红线！严禁向任何云端 AI 接口发送包含公司未公开源码、客户个人真实隐私数据、真实鉴权 Token 或内部服务器 IP 连接串的信息。提问前，务必对输入内容进行彻底的本地脱敏，将一切真实变量改写为虚拟占位符（如 placeholder_var1 ），确保公司机密万无一失。"
-        ))
-        faqs.append((
-            f"随着 AI 模型与提示词技巧的频繁更新迭代，如何建立自己关于“{keyword}”的长久核心效能护城河？",
-            f"不要只做‘提示词收藏家’，而要学习底层的业务逻辑与模型微调边界。无论模型如何迭代，其需要的依旧是高质量的上下文输入和明确的输出验证机制。掌握我们推荐的“{method}”核心流，能让你在不同工具（GPT-4、Claude-3.5、各类 IDE 插件）间无缝切换，成为高效驾驭 AI 的超级个体。"
-        ))
-    return faqs
-
-
-def article_schema(article: dict, path: str, image: str) -> list[dict]:
     group = GROUPS[article["group"]]
-    faq = faq_items(article) if article["group"] in {"career", "tools"} else []
-    schemas: list[dict] = [
-        {
-            "@context": "https://schema.org",
-            "@type": "Article",
-            "headline": article["title"],
-            "description": article["description"],
-            "image": site_path(image.replace("../", "")),
-            "datePublished": TODAY,
-            "dateModified": TODAY,
-            "author": {"@type": "Organization", "name": SITE_NAME},
-            "publisher": {"@type": "Organization", "name": SITE_NAME, "logo": {"@type": "ImageObject", "url": site_path(DEFAULT_IMAGE)}},
-            "mainEntityOfPage": site_path(path),
-            "inLanguage": "zh-CN",
-            "articleSection": group["label"],
-        },
-        {
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-                {"@type": "ListItem", "position": 1, "name": "首页", "item": site_path("")},
-                {"@type": "ListItem", "position": 2, "name": group["label"], "item": site_path(group["page"])},
-                {"@type": "ListItem", "position": 3, "name": article["title"], "item": site_path(path)},
-            ],
-        },
+    return [
+        (
+            f"{article['keyword']}可以直接决定选哪个渠道吗？",
+            "不建议直接决定。计算结果只能说明体积重、实重和分母带来的差异，还要结合目的地、时效、货物属性、尺寸限制、进位方式和承运商确认口径。",
+        ),
+        (
+            f"如果报价单和我算的{article['keyword']}不一致怎么办？",
+            "先核对单位、外箱尺寸、箱数、分母、进位和是否逐箱计算，再把差异整理成问题发给承运商或货代确认。不要只问总额为什么不同。",
+        ),
+        (
+            f"这篇内容适合{group['label']}场景吗？",
+            f"适合做发货前复核清单。{article['scenario']}如果你的货物属性、目的地或服务类型不同，应把本文方法当作检查框架，而不是固定结论。",
+        ),
     ]
-    if faq:
-        schemas.append({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": [
-                {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}}
-                for q, a in faq
-            ],
-        })
-    return schemas
 
 
-def render_picture(image: dict, eager: bool = False) -> str:
-    width, height = image_dimensions(image["src"])
-    loading = "eager" if eager else "lazy"
-    priority = ' fetchpriority="high"' if eager else ""
-    return (
-        f'<picture><source srcset="{esc(webp_path(image["src"]))}" type="image/webp">'
-        f'<img src="{esc(image["src"])}" alt="{esc(image["alt"])}" width="{width}" height="{height}" loading="{loading}" decoding="async"{priority}></picture>'
-    )
-def custom_alt_for(article: dict) -> str:
-    group = article["group"]
-    kw = article["keyword"]
-    if group == "campus":
-        return f"学生在笔记本电脑前整理学习资料，作为{kw}相关校园效率文章配图"
-    if group == "career":
-        return f"多人围绕笔记本电脑讨论项目内容，作为{kw}相关求职文章配图"
-    return f"笔记本电脑屏幕显示代码编辑器，作为{kw}相关 AI 工具文章配图"
-
-
-def custom_caption_for(article: dict) -> str:
-    kw = article["keyword"]
-    group_label = GROUPS[article["group"]]["label"]
-    return f"通用配图：{group_label}中与{kw}相关的学习或工作场景，图片来源：Unsplash。"
-
-
-def render_article(article: dict) -> str:
+def render_article(article: dict, prev_article: dict | None, next_article: dict | None) -> str:
     group = GROUPS[article["group"]]
     image = IMAGES[group["image"]]
-    custom_image = {
-        "src": image["src"],
-        "alt": custom_alt_for(article),
-        "caption": custom_caption_for(article)
-    }
-    path = article_url(article["slug"])
     related = related_for(article)
-    all_articles = [item for item in ARTICLES if item["group"] == article["group"]]
-    idx = all_articles.index(article)
-    prev_item = all_articles[idx - 1] if idx > 0 else None
-    next_item = all_articles[idx + 1] if idx < len(all_articles) - 1 else None
-    answer = quick_answer(article)
-    checklist = sentence_list(execution_items(article))
-    faq = faq_items(article) if article["group"] in {"career", "tools"} else []
-    faq_html = ""
-    faq_toc = ""
-    if faq:
-        faq_toc = '<a href="#faq">FAQ</a>'
-        faq_html = f'<h2 id="faq">FAQ</h2>{"".join(f"<h3>{esc(q)}</h3><p>{esc(a)}</p>" for q, a in faq)}'
-    if article["group"] == "campus":
-        template = (
-            f"【课程/考试】我目前正在准备/撰写：{article['keyword']}。\n"
-            f"【当前困惑】{article['problem'].rstrip('。')}，容易抓不住重点或偏离评分标准。\n"
-            f"【我的背景】我是一名在校学生，计划每天投入不超过 90 分钟，我的课程知识点/弱项是【请在此填入你的弱项/课程名】。\n"
-            f"【辅助目标】请根据“{article['method'].rstrip('。')}”的策略，帮我输出一份保姆级的学习提纲/复习拆解，"
-            f"必须指出第一步‘{article['steps'][0].rstrip('。')}’的具体动作、我的防学术不端边界以及可自检的交付物。"
-        )
-        example = (
-            f"以你今天要解决的“{article['keyword']}”为例，强烈建议你不要直接让 AI 全盘生成全文。"
-            f"你可以先复制上面的模板，在【背景】中写清你当下的真实薄弱点和老师的字数要求。接着，重点完成第一步“{article['steps'][0]}”。"
-            f"随后，把 AI 给出的建议 and 你的教材大纲对比，确保知识框架不偏离课程重点。写完后，"
-            f"务必对照我们的‘执行清单’自检是否存在‘{article['mistakes'][0]}’的雷区，这样复习才能真正产生提分效果。"
-        )
-    elif article["group"] == "career":
-        template = (
-            f"【求职岗位/技能】我正在针对“{article['keyword']}”做面试或简历项目准备，对应的核心技能标签是【{article['tag']}】。\n"
-            f"【实战卡点】在过往经历中，常见的难题是：{article['problem'].rstrip('。')}。\n"
-            f"【优化策略】请基于“{article['method'].rstrip('。')}”的原则，帮我将这段背景提炼为符合 STAR 结构（背景、任务、行动、结果）的面试回答/简历 Bullet Points。\n"
-            f"【追问预案】请模拟严厉的面试官，列出 3 个可能针对我‘{article['steps'][0].rstrip('。')}’等动作进行深挖的专业追问，并提供对应的排错/回答思路。"
-        )
-        example = (
-            f"假设你在准备关于“{article['keyword']}”的面试。第一步绝对不是死记硬背面经，"
-            f"而是应该把上方的模板发送给 AI，并把【实战卡点】替换成你本地运行脚本或排查问题的真实经历。"
-            f"着重提炼你在“{article['steps'][0]}”阶段所做出的独特技术贡献。最后，对着‘常见错误’一栏核查，"
-            f"确保在回答时避开‘{article['mistakes'][0]}’等低级失误，给面试官展现出极强的专业工程素养。"
-        )
-    else:
-        template = (
-            f"【AI工具任务】我需要利用 AI 工具攻克“{article['keyword']}”的场景，正在使用【请填入如 GPT-4o/Claude 3.5 Sonnet】。\n"
-            f"【输入材料】我的原始材料/上下文是【请在此粘贴你的原始材料/配置】。\n"
-            f"【核心约束】1. 绝不捏造任何未提及的事实、API 或配置；2. 根据“{article['method'].rstrip('。')}”的要求，"
-            f"首先引导我执行‘{article['steps'][0].rstrip('。')}’这一步；3. 用 Markdown 表格输出执行清单，并明确标注出‘需人工二次核验’的参数或链接。"
-        )
-        example = (
-            f"若你正要借助 AI 工具来应对“{article['keyword']}”的日常工作，可以立刻执行上方的定制 Prompt。"
-            f"先把你要处理的背景材料粘贴进去，指示 AI 扮演你该领域的资深顾问。在生成结果中，"
-            f"重点关注它是如何落实“{article['steps'][0]}”的。拿到代码、Prompt 模板或分析报告后，"
-            f"使用我们的‘边界提醒’进行校验，剔除可能存在的过时配置或虚假信息，守护你的生产力红线。"
-        )
-    nav_links = []
-    if prev_item:
-        nav_links.append(f'<a class="card-link" href="{esc(prev_item["slug"])}.html">上一篇：{esc(prev_item["title"])}</a>')
-    if next_item:
-        nav_links.append(f'<a class="card-link" href="{esc(next_item["slug"])}.html">下一篇：{esc(next_item["title"])}</a>')
-    nav_html = "".join(nav_links)
-    title = f"{article['title']} - {SITE_NAME}"
-    schema = article_schema(article, path, image["src"])
-    return f"""<!doctype html>
+    h1 = article["title"]
+    title = f"{h1} - {SITE_NAME}"
+    path = f"articles/{article['slug']}.html"
+    article_schema = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "Article",
+                "headline": h1,
+                "description": article["description"],
+                "datePublished": TODAY,
+                "dateModified": TODAY,
+                "author": {"@type": "Organization", "name": SITE_NAME},
+                "publisher": {"@type": "Organization", "name": SITE_NAME},
+                "mainEntityOfPage": site_path(path),
+                "image": site_path(image["src"]),
+            },
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": "首页", "item": SITE_URL},
+                    {"@type": "ListItem", "position": 2, "name": group["label"], "item": site_path(group["page"])},
+                    {"@type": "ListItem", "position": 3, "name": h1, "item": site_path(path)},
+                ],
+            },
+        ],
+    }
+    toc = [
+        ("answer", "快速答案"),
+        ("why", "为什么要复核"),
+        ("method", "核心方法"),
+        ("template", "可复制表格"),
+        ("checklist", "执行清单"),
+        ("mistakes", "常见误区"),
+        ("boundary", "规则边界"),
+        ("faq", "FAQ"),
+        ("sources", "参考来源"),
+    ]
+    previous_next = []
+    if prev_article:
+        previous_next.append(f'<a class="button ghost" href="{prev_article["slug"]}.html">上一篇：{esc(prev_article["title"])}</a>')
+    if next_article:
+        previous_next.append(f'<a class="button ghost" href="{next_article["slug"]}.html">下一篇：{esc(next_article["title"])}</a>')
+    faqs = "\n".join(
+        f"<details><summary>{esc(q)}</summary><p>{esc(a)}</p></details>"
+        for q, a in faq_items(article)
+    )
+    related_html = "\n".join(f'<li><a href="{item["slug"]}.html">{esc(item["title"])}</a></li>' for item in related)
+    html = f"""<!doctype html>
 <html lang="zh-CN">
-<head>
-{meta_head(title, article["description"], path, "article", image["src"], schema)}
-</head>
-<body data-section="{esc(article['group'])}">
-  {header_html("../")}
-  <main id="main">
-    <section class="article-hero"><div class="section-inner"><nav class="breadcrumb" aria-label="面包屑"><a href="../index.html">首页</a><span>/</span><a href="../{group['page']}">{esc(group['label'])}</a><span>/</span><span>{esc(article['title'])}</span></nav><span class="eyebrow">{esc(group['eyebrow'])}</span><h1>{esc(article['title'])}</h1><div class="article-meta"><span>{esc(article['category'])}</span><span>更新：{TODAY}</span><span>阅读约 7 分钟</span></div></div></section>
-    <section class="section tight"><div class="section-inner"><article class="conversion-card seo-summary-card"><div class="conversion-copy"><div class="offer-meta"><span class="tag hot">快速答案</span><span class="tag free">{esc(article['tag'])}</span></div><h2>{esc(article['keyword'])}怎么先做对</h2><p>{esc(answer)}</p></div><div class="conversion-action"><a class="button hot full" href="#checklist">查看执行清单</a><a class="card-link" href="../{group['page']}">返回{esc(group['label'])}专题</a></div></article></div></section>
-    <section class="section"><div class="section-inner article-layout">
-      <article class="article-body">
-        <figure class="article-image">{render_picture(custom_image)}<figcaption>{esc(custom_image['caption'])}</figcaption></figure>
-        <h2 id="who">适合谁</h2>
-        <p>{esc(article['problem'])}</p>
-        <p>{esc(deep_dive(article))}</p>
-        <p>{esc(f"为了让{article['keyword']}更容易落地，建议把本文当成一张操作卡，而不是一次性读完就结束。第一次阅读时只做标记，第二次阅读时复制模板并填入自己的真实材料，第三次再对照执行清单检查结果。这样的节奏能减少空泛感，也能让后续复盘有依据。")}</p>
-        <h2 id="answer">快速答案</h2>
-        <p>{esc(answer)}</p>
-        <h2 id="method">核心方法</h2>
-        <p>{esc(article['method'])}</p>
-        <ol>{sentence_list(article['steps'])}</ol>
-        <h2 id="checklist">执行清单</h2>
-        <ul>{checklist}</ul>
-        <h2 id="example">实操示例</h2>
-        <p>{esc(example)}</p>
-        <h2 id="template">可复制模板</h2>
-        <p>下面这段模板适合直接复制到 AI 工具里，再把括号中的内容替换成自己的真实材料。输出后仍然要人工核验，尤其是涉及考试规则、工具版本、招聘要求和安全边界的信息。</p>
-        <div class="code-block-wrapper">
-          <pre><code>{esc(template)}</code></pre>
-          <button class="copy-button" type="button" aria-label="复制模板">复制</button>
-        </div>
-        <p>{esc(article['prompt'])}</p>
-        <h2 id="mistakes">常见错误</h2>
-        <ul>{sentence_list(article['mistakes'])}</ul>
-        <p>如果你发现自己反复遇到这些问题，不要急着增加更多资料。更有效的做法是回到任务目标，把输入材料、完成标准和检查动作补齐。搜索来的内容只能提供参考，最终是否适合你的课程、项目或岗位，还要结合自己的真实场景判断。</p>
-        <h2 id="boundary">边界提醒</h2>
-        <p>本站内容用于学习规划、效率提升和表达训练。涉及课程要求、考试安排、招聘信息、工具政策和安全风险时，应以官方说明、原始资料或任课老师要求为准。AI 可以帮助拆解任务、检查遗漏和优化表达，但不应替代个人判断，也不应生成无法核验的事实。</p>
-        {faq_html}
-        <h2 id="sources">参考来源</h2>
-        <ul>{source_list(article['sources'])}</ul>
-        <h2 id="related">相关文章</h2>
-        <ul>{''.join(f'<li><a href="{esc(item["slug"])}.html">{esc(item["title"])}</a></li>' for item in related)}</ul>
-        <nav class="article-pager" aria-label="文章翻页">{nav_html}</nav>
-      </article>
-      <aside class="sidebar"><nav class="toc"><strong>目录</strong><a href="#who">适合谁</a><a href="#answer">快速答案</a><a href="#method">核心方法</a><a href="#checklist">执行清单</a><a href="#example">实操示例</a><a href="#template">可复制模板</a><a href="#mistakes">常见错误</a><a href="#boundary">边界提醒</a>{faq_toc}<a href="#sources">参考来源</a></nav><div class="ad-slot" data-ad-slot></div></aside>
-    </div></section>
-  </main>
-  {footer_html("../")}
-</body>
-</html>
-"""
-
-
-
-def render_interactive_tools_section() -> str:
-    return """
-<section class="section interactive-tools-section" id="geek-tools">
-  <div class="section-inner">
-    <div class="section-head">
-      <div>
-        <span class="tag hot">期末周 &amp; 求职季工具</span>
-        <h2>极客互动工具箱</h2>
-        <p>所有计算在浏览器本地完成，用于绩点估算与简历表达练习。</p>
+{page_head(title=title, description=article['description'], path=path, prefix='../', image=image['src'], json_ld=article_schema)}
+{layout_start(active=article['group'], prefix='../')}
+    <section class="article-hero">
+      <div class="section-inner">
+        <nav class="breadcrumb" aria-label="面包屑">
+          <a href="../index.html">首页</a><span>/</span><a href="../{group['page']}">{esc(group['label'])}</a><span>/</span><span>{esc(article['tag'])}</span>
+        </nav>
+        <span class="eyebrow">{esc(group['eyebrow'])}</span>
+        <h1>{esc(h1)}</h1>
+        <p>{esc(article['description'])}</p>
+        <div class="article-meta"><span>{esc(group['label'])}</span><span>更新：{TODAY}</span><span>阅读约 7 分钟</span></div>
       </div>
-      <div class="tool-tabs" role="tablist">
-        <button class="tool-tab-btn active" role="tab" aria-selected="true" data-tab="gpa-calculator">
-          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 3L1 9l11 6l9-4.91V17h2V9L12 3zM5.47 12.04L12 15.6l6.53-3.56L20 13.1V17h-2v-2.18l-6 3.27l-6-3.27V13.1l1.47-1.06z"/></svg>
-          绩点 (GPA) 计算器
-        </button>
-        <button class="tool-tab-btn" role="tab" aria-selected="false" data-tab="star-generator">
-          <svg class="tab-icon" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2L9.19 8.63L2 9.24l5.46 4.73L5.82 21L12 17.27z"/></svg>
-          简历 STAR 生成器
-        </button>
+    </section>
+    <section class="section">
+      <div class="section-inner article-layout">
+        <article class="article-body">
+          <figure class="article-image">
+            {render_picture(image, prefix='../', eager=True)}
+            <figcaption>{esc(image['caption'])}</figcaption>
+          </figure>
+          <section class="answer-box" id="answer">
+            <span class="tag">快速答案</span>
+            <p>{esc(quick_answer(article))}</p>
+          </section>
+          <h2 id="why">为什么要复核</h2>
+          <p>{esc(article['scenario'])}</p>
+          <p>在跨境发货里，报价差异经常不是单价本身造成的，而是尺寸、重量、分母、进位、服务类型和附加项没有对齐。运营、仓库和货代如果使用不同口径，就会出现看似都正确、实际无法对账的情况。把这些字段先拆开，可以让沟通从“感觉不对”变成“哪一列需要确认”。</p>
+          <p>本文采用公开来源和保守口径整理，不把任何渠道规则写成永久不变的结论。DHL、EMS、顺丰等承运商会按照服务、目的地、货物属性和时间调整规则。你可以用本文方法建立内部复核表，但最终发货前仍要回到官方报价工具、客服确认或承运商书面说明。</p>
+          <h2 id="method">核心方法</h2>
+          <p>{esc(article['method'])}</p>
+          <p>{esc(article['example'])}</p>
+          <p>实际操作时建议保留三类记录：第一是原始测量数据，包括外箱长宽高、实重、箱数和测量日期；第二是计算数据，包括 CBM、体积重、计费重和分母；第三是确认数据，包括渠道名称、服务类型、进位方式、附加项和确认来源。三类数据分开保存，后续出现差异时才能追溯。</p>
+          <h2 id="template">可复制表格</h2>
+          <p>下面的字段可以复制到表格工具中。录入字段由仓库或运营填写，计算字段用公式生成，确认字段由承运商或货代回复后补充。</p>
+          {render_table(article['table'], article)}
+          <pre><code>复核问题：{esc(article['keyword'])}
+当前货物：请填写 SKU、箱数、外箱尺寸和实重
+需要确认：分母、计泡阈值、进位方式、附加项、目的地限制
+输出格式：请按箱号列出体积重、计费重、异常提醒和待确认问题</code></pre>
+          <h2 id="checklist">执行清单</h2>
+          <ol>{sentence_list(article['steps'])}</ol>
+          <p>执行清单的重点是让每一步都有可检查的结果。比如“确认箱规”不够具体，应写成“封箱后测量每箱长宽高并拍照”；“问货代”也不够具体，应写成“确认该渠道使用的体积重分母、计费重进位和是否逐箱计算”。</p>
+          <h2 id="mistakes">常见误区</h2>
+          <ul>{sentence_list(article['mistakes'])}</ul>
+          <p>这些误区的共同点，是把物流复核当成一次性心算。更稳的做法是让所有字段进入同一张表，并且标明来源。只要某个字段来自经验、聊天记录或旧报价，就应该标为待确认，而不是直接进入最终方案。</p>
+          <h2 id="boundary">规则边界</h2>
+          <p>本站不承诺固定节省金额，也不替代承运商报价。体积重、CBM 和计费重只是复核入口，真实发货还会受到目的地、货物属性、包装状态、通关资料、派送方式、旺季安排和承运商更新影响。任何涉及具体金额和服务承诺的决定，都应以官方页面、报价工具或承运商确认为准。</p>
+          <h2 id="faq">FAQ</h2>
+          <div class="faq-list">{faqs}</div>
+          <h2 id="sources">参考来源</h2>
+          <ul>{source_list(article['sources'])}</ul>
+          <h2 id="related">相关文章</h2>
+          <ul>{related_html}</ul>
+          <nav class="post-nav" aria-label="上一篇下一篇">{''.join(previous_next)}</nav>
+        </article>
+        <aside class="sidebar">
+          <nav class="toc" aria-label="文章目录">
+            <strong>目录</strong>
+            {''.join(f'<a href="#{anchor}">{esc(label)}</a>' for anchor, label in toc)}
+          </nav>
+          <div class="ad-slot" data-ad-slot></div>
+        </aside>
       </div>
-    </div>
-
-    <!-- Tab Content 1: GPA Calculator -->
-    <div class="tool-tab-content active" id="gpa-calculator-panel" role="tabpanel">
-      <div class="tool-grid">
-        <div class="tool-form-side">
-          <div class="tool-card-header">
-            <h3>课程成绩录入</h3>
-            <div class="preset-buttons">
-              <button class="btn-preset" data-preset="freshman">大一上示例</button>
-              <button class="btn-preset" data-preset="sophomore">专业课示例</button>
-            </div>
-          </div>
-          <p class="tool-card-desc">支持百分制成绩自动换算 4.0 标准学分绩点。</p>
-          <div class="course-list" id="course-rows-container">
-            <!-- Rows dynamically loaded -->
-          </div>
-          <div class="form-actions">
-            <button class="btn-action primary" id="add-course-btn">
-              <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-              添加课程
-            </button>
-            <button class="btn-action secondary" id="reset-gpa-btn">重置</button>
-          </div>
-        </div>
-
-        <div class="tool-result-side">
-          <div class="dashboard-card">
-            <div class="dashboard-header">
-              <h3>实时绩点估算</h3>
-              <span class="status-indicator">实时计算</span>
-            </div>
-
-            <div class="gpa-visual-container">
-              <div class="gpa-ring-wrapper">
-                <svg class="gpa-svg" viewBox="0 0 120 120">
-                  <circle class="gpa-ring-bg" cx="60" cy="60" r="50" />
-                  <circle class="gpa-ring-fill" id="gpa-progress-ring" cx="60" cy="60" r="50" />
-                </svg>
-                <div class="gpa-number-box">
-                  <span class="gpa-val" id="gpa-val-display">0.00</span>
-                  <span class="gpa-label">4.0 标准绩点</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="gpa-metrics-grid">
-              <div class="gpa-metric-item">
-                <span class="metric-label">加权平均分</span>
-                <strong class="metric-val" id="weighted-score-display">0.0</strong>
-              </div>
-              <div class="gpa-metric-item">
-                <span class="metric-label">总学分</span>
-                <strong class="metric-val" id="total-credits-display">0.0</strong>
-              </div>
-              <div class="gpa-metric-item">
-                <span class="metric-label">5.0 算法绩点</span>
-                <strong class="metric-val" id="gpa-5-display">0.00</strong>
-              </div>
-            </div>
-
-            <div class="gpa-tips-box">
-              <div class="tips-icon">💡</div>
-              <p id="gpa-evaluation-text">录入你的学分与百分制成绩，看看你的成绩处于什么水平吧！</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab Content 2: STAR Generator -->
-    <div class="tool-tab-content" id="star-generator-panel" role="tabpanel" style="display: none;">
-      <div class="tool-grid">
-        <div class="tool-form-side">
-          <div class="tool-card-header">
-            <h3>STAR 维度输入</h3>
-            <div class="preset-buttons">
-              <button class="btn-preset" data-star-preset="frontend">前端性能优化</button>
-              <button class="btn-preset" data-star-preset="qa">自动化测试提效</button>
-              <button class="btn-preset" data-star-preset="event">社团运营策划</button>
-            </div>
-          </div>
-          <p class="tool-card-desc">用黄金法则重塑你的项目经历，告别空洞堆砌。</p>
-
-          <div class="star-input-group">
-            <div class="star-field">
-              <div class="field-label-row">
-                <label for="star-s"><strong>S</strong> Situation (情境 / 背景)</label>
-                <span class="field-desc">你当时面临什么业务痛点、紧急挑战或系统瓶颈？</span>
-              </div>
-              <textarea id="star-s" placeholder="例如：在软件发布前夕，测试环境出现高频偶发性锁冲突，导致自动化主流程偶发性阻塞，阻塞率高达 15%，严重拖慢版本发布进度..." rows="3"></textarea>
-            </div>
-
-            <div class="star-field">
-              <div class="field-label-row">
-                <label for="star-t"><strong>T</strong> Task (任务 / 职责)</label>
-                <span class="field-desc">你的具体工作职责是什么？要实现的量化指标是什么？</span>
-              </div>
-              <textarea id="star-t" placeholder="例如：我负责牵头排查该死锁的底层根本原因，并重构相关的事务隔离级别与重试机制，要求在 3 表内将主流程锁冲突率降低至 0，保障发布顺利..." rows="2"></textarea>
-            </div>
-
-            <div class="star-field">
-              <div class="field-label-row">
-                <label for="star-a"><strong>A</strong> Action (行动 / 实施)</label>
-                <span class="field-desc">你采取了什么具体方案？运用了什么硬核工具或核心方法？</span>
-              </div>
-              <textarea id="star-a" placeholder="例如：使用 JVM 线程 Dump 分析定位到 A/B 表锁顺序不一致问题；重写了数据库锁超时自旋重试机制，并编写 Python 自动化脚本压测复现；最后对数据库索引进行了深度优化以减少排他锁范围..." rows="4"></textarea>
-            </div>
-
-            <div class="star-field">
-              <div class="field-label-row">
-                <label for="star-r"><strong>R</strong> Result (结果 / 产出)</label>
-                <span class="field-desc">取得了什么最终成效？请务必用具体百分比或量化数据描述。</span>
-              </div>
-              <textarea id="star-r" placeholder="例如：新机制上线后死锁率降低至 0%，自动化测试吞吐量提升 35%，按期保障了版本发布，并将排查经验整理成团队死锁诊断标准手册..." rows="2"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div class="tool-result-side">
-          <div class="dashboard-card preview-card">
-            <div class="dashboard-header">
-              <h3>简历表达预览</h3>
-              <div class="style-selector">
-                <label for="star-style">风格：</label>
-                <select id="star-style">
-                  <option value="hardcore" selected>硬核技术研发版</option>
-                  <option value="general">通用业务执行版</option>
-                  <option value="minimal">极简求职黄金版</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="star-output-wrapper">
-              <div class="code-editor-header">
-                <div class="editor-buttons">
-                  <span class="editor-dot red"></span>
-                  <span class="editor-dot yellow"></span>
-                  <span class="editor-dot green"></span>
-                </div>
-                <span class="editor-title">formatted-star-resume.md</span>
-              </div>
-              <pre class="star-pre"><code class="star-code" id="star-output-code">在等待输入...</code></pre>
-              <button class="btn-action primary copy-button" id="copy-star-btn">
-                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-                一键复制排版
-              </button>
-            </div>
-
-            <div class="gpa-tips-box">
-              <div class="tips-icon">📋</div>
-              <p>STAR 结构适合把项目经历拆成背景、任务、行动和结果，便于在简历和面试中清楚说明自己的贡献。</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-"""
+    </section>
+{layout_end(prefix='../')}
+</html>"""
+    return html
 
 
-def render_group_page(group_key: str, title: str | None = None, description: str | None = None, lead: str | None = None) -> str:
-    meta = GROUP_PAGE_COPY[group_key]
-    tools_interactive_html = ""
-    if group_key == "tools":
-        tools_interactive_html = render_interactive_tools_section()
+def render_group_page(group_key: str) -> str:
     group = GROUPS[group_key]
-    items = [item for item in ARTICLES if item["group"] == group_key]
-    title = title or meta["title"]
-    description = description or meta["description"]
-    lead = lead or meta["lead"]
-    cards = "\n".join(article_card(item) for item in items)
-    buckets = []
-    by_slug = slug_to_article()
-    for bucket_title, slugs in meta["buckets"]:
-        links = "".join(f'<li><a href="{article_url(by_slug[slug]["slug"])}">{esc(by_slug[slug]["title"])}</a></li>' for slug in slugs if slug in by_slug)
-        buckets.append(f'<article class="resource-card"><h3>{esc(bucket_title)}</h3><ul class="compact-list">{links}</ul></article>')
-    schema = structured_webpage(title, description, group["page"], "CollectionPage")
+    articles = [item for item in ARTICLES if item["group"] == group_key]
+    cards = "\n".join(article_card(item) for item in articles)
+    filters = "\n".join(f'<a class="chip" href="#{slugify_anchor(name)}">{esc(name)}</a>' for name in group["groups"])
+    grouped = []
+    for name in group["groups"]:
+        subset = [item for item in articles if item["tag"] == name or name in item["title"] or name in item["description"]]
+        if not subset:
+            subset = articles[:3]
+        grouped.append(
+            f'<section class="topic-band" id="{slugify_anchor(name)}"><h2>{esc(name)}</h2><div class="article-grid compact">'
+            + "\n".join(article_card(item) for item in subset[:4])
+            + "</div></section>"
+        )
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": group["label"],
+        "description": group["lead"],
+        "url": site_path(group["page"]),
+    }
     return f"""<!doctype html>
 <html lang="zh-CN">
-<head>
-{meta_head(f"{title} - {SITE_NAME}", description, group["page"], "website", DEFAULT_IMAGE, schema)}
-</head>
-<body data-section="{esc(group_key)}">
-  {header_html()}
-  <main id="main">
-    <section class="article-hero"><div class="section-inner"><span class="eyebrow">{esc(group['eyebrow'])}</span><h1>{esc(title)}</h1><p class="hero-lede">{esc(lead)}</p></div></section>
-    <section class="section"><div class="section-inner"><article class="offer-card seo-focus-card"><div class="offer-copy"><div class="offer-meta"><span class="tag hot">专题导航</span><span class="tag free">{len(items)} 篇文章</span></div><h2>先按主题找入口，再进入具体问题</h2><p>本专题按搜索问题拆分文章，每篇都给快速答案、执行清单、模板、常见错误和参考来源。</p></div><div class="offer-action"><a class="button hot" href="articles.html?group={group_key}">查看本专题全部文章</a><a class="card-link" href="{article_url(items[0]['slug'])}">先读：{esc(items[0]['tag'])}</a></div></article></div></section>
-    <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>{esc(title)}分组导航</h2><p>优先从最接近你当前问题的分组进入，减少无效浏览。</p></div></div><div class="grid three">{"".join(buckets)}</div></div></section>
-    {tools_interactive_html}
-    <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>{esc(title)}文章列表</h2><p>所有文章均为免费阅读，优先解决一个具体问题，避免空泛堆词。</p></div></div><div class="grid three">{cards}</div></div></section>
-  </main>
-  {footer_html()}
-</body>
-</html>
-"""
+{page_head(title=f"{group['label']} - {SITE_NAME}", description=group['lead'], path=group['page'], image=IMAGES[group['image']]['src'], json_ld=schema)}
+{layout_start(active=group_key)}
+    <section class="page-hero">
+      <div class="section-inner hero-grid">
+        <div>
+          <span class="eyebrow">{esc(group['eyebrow'])}</span>
+          <h1>{esc(group['label'])}</h1>
+          <p>{esc(group['lead'])}</p>
+          <div class="hero-actions">
+            <a class="button" href="tools.html">打开计算工具</a>
+            <a class="button ghost" href="articles.html?group={group_key}">查看全部文章</a>
+          </div>
+        </div>
+        <figure class="hero-visual">{render_picture(IMAGES[group['image']], eager=True)}<figcaption>{esc(IMAGES[group['image']]['caption'])}</figcaption></figure>
+      </div>
+    </section>
+    <section class="section tight">
+      <div class="section-inner">
+        <div class="chip-row">{filters}</div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">Topic Map</span>
+          <h2>专题文章</h2>
+          <p>按实际发货复核顺序阅读：先算字段，再看渠道，再落到包装和交接。</p>
+        </div>
+        <div class="article-grid">{cards}</div>
+        {''.join(grouped)}
+      </div>
+    </section>
+{layout_end()}
+</html>"""
 
 
 def render_index() -> str:
-    cards = "\n".join(article_card(next(item for item in ARTICLES if item["slug"] == slug)) for slug in FEATURED_SLUGS)
+    cards = "\n".join(
+        f"""<article class="card {GROUPS[key]['accent']}">
+  <span class="eyebrow">{esc(GROUPS[key]['eyebrow'])}</span>
+  <h3>{esc(GROUPS[key]['label'])}</h3>
+  <p>{esc(GROUPS[key]['lead'])}</p>
+  <a class="card-link" href="{esc(GROUPS[key]['page'])}">进入专题</a>
+</article>"""
+        for key in GROUP_ORDER
+    )
+    featured = "\n".join(article_card(next(item for item in ARTICLES if item["slug"] == slug)) for slug in FEATURED_SLUGS)
     latest = "\n".join(article_card(item) for item in ARTICLES[-6:])
     schema = {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": SITE_NAME,
         "description": SITE_DESCRIPTION,
-        "url": site_path(""),
-        "inLanguage": "zh-CN",
-        "potentialAction": {"@type": "SearchAction", "target": site_path("articles.html") + "?q={search_term_string}", "query-input": "required name=search_term_string"},
+        "url": SITE_URL,
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": f"{SITE_URL}/articles.html?q={{search_term_string}}",
+            "query-input": "required name=search_term_string",
+        },
     }
     return f"""<!doctype html>
 <html lang="zh-CN">
-<head>
-{meta_head(f"{SITE_NAME} - 大学生与职场新人的 AI 学习求职导航", "AI效率资源站面向大学生和职场新人，提供 AI 学习方法、求职准备、提示词模板和工具安全内容。", "", "website", DEFAULT_IMAGE, schema)}
-</head>
-<body>
-  {header_html()}
-  <main id="main">
-    <section class="hero"><div class="section-inner"><div class="hero-copy"><span class="eyebrow">AI efficiency hub</span><h1><span class="hero-line">把 AI 变成学习、</span><span class="hero-line">求职和日常工作</span><span class="hero-line">的效率工具。</span></h1><p class="hero-lede"><span class="mobile-line">这里专注大学生和职场新人的真实问题：</span><span class="mobile-line">备考、作业、简历、面试、提示词和账号安全。</span><span class="mobile-line">每篇文章都给快速答案、执行清单、模板和参考来源。</span></p><div class="hero-actions"><a class="button hot" href="articles.html">浏览全部文章</a><a class="button" href="career.html">查看求职专题</a><a class="button secondary" href="tools.html">学习 AI 工具</a></div></div><aside class="hero-panel" aria-label="站点内容概览"><div class="metric-grid"><div class="metric"><strong>50</strong><span>长文文章</span></div><div class="metric"><strong>3</strong><span>核心专题</span></div><div class="metric"><strong>0</strong><span>依赖构建</span></div></div></aside></div></section>
-    <section id="sections" class="section"><div class="section-inner"><div class="section-head"><div><h2>三类人群，一套效率资源</h2><p>按校园、求职和 AI 工具三条路径组织内容，先解决真实问题，再整理成可复用方法。</p></div><a class="card-link" href="articles.html">进入全站索引</a></div><div class="grid three"><article class="card accent-green"><h3>校园效率区</h3><p>四六级、期末作业、活动策划和小组协作。</p><div class="tag-list"><span class="tag free">18 篇</span><span class="tag">大学生</span></div><a class="card-link" href="campus.html">进入专区</a></article><article class="card accent-blue"><h3>求职冲刺区</h3><p>自动化测试、简历、项目表达和模拟面试。</p><div class="tag-list"><span class="tag free">17 篇</span><span class="tag">应届生</span></div><a class="card-link" href="career.html">进入专区</a></article><article class="card accent-amber"><h3>AI 工具箱</h3><p>GPT/Claude 入门、Prompt、资料整理和账号安全。</p><div class="tag-list"><span class="tag free">15 篇</span><span class="tag">AI 工具</span></div><a class="card-link" href="tools.html">进入专区</a></article></div></div></section>
-    <section class="section feature-band"><div class="section-inner"><div class="section-head"><div><h2>精选支柱文章</h2><p>先从搜索需求最明确的文章读起，再进入专题页继续延伸。</p></div></div><div class="grid three">{cards}</div></div></section>
-    <section class="section tight"><div class="section-inner"><div class="section-head"><div><h2>最新整理</h2><p>持续补充围绕学习、求职和工具核验的长尾问题。</p></div></div><div class="grid three">{latest}</div></div></section>
-  </main>
-  {footer_html()}
-</body>
-</html>
-"""
+{page_head(title=f"{SITE_NAME} - 体积重 CBM 计费重复核", description=SITE_DESCRIPTION, path="", image="assets/images/articles/logistics-calculator.png", json_ld=schema)}
+{layout_start(active='home')}
+    <section class="hero">
+      <div class="section-inner hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow">Cross-border Shipping Calculator</span>
+          <h1>发货前先把体积重、CBM 和计费重算清楚</h1>
+          <p>面向外贸员、跨境电商卖家、独立站卖家和 FBA 新手。用保守口径复核 DHL、EMS、顺丰和标准空运的分母差异，减少报价沟通中的口径误判。</p>
+          <div class="hero-actions">
+            <a class="button" href="tools.html">打开多 SKU 计算器</a>
+            <a class="button ghost" href="smoke-test.html">查看内测说明</a>
+          </div>
+          <div class="trust-row" aria-label="站点特点">
+            <span>本地计算</span><span>公开来源</span><span>不接交易</span><span>移动端可用</span>
+          </div>
+        </div>
+        <figure class="hero-visual">{render_picture(IMAGES['volume'], eager=True)}<figcaption>{esc(IMAGES['volume']['caption'])}</figcaption></figure>
+      </div>
+    </section>
+    <section class="section tight">
+      <div class="section-inner">
+        <div class="ad-slot wide" data-ad-slot></div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">Start Here</span>
+          <h2>三条复核路径</h2>
+          <p>先建立计算基准，再理解渠道差异，最后回到包装和拆单决策。</p>
+        </div>
+        <div class="card-grid">{cards}</div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-inner">
+        <div class="section-head split">
+          <div>
+            <span class="eyebrow">Pillar Articles</span>
+            <h2>精选支柱文章</h2>
+            <p>围绕体积重公式、分母差异、EMS 40cm 规则和报价单复核搭建第一批 SEO 入口。</p>
+          </div>
+          <a class="button ghost" href="articles.html">全站文章索引</a>
+        </div>
+        <div class="article-grid">{featured}</div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">Latest</span>
+          <h2>最新更新</h2>
+        </div>
+        <div class="article-grid compact">{latest}</div>
+      </div>
+    </section>
+{layout_end()}
+</html>"""
 
 
 def render_articles_index() -> str:
+    groups = "".join(f'<button class="filter-chip" type="button" data-filter="{key}">{esc(GROUPS[key]["short"])}</button>' for key in GROUP_ORDER)
     cards = "\n".join(article_card(item) for item in ARTICLES)
-    schema = structured_webpage("全部文章", "AI效率资源站全部文章索引，支持按专题、标签和关键词筛选。", "articles.html", "CollectionPage")
-    tags = sorted({item["tag"] for item in ARTICLES})
-    tag_buttons = "".join(f'<button class="filter-chip" type="button" data-filter-tag="{esc(tag)}">{esc(tag)}</button>' for tag in tags)
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "全站文章索引",
+        "description": "跨境物流体积重、CBM、渠道和包装复核文章索引。",
+        "url": site_path("articles.html"),
+    }
     return f"""<!doctype html>
 <html lang="zh-CN">
-<head>
-{meta_head(f"全部文章 - {SITE_NAME}", "AI效率资源站全部文章索引，支持按校园、求职、AI 工具和关键词筛选。", "articles.html", "website", DEFAULT_IMAGE, schema)}
-</head>
-<body data-section="articles">
-  {header_html()}
-  <main id="main">
-    <section class="article-hero"><div class="section-inner"><span class="eyebrow">Index</span><h1>全部文章</h1><p class="hero-lede">按专题、标签和关键词快速找到学习、求职和 AI 工具相关长文。</p></div></section>
-    <section class="section tight"><div class="section-inner"><div class="search-panel" data-search-panel><label for="article-search">搜索文章</label><input id="article-search" type="search" placeholder="输入四六级、简历、Prompt、安全等关键词" autocomplete="off"><div class="filter-row" aria-label="专题筛选"><button class="filter-chip is-active" type="button" data-filter-group="all">全部</button><button class="filter-chip" type="button" data-filter-group="campus">校园</button><button class="filter-chip" type="button" data-filter-group="career">求职</button><button class="filter-chip" type="button" data-filter-group="tools">工具</button></div><div class="filter-row tag-filter" aria-label="标签筛选"><button class="filter-chip is-active" type="button" data-filter-tag="all">全部标签</button>{tag_buttons}</div><p class="search-count" data-search-count>共 50 篇文章</p></div></div></section>
-    <section class="section tight"><div class="section-inner"><div class="grid three" data-article-index>{cards}</div></div></section>
-  </main>
-  {footer_html()}
-</body>
-</html>
-"""
+{page_head(title=f"文章索引 - {SITE_NAME}", description="按专题、标签和关键词筛选跨境运费复核文章。", path="articles.html", json_ld=schema)}
+{layout_start(active='articles')}
+    <section class="page-hero">
+      <div class="section-inner narrow">
+        <span class="eyebrow">Article Index</span>
+        <h1>全站文章索引</h1>
+        <p>从体积重公式、CBM、渠道分母到包装拆单，按长尾问题快速找到对应复核方法。</p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-inner">
+        <div class="filter-panel" data-article-filter>
+          <label for="article-search">关键词搜索</label>
+          <input id="article-search" type="search" placeholder="输入 DHL、EMS、CBM、拆箱、FBA 等关键词" data-search-input>
+          <div class="filter-row" aria-label="专题筛选">
+            <button class="filter-chip is-active" type="button" data-filter="all">全部</button>
+            {groups}
+          </div>
+        </div>
+        <div class="article-grid" data-article-list>{cards}</div>
+        <p class="empty-state" data-empty-state hidden>没有找到匹配文章，请换一个关键词。</p>
+      </div>
+    </section>
+{layout_end()}
+</html>"""
+
+
+def render_tools() -> str:
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "多 SKU 体积重与计费重计算器",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Any",
+        "url": site_path("tools.html"),
+    }
+    return f"""<!doctype html>
+<html lang="zh-CN">
+{page_head(title=f"多 SKU 体积重计算器 - {SITE_NAME}", description="纯静态多 SKU 体积重、CBM、计费重和渠道分母对比工具。", path="tools.html", image="assets/images/articles/logistics-calculator.png", json_ld=schema)}
+{layout_start(active='tools')}
+    <section class="page-hero">
+      <div class="section-inner hero-grid">
+        <div>
+          <span class="eyebrow">Calculator</span>
+          <h1>多 SKU 体积重 / CBM / 计费重计算器</h1>
+          <p>录入每类货物的箱数、外箱尺寸和实重，本地计算 DHL 5000、EMS 6000、标准空运 6000 和自定义分母下的计费重，并提示长边复核项。</p>
+          <div class="hero-actions">
+            <a class="button" href="#calculator">开始计算</a>
+            <a class="button ghost" href="articles/volumetric-weight-formula-dhl-ems-sf.html">先看公式说明</a>
+          </div>
+        </div>
+        <figure class="hero-visual">{render_picture(IMAGES['volume'], eager=True)}<figcaption>{esc(IMAGES['volume']['caption'])}</figcaption></figure>
+      </div>
+    </section>
+    <section class="section" id="calculator">
+      <div class="section-inner">
+        <div class="tool-shell" data-logistics-calculator>
+          <div class="tool-header">
+            <div>
+              <span class="eyebrow">Local Tool</span>
+              <h2>发货前复核表</h2>
+              <p>数据只在浏览器内计算，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。</p>
+            </div>
+            <div class="tool-actions">
+              <button class="button small" type="button" data-add-row>添加 SKU</button>
+              <button class="button ghost small" type="button" data-load-sample>载入示例</button>
+              <button class="button ghost small" type="button" data-reset-rows>清空</button>
+            </div>
+          </div>
+          <div class="calculator-grid">
+            <div class="sku-panel">
+              <div class="table-scroll">
+                <table class="sku-table">
+                  <thead>
+                    <tr>
+                      <th>SKU / 箱型</th>
+                      <th>箱数</th>
+                      <th>长 cm</th>
+                      <th>宽 cm</th>
+                      <th>高 cm</th>
+                      <th>单箱实重 kg</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody data-sku-rows></tbody>
+                </table>
+              </div>
+              <label class="custom-divisor" for="custom-divisor">自定义分母
+                <input id="custom-divisor" type="number" min="1000" step="100" value="6000" data-custom-divisor>
+              </label>
+            </div>
+            <aside class="result-panel" aria-live="polite">
+              <div class="metric-grid">
+                <div><span>总实重</span><strong data-total-actual>0 kg</strong></div>
+                <div><span>总 CBM</span><strong data-total-cbm>0</strong></div>
+                <div><span>最长边提醒</span><strong data-long-side>待录入</strong></div>
+              </div>
+              <div class="table-scroll">
+                <table class="result-table">
+                  <thead><tr><th>渠道</th><th>分母</th><th>体积重</th><th>计费重</th></tr></thead>
+                  <tbody data-channel-results></tbody>
+                </table>
+              </div>
+              <div class="notice-box" data-suggestion>录入箱规后显示复核提示。</div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-inner">
+        <div class="section-head">
+          <span class="eyebrow">How to Read</span>
+          <h2>工具输出怎么看</h2>
+        </div>
+        <div class="card-grid">
+          <article class="card"><h3>计费重不是最终报价</h3><p>它只是报价复核入口。还要确认进位、附加项、目的地限制和服务类型。</p></article>
+          <article class="card"><h3>长边提醒不是拦截规则</h3><p>默认按 EMS 40cm 口径提醒，目的是提示你回到官方页面或客服确认。</p></article>
+          <article class="card"><h3>拆分建议只做复核</h3><p>工具只提示可能需要复核，不承诺某个方案一定更优。</p></article>
+        </div>
+      </div>
+    </section>
+{layout_end()}
+</html>"""
+
+
+def render_smoke_test() -> str:
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "跨境运费复核工具内测说明",
+        "description": "用于承接外贸和跨境电商用户反馈的烟雾测试落地页。",
+        "url": site_path("smoke-test.html"),
+    }
+    return f"""<!doctype html>
+<html lang="zh-CN">
+{page_head(title=f"内测说明 - {SITE_NAME}", description="跨境运费复核工具烟雾测试页，说明适合人群、工具能力和反馈方式。", path="smoke-test.html", image="assets/images/articles/channel-routes.png", json_ld=schema)}
+{layout_start(active='smoke')}
+    <section class="hero smoke-hero">
+      <div class="section-inner hero-grid">
+        <div>
+          <span class="eyebrow">Smoke Test</span>
+          <h1>你是否也在发货前反复核对体积重和渠道分母？</h1>
+          <p>这个页面用于验证跨境卖家是否真的需要一个轻量的 CBM 与计费重复核工具。当前版本免费内测，不接交易，只收集使用反馈。</p>
+          <div class="hero-actions">
+            <a class="button" href="tools.html">先试用计算器</a>
+            <a class="button ghost" href="contact.html">提交内测反馈</a>
+          </div>
+        </div>
+        <figure class="hero-visual">{render_picture(IMAGES['channels'], eager=True)}<figcaption>{esc(IMAGES['channels']['caption'])}</figcaption></figure>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-inner">
+        <div class="card-grid">
+          <article class="card"><span class="eyebrow">适合人群</span><h3>外贸员和跨境卖家</h3><p>需要在发货前把箱规、实重、CBM 和渠道分母整理清楚，避免报价沟通反复。</p></article>
+          <article class="card"><span class="eyebrow">当前能力</span><h3>多 SKU 计费重复核</h3><p>支持 DHL 5000、EMS 6000、标准空运 6000 和自定义分母，自动汇总计费重和长边提醒。</p></article>
+          <article class="card"><span class="eyebrow">反馈重点</span><h3>规则和流程是否贴近实际</h3><p>欢迎反馈你常用渠道、货物类型、报价单字段和最容易出错的复核点。</p></article>
+        </div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-inner two-column">
+        <div>
+          <span class="eyebrow">Example</span>
+          <h2>示例计算</h2>
+          <p>假设一箱长条货外箱 75cm × 35cm × 28cm，实重 8kg。DHL 5000 口径下体积重为 14.7kg，EMS 6000 口径下体积重为 12.25kg。两个结果都高于实重，因此这票货应该进入体积重复核，而不是只按 8kg 看报价。</p>
+          <p>如果你手里有混装货、长条货、轻泡货或 FBA 头程报价单，可以先用工具录入箱规，再把结果和承运商确认口径对照。</p>
+        </div>
+        <div class="answer-box">
+          <span class="tag">内测登记占位</span>
+          <h3>目前先用反馈页收集需求</h3>
+          <p>正式表单上线前，可以通过联系页提交你的常见货物类型、渠道、箱数范围和最想自动化复核的字段。</p>
+          <a class="button" href="contact.html">去反馈</a>
+        </div>
+      </div>
+    </section>
+{layout_end()}
+</html>"""
 
 
 def render_static_page(path: str, meta: dict) -> str:
-    allow_html = bool(meta.get("allow_html"))
-    sections = "".join(
-        f"<h2>{esc(title)}</h2><p>{body if allow_html else esc(body)}</p>"
-        for title, body in meta["sections"]
-    )
-    schema = structured_webpage(meta["title"], meta["description"], path, "AboutPage" if path == "about.html" else "WebPage")
+    body_parts = []
+    for paragraph in meta["body"]:
+        if meta.get("allow_html"):
+            body_parts.append(f"<p>{paragraph}</p>")
+        else:
+            body_parts.append(f"<p>{esc(paragraph)}</p>")
     return f"""<!doctype html>
 <html lang="zh-CN">
-<head>
-{meta_head(f"{meta['title']} - {SITE_NAME}", meta["description"], path, "website", DEFAULT_IMAGE, schema)}
-</head>
-<body>
-  {header_html()}
-  <main id="main">
-    <section class="article-hero"><div class="section-inner"><span class="eyebrow">{esc(meta['eyebrow'])}</span><h1>{esc(meta['title'])}</h1><p class="hero-lede">{esc(meta['lead'])}</p></div></section>
-    <section class="section"><div class="section-inner article-body">{sections}</div></section>
-  </main>
-  {footer_html()}
-</body>
-</html>
-"""
+{page_head(title=meta['title'], description=meta['description'], path=path)}
+{layout_start(active=path.removesuffix('.html'))}
+    <section class="page-hero">
+      <div class="section-inner narrow">
+        <span class="eyebrow">Site Info</span>
+        <h1>{esc(meta['h1'])}</h1>
+      </div>
+    </section>
+    <section class="section">
+      <div class="section-inner narrow prose-card">
+        {''.join(body_parts)}
+      </div>
+    </section>
+{layout_end()}
+</html>"""
 
 
 def render_404() -> str:
-    schema = structured_webpage("页面未找到", "AI效率资源站 404 页面，帮助用户返回文章索引或首页。", "404.html", "WebPage")
     return f"""<!doctype html>
 <html lang="zh-CN">
-<head>
-{meta_head(f"页面未找到 - {SITE_NAME}", "页面未找到，可以返回 AI效率资源站首页或全部文章索引继续浏览。", "404.html", "website", DEFAULT_IMAGE, schema, "noindex, follow")}
-</head>
-<body>
-  {header_html()}
-  <main id="main">
-    <section class="article-hero"><div class="section-inner"><span class="eyebrow">404</span><h1>页面未找到</h1><p class="hero-lede">这个链接可能已经移动。你可以返回首页，或者进入全部文章索引继续查找。</p><div class="hero-actions"><a class="button hot" href="articles.html">浏览全部文章</a><a class="button secondary" href="index.html">返回首页</a></div></div></section>
-  </main>
-  {footer_html()}
-</body>
-</html>
-"""
+{page_head(title=f"页面未找到 - {SITE_NAME}", description="页面未找到，请返回首页或文章索引。", path="404.html", robots="noindex, follow")}
+{layout_start(active='404')}
+    <section class="page-hero">
+      <div class="section-inner narrow">
+        <span class="eyebrow">404</span>
+        <h1>页面未找到</h1>
+        <p>可能是旧链接已经被移除。你可以返回首页、文章索引或直接打开计算工具。</p>
+        <div class="hero-actions">
+          <a class="button" href="index.html">返回首页</a>
+          <a class="button ghost" href="articles.html">文章索引</a>
+        </div>
+      </div>
+    </section>
+{layout_end()}
+</html>"""
 
 
 def render_search_index() -> str:
-    data = [
+    items = [
         {
             "title": item["title"],
             "description": item["description"],
-            "href": article_url(item["slug"]),
             "group": item["group"],
             "groupLabel": GROUPS[item["group"]]["label"],
             "tag": item["tag"],
-            "keyword": item["keyword"],
+            "href": f"articles/{item['slug']}.html",
         }
         for item in ARTICLES
     ]
-    return json.dumps(data, ensure_ascii=False, indent=2)
+    return json.dumps(items, ensure_ascii=False, indent=2)
 
 
 def render_site_js() -> str:
-    featured = [
-        ("四六级 14 天备考计划", "articles/cet-14-day-study-plan.html", "校园效率", "把词汇、阅读、听力、作文拆成每天可执行任务。"),
-        ("自动化测试面试准备路线", "articles/automation-test-interview-roadmap.html", "求职冲刺", "按接口、UI、数据库、框架和项目复盘准备。"),
-        ("稳定 Prompt 的四段式公式", "articles/prompt-four-part-formula.html", "AI 工具", "用角色、目标、材料、输出格式提升回答稳定性。"),
+    nav_items = [
+        {"href": "index.html", "label": "首页", "key": "home"},
+        {"href": "articles.html", "label": "文章", "key": "articles"},
+        {"href": GROUPS["volume"]["page"], "label": "体积重", "key": "volume"},
+        {"href": GROUPS["channels"]["page"], "label": "渠道", "key": "channels"},
+        {"href": GROUPS["packing"]["page"], "label": "包装", "key": "packing"},
+        {"href": "tools.html", "label": "工具", "key": "tools"},
+        {"href": "smoke-test.html", "label": "内测", "key": "smoke"},
     ]
-    resources = ",\n".join(
-        f'    {{ title: "{title}", href: "{href}", category: "{cat}", summary: "{summary}" }}'
-        for title, href, cat, summary in featured
-    )
-    return f"""const siteConfig = {{
-  name: "{SITE_NAME}",
-  tagline: "{SITE_DESCRIPTION}",
-  adPlaceholder: "赞助内容区域：后续展示与学习、求职和效率工具相关的合规推荐",
-  featuredResources: [
-{resources}
-  ]
-}};
-
-function resolvePath(path) {{
-  const inArticle = location.pathname.includes("/articles/");
-  if (/^https?:/.test(path) || path.startsWith("#")) return path;
-  return inArticle ? `../${{path}}` : path;
-}}
-
-function buildNav() {{
-  const nav = document.querySelector("[data-site-nav]");
-  if (!nav) return;
-  const links = [["首页", "index.html"], ["文章", "articles.html"], ["校园", "campus.html"], ["求职", "career.html"], ["工具", "tools.html"], ["关于", "about.html"]];
-  const current = location.pathname.split("/").pop() || "index.html";
-  const section = document.body.dataset.section || "";
-  const activeBySection = {{ campus: "campus.html", career: "career.html", tools: "tools.html", articles: "articles.html" }};
-  nav.innerHTML = links.map(([label, href]) => {{
-    const active = current === href || activeBySection[section] === href ? ' aria-current="page"' : "";
-    return `<a href="${{resolvePath(href)}}"${{active}}>${{label}}</a>`;
-  }}).join("");
-}}
-
-function buildFooter() {{
-  const footer = document.querySelector("[data-site-footer]");
-  if (!footer) return;
-  const year = new Date().getFullYear();
-  footer.innerHTML = `
-    <div>
-      <strong>${{siteConfig.name}}</strong>
-      <p>${{siteConfig.tagline}}。本站坚决抵制任何形式的学术越界或违反学术诚信的行为。所有 AI 工具使用方法均旨在辅助思路拆解与学习效率提升，最终成果的真实性与合规性完全由使用者个人负责，请严格遵守所在学校、考试中心和工作单位的守则。</p>
-      <p>© ${{year}} ${{siteConfig.name}}. All rights reserved.</p>
-    </div>
-    <nav class="footer-links" aria-label="Footer">
-      <a href="${{resolvePath("about.html")}}">关于本站</a>
-      <a href="${{resolvePath("privacy.html")}}">隐私政策</a>
-      <a href="${{resolvePath("contact.html")}}">联系合作</a>
-      <a href="${{resolvePath("sitemap.xml")}}">站点地图</a>
-    </nav>`;
-}}
-
-function buildAdSlots() {{
-  document.querySelectorAll("[data-ad-slot]").forEach((slot) => {{
-    slot.innerHTML = `<div><strong>赞助内容区域</strong><span>${{siteConfig.adPlaceholder}}</span></div>`;
-  }});
-}}
-
-function buildFeaturedResources() {{
-  const target = document.querySelector("[data-featured-resources]");
-  if (!target) return;
-  target.innerHTML = siteConfig.featuredResources.map((item) => `
-    <article class="resource-card">
-      <span class="tag">${{item.category}}</span>
-      <h3>${{item.title}}</h3>
-      <p>${{item.summary}}</p>
-      <a class="card-link" href="${{resolvePath(item.href)}}">查看资源</a>
-    </article>
-  `).join("");
-}}
-
-async function buildArticleSearch() {{
-  const target = document.querySelector("[data-article-index]");
-  const panel = document.querySelector("[data-search-panel]");
-  if (!target || !panel) return;
-  let items = [];
-  try {{
-    const response = await fetch(resolvePath("assets/search-index.json"));
-    items = await response.json();
-  }} catch (error) {{
-    items = Array.from(target.querySelectorAll(".article-card")).map((card) => ({{
-      title: card.querySelector("h2")?.textContent || "",
-      description: card.querySelector("p")?.textContent || "",
-      href: card.querySelector("a")?.getAttribute("href") || "#",
-      group: card.dataset.group || "",
-      tag: card.dataset.tag || "",
-      keyword: card.textContent || ""
-    }}));
-  }}
-  const input = panel.querySelector("#article-search");
-  const count = panel.querySelector("[data-search-count]");
-  let group = new URLSearchParams(location.search).get("group") || "all";
-  let tag = "all";
-  const render = () => {{
-    const q = (input.value || "").trim().toLowerCase();
-    const filtered = items.filter((item) => {{
-      const text = `${{item.title}} ${{item.description}} ${{item.tag}} ${{item.keyword}}`.toLowerCase();
-      return (group === "all" || item.group === group) && (tag === "all" || item.tag === tag) && (!q || text.includes(q));
-    }});
-    target.innerHTML = filtered.map((item) => `<article class="article-card" data-group="${{item.group}}" data-tag="${{item.tag}}"><div class="tag-list"><span class="tag free">免费文章</span><span class="tag">${{item.tag}}</span></div><h2>${{item.title}}</h2><p>${{item.description}}</p><a class="card-link" href="${{item.href}}">阅读文章</a></article>`).join("") || `<p class="empty-state">没有找到匹配文章，可以换一个关键词。</p>`;
-    if (count) count.textContent = `共 ${{filtered.length}} 篇文章`;
+    return f"""(() => {{
+  const site = {{
+    name: {json.dumps(SITE_NAME, ensure_ascii=False)},
+    description: {json.dumps(SITE_DESCRIPTION, ensure_ascii=False)},
+    nav: {json.dumps(nav_items, ensure_ascii=False)}
   }};
-  panel.querySelectorAll("[data-filter-group]").forEach((button) => {{
-    if (button.dataset.filterGroup === group) button.classList.add("is-active");
-    button.addEventListener("click", () => {{
-      group = button.dataset.filterGroup || "all";
-      panel.querySelectorAll("[data-filter-group]").forEach((el) => el.classList.toggle("is-active", el === button));
-      render();
-    }});
-  }});
-  panel.querySelectorAll("[data-filter-tag]").forEach((button) => {{
-    button.addEventListener("click", () => {{
-      tag = button.dataset.filterTag || "all";
-      panel.querySelectorAll("[data-filter-tag]").forEach((el) => el.classList.toggle("is-active", el === button));
-      render();
-    }});
-  }});
-  input?.addEventListener("input", render);
-  render();
-}}
 
-function initCopyButtons() {{
-  document.querySelectorAll(".copy-button").forEach((btn) => {{
-    btn.addEventListener("click", async () => {{
-      const pre = btn.previousElementSibling;
-      const code = pre ? (pre.querySelector("code")?.textContent || "") : "";
-      try {{
-        await navigator.clipboard.writeText(code);
-        const originalText = btn.textContent || "复制";
-        btn.textContent = "已复制！";
-        btn.classList.add("copied");
-        setTimeout(() => {{
-          btn.textContent = originalText;
-          btn.classList.remove("copied");
-        }}, 2000);
-      }} catch (err) {{
-        console.error("Failed to copy:", err);
-      }}
+  function resolvePrefix() {{
+    return location.pathname.includes('/articles/') ? '../' : '';
+  }}
+
+  function initNav() {{
+    const prefix = resolvePrefix();
+    const active = document.body.dataset.active || '';
+    document.querySelectorAll('[data-site-nav]').forEach((nav) => {{
+      nav.innerHTML = site.nav.map((item) => {{
+        const cls = active === item.key ? ' class="is-active"' : '';
+        return `<a${{cls}} href="${{prefix}}${{item.href}}">${{item.label}}</a>`;
+      }}).join('');
     }});
-  }});
-}}
+  }}
 
-
-function initInteractiveTools() {{
-  // --- Tab Switcher Logic ---
-  const tabButtons = document.querySelectorAll(".tool-tab-btn");
-  const tabContents = document.querySelectorAll(".tool-tab-content");
-  if (tabButtons.length > 0) {{
-    tabButtons.forEach((btn) => {{
-      btn.addEventListener("click", () => {{
-        const tabId = btn.dataset.tab;
-        tabButtons.forEach((b) => {{
-          b.classList.toggle("active", b === btn);
-          b.setAttribute("aria-selected", b === btn ? "true" : "false");
-        }});
-        tabContents.forEach((content) => {{
-          if (content.id === `${{tabId}}-panel`) {{
-            content.style.display = "block";
-            content.classList.add("active");
-          }} else {{
-            content.style.display = "none";
-            content.classList.remove("active");
-          }}
-        }});
+  function initTheme() {{
+    const root = document.documentElement;
+    const saved = localStorage.getItem('shipping-theme');
+    if (saved === 'dark') root.classList.add('dark-theme');
+    if (saved === 'light') root.classList.add('light-theme');
+    document.querySelectorAll('[data-theme-toggle]').forEach((button) => {{
+      button.addEventListener('click', () => {{
+        const isDark = root.classList.toggle('dark-theme');
+        root.classList.remove('light-theme');
+        localStorage.setItem('shipping-theme', isDark ? 'dark' : 'light');
       }});
     }});
   }}
 
-  // --- GPA Calculator Logic ---
-  const container = document.getElementById("course-rows-container");
-  const addBtn = document.getElementById("add-course-btn");
-  const resetBtn = document.getElementById("reset-gpa-btn");
-  const gpaValDisplay = document.getElementById("gpa-val-display");
-  const weightedScoreDisplay = document.getElementById("weighted-score-display");
-  const totalCreditsDisplay = document.getElementById("total-credits-display");
-  const gpa5Display = document.getElementById("gpa-5-display");
-  const gpaProgressRing = document.getElementById("gpa-progress-ring");
-  const gpaEvaluationText = document.getElementById("gpa-evaluation-text");
-
-  let courseCount = 0;
-
-  function scoreToGpa4(score) {{
-    if (score >= 90) return 4.0;
-    if (score >= 85) return 3.7;
-    if (score >= 82) return 3.3;
-    if (score >= 78) return 3.0;
-    if (score >= 75) return 2.7;
-    if (score >= 72) return 2.3;
-    if (score >= 68) return 2.0;
-    if (score >= 64) return 1.5;
-    if (score >= 60) return 1.0;
-    return 0.0;
+  function initAdSlots() {{
+    document.querySelectorAll('[data-ad-slot]').forEach((slot) => {{
+      slot.innerHTML = '<strong>赞助内容区域</strong><span>预留给合规广告或渠道服务说明。当前不加载第三方广告脚本。</span>';
+    }});
   }}
 
-  function scoreToGpa5(score) {{
-    if (score < 60) return 0.0;
-    return parseFloat(((score - 50) / 10).toFixed(2));
-  }}
+  function initArticleFilter() {{
+    const root = document.querySelector('[data-article-filter]');
+    const list = document.querySelector('[data-article-list]');
+    if (!root || !list) return;
+    const input = root.querySelector('[data-search-input]');
+    const chips = Array.from(root.querySelectorAll('[data-filter]'));
+    const cards = Array.from(list.querySelectorAll('[data-card-group]'));
+    const empty = document.querySelector('[data-empty-state]');
+    let activeGroup = new URLSearchParams(location.search).get('group') || 'all';
 
-  function createCourseRow(name = "", credits = 3.0, score = 90) {{
-    courseCount++;
-    const row = document.createElement("div");
-    row.className = "course-row";
-    row.id = `course-row-${{courseCount}}`;
-    const nameId = `course-name-${{courseCount}}`;
-    const creditId = `course-credit-${{courseCount}}`;
-    const scoreId = `course-score-${{courseCount}}`;
-    row.innerHTML = `
-      <div class="row-field name-field">
-        <label class="sr-only" for="${{nameId}}">第 ${{courseCount}} 门课程名称</label>
-        <input id="${{nameId}}" type="text" class="course-name-input" placeholder="课程名称（可选）" value="${{name}}">
-      </div>
-      <div class="row-field credit-field">
-        <label class="sr-only" for="${{creditId}}">第 ${{courseCount}} 门课程学分</label>
-        <input id="${{creditId}}" type="number" class="course-credit-input" min="0.5" max="10" step="0.5" placeholder="学分" value="${{credits}}">
-      </div>
-      <div class="row-field score-field">
-        <label class="sr-only" for="${{scoreId}}">第 ${{courseCount}} 门课程百分制成绩</label>
-        <input id="${{scoreId}}" type="number" class="course-score-input" min="0" max="100" placeholder="成绩" value="${{score}}">
-      </div>
-      <button class="btn-remove-row" type="button" title="删除此行" aria-label="删除第 ${{courseCount}} 门课程">
-        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-      </button>
-    `;
-
-    row.querySelectorAll("input").forEach((input) => {{
-      input.addEventListener("input", calculateGpa);
-    }});
-
-    row.querySelector(".btn-remove-row").addEventListener("click", () => {{
-      row.remove();
-      calculateGpa();
-    }});
-
-    container.appendChild(row);
-  }}
-
-  function calculateGpa() {{
-    const rows = container.querySelectorAll(".course-row");
-    let totalWeightedScore = 0;
-    let totalWeightedGpa4 = 0;
-    let totalWeightedGpa5 = 0;
-    let totalCredits = 0;
-
-    rows.forEach((row) => {{
-      const creditInput = row.querySelector(".course-credit-input");
-      const scoreInput = row.querySelector(".course-score-input");
-
-      const credits = parseFloat(creditInput.value) || 0;
-      const score = parseFloat(scoreInput.value) || 0;
-
-      if (credits > 0) {{
-        totalCredits += credits;
-        totalWeightedScore += score * credits;
-        totalWeightedGpa4 += scoreToGpa4(score) * credits;
-        totalWeightedGpa5 += scoreToGpa5(score) * credits;
-      }}
-    }});
-
-    if (totalCredits > 0) {{
-      const avgScore = totalWeightedScore / totalCredits;
-      const avgGpa4 = totalWeightedGpa4 / totalCredits;
-      const avgGpa5 = totalWeightedGpa5 / totalCredits;
-
-      weightedScoreDisplay.textContent = avgScore.toFixed(1);
-      gpaValDisplay.textContent = avgGpa4.toFixed(2);
-      gpa5Display.textContent = avgGpa5.toFixed(2);
-      totalCreditsDisplay.textContent = totalCredits.toFixed(1);
-
-      if (gpaProgressRing) {{
-        const percent = avgGpa4 / 4.0;
-        const offset = 314.159 - (percent * 314.159);
-        gpaProgressRing.style.strokeDashoffset = offset;
-      }}
-
-      let evalText = "";
-      if (avgGpa4 >= 3.8) {{
-        evalText = "当前绩点非常优秀，适合继续整理课程成果、项目经历和后续申请材料。";
-      }} else if (avgGpa4 >= 3.5) {{
-        evalText = "当前绩点表现稳定，建议保持优势课程，同时针对薄弱科目做阶段复盘。";
-      }} else if (avgGpa4 >= 3.0) {{
-        evalText = "当前绩点处于良好区间，可以优先提升高学分课程的复习效率。";
-      }} else if (avgGpa4 >= 2.0) {{
-        evalText = "当前绩点还有提升空间，建议先定位低分高学分课程，再制定复习计划。";
-      }} else {{
-        evalText = "当前绩点偏低，建议尽快核对课程要求，并为重点科目安排更明确的补强计划。";
-      }}
-      gpaEvaluationText.textContent = evalText;
-    }} else {{
-      weightedScoreDisplay.textContent = "0.0";
-      gpaValDisplay.textContent = "0.00";
-      gpa5Display.textContent = "0.00";
-      totalCreditsDisplay.textContent = "0.0";
-      if (gpaProgressRing) {{
-        gpaProgressRing.style.strokeDashoffset = 314.159;
-      }}
-      gpaEvaluationText.textContent = "录入你的学分与百分制成绩，看看你的成绩处于什么水平吧！";
-    }}
-  }}
-
-  const presets = {{
-    freshman: [
-      {{ name: "高等数学 I", credits: 5.0, score: 92 }},
-      {{ name: "大学英语 I", credits: 3.0, score: 88 }},
-      {{ name: "计算机导论", credits: 3.0, score: 95 }},
-      {{ name: "思想道德与法治", credits: 2.0, score: 85 }},
-      {{ name: "大学体育 I", credits: 1.0, score: 90 }}
-    ],
-    sophomore: [
-      {{ name: "数据结构与算法", credits: 4.0, score: 94 }},
-      {{ name: "操作系统", credits: 4.0, score: 89 }},
-      {{ name: "计算机网络", credits: 3.0, score: 91 }},
-      {{ name: "软件工程导论", credits: 3.0, score: 87 }},
-      {{ name: "数据库系统设计", credits: 3.0, score: 90 }}
-    ]
-  }};
-
-  document.querySelectorAll("[data-preset]").forEach((btn) => {{
-    btn.addEventListener("click", () => {{
-      const type = btn.dataset.preset;
-      container.innerHTML = "";
-      if (presets[type]) {{
-        presets[type].forEach((c) => createCourseRow(c.name, c.credits, c.score));
-      }}
-      calculateGpa();
-    }});
-  }});
-
-  addBtn?.addEventListener("click", () => {{
-    createCourseRow("", 3.0, 85);
-    calculateGpa();
-  }});
-
-  resetBtn?.addEventListener("click", () => {{
-    container.innerHTML = "";
-    createCourseRow("高等数学", 5.0, 90);
-    createCourseRow("大学英语", 3.0, 85);
-    calculateGpa();
-  }});
-
-  // --- Resume STAR Generator Logic ---
-  const starS = document.getElementById("star-s");
-  const starT = document.getElementById("star-t");
-  const starA = document.getElementById("star-a");
-  const starR = document.getElementById("star-r");
-  const starStyle = document.getElementById("star-style");
-  const starOutputCode = document.getElementById("star-output-code");
-  const copyStarBtn = document.getElementById("copy-star-btn");
-
-  const starPresets = {{
-    frontend: {{
-      s: "随着业务功能叠加，某高频交易列表页的首次内容渲染时间（FCP）恶化至 4.2 秒，导致用户流失率显著上升，移动端首屏出现明显白屏卡顿。",
-      t: "我负责主导该核心列表页的性能调优工作，目标是在两周内将 FCP 缩短至 1.8 秒以内，并在弱网环境下实现平滑加载，挽回潜在交易用户。",
-      a: "采用 Chrome DevTools Performance 深度分析，定位到多处大图阻塞、非核心 JS 未按需加载等问题；实施了路由级首屏代码分割（Code Splitting），引入 CSS 骨架屏（Skeleton Screen），并将全站静态资源通过 WebP 压缩接入 Edge CDN，同时对列表图片实施了 Lazy Loading。",
-      r: "首屏 FCP 从 4.2 秒暴降至 1.45 秒（提效 65.5%），在 3G 弱网环境下白屏时长减少了 70%，上线后列表页交易转化率提升了 14.8%，流失率大幅回落。"
-    }},
-    qa: {{
-      s: "原有项目回归测试阶段过度依赖手工测试，500+ 个功能点全量回归耗时超过 2.5 天，且由于人工漏测频发，导致线上生产环境偶发性报错，沟通与排查成本极高。",
-      t: "我承担起搭建全新自动化测试框架的职责，要求在 1 个月内实现核心链路 100% 覆盖，并将自动化回归执行时长压缩至 30 分钟内。",
-      a: "基于 pytest 框架搭建了 Page Object Model (POM) 自动化测试架构，利用 Python Selenium/Playwright 编写了 150+ 个并发执行的测试用例；引入并发机制及智能显式等待（Explicit Waits），并在 CI/CD Pipeline 中集成 Webhook 通知，实现代码提交即刻自动触发冒烟与全量测试。",
-      r: "回归测试总耗时从 2.5 天暴缩至 22 分钟（提效 98% 以上），测试覆盖率由零跃升至 88%，上线两个月来拦截了 14 次严重阻塞性缺陷，线上发布事故率直降为 0。"
-    }},
-    event: {{
-      s: "学院一年一度的极客文化科技节参与人数逐年下滑，上届活动实际签到人数不足 120 人，学生社团预算面临被缩减的窘境，亟需探索新型宣传路径以挽回人气。",
-      t: "作为本届科技节总负责人，我制定了“签到人数翻倍”的目标，要求在 5000 元有限经费内吸引至少 300 名学生到场深度体验，并实现跨院系传播。",
-      a: "重构策划方案，增设了“AI 效率小工具盲盒”与“现场提示词对抗赛”等高交互环节；通过微信公众号、小红书社群矩阵进行裂变海报推广，设计了“邀请 3 人组队即赠送大厂面试指南”的机制，并在全校 8 个主要宿区进行定向海报投放与社群接龙。",
-      r: "现场实际参与人数达到 430+ 人，相比上届极增 258%，创下学院近五年活动人数最高纪录；最终以 4200 元超预期省下 16% 预算，社团因此荣获年度“十佳精品活动”称号。"
-    }}
-  }};
-
-  function updateStarPreview() {{
-    if (!starS || !starT || !starA || !starR || !starOutputCode) return;
-    const sVal = starS.value.trim();
-    const tVal = starT.value.trim();
-    const aVal = starA.value.trim();
-    const rVal = starR.value.trim();
-
-    if (!sVal && !tVal && !aVal && !rVal) {{
-      starOutputCode.textContent = "在左侧输入框输入内容，或选择上方预设，将实时生成排版完美的 STAR 简历文本！";
-      return;
+    function apply() {{
+      const q = (input.value || '').trim().toLowerCase();
+      let visible = 0;
+      chips.forEach((chip) => chip.classList.toggle('is-active', chip.dataset.filter === activeGroup));
+      cards.forEach((card) => {{
+        const groupOk = activeGroup === 'all' || card.dataset.cardGroup === activeGroup;
+        const textOk = !q || card.textContent.toLowerCase().includes(q);
+        const show = groupOk && textOk;
+        card.hidden = !show;
+        if (show) visible += 1;
+      }});
+      if (empty) empty.hidden = visible !== 0;
     }}
 
-    const s = sVal || "（未填写情境描述）";
-    const t = tVal || "（未填写任务职责）";
-    const a = aVal || "（未填写行动步骤）";
-    const r = rVal || "（未填写最终结果）";
-
-    const style = starStyle ? starStyle.value : "hardcore";
-    let formatted = "";
-
-    if (style === "hardcore") {{
-      formatted = `* **[项目背景 (Situation)]** ${{s}}\n* **[核心职责 (Task)]** ${{t}}\n* **[技术攻坚 (Action)]** ${{a}}\n* **[业务成效 (Result)]** ${{r}}`;
-    }} else if (style === "general") {{
-      formatted = `* **项目背景**：${{s}}\n* **工作职责**：${{t}}\n* **具体行动**：${{a}}\n* **最终成效**：${{r}}`;
-    }} else {{
-      formatted = `* 【项目背景】${{s}} 针对此目标，本人【明确任务】${{t}}。\n* 【实施行动】在行动上，${{a}}。\n* 【量化结果】最终实现${{r}}。`;
-    }}
-
-    starOutputCode.textContent = formatted;
-
-    starOutputCode.classList.add("updating");
-    if (starOutputCode._updateTimeout) clearTimeout(starOutputCode._updateTimeout);
-    starOutputCode._updateTimeout = setTimeout(() => {{
-      starOutputCode.classList.remove("updating");
-    }}, 200);
+    chips.forEach((chip) => chip.addEventListener('click', () => {{
+      activeGroup = chip.dataset.filter || 'all';
+      apply();
+    }}));
+    input.addEventListener('input', apply);
+    apply();
   }}
 
-  document.querySelectorAll("[data-star-preset]").forEach((btn) => {{
-    btn.addEventListener("click", () => {{
-      const type = btn.dataset.starPreset;
-      if (starPresets[type]) {{
-        starS.value = starPresets[type].s;
-        starT.value = starPresets[type].t;
-        starA.value = starPresets[type].a;
-        starR.value = starPresets[type].r;
-        updateStarPreview();
-      }}
+  function initCopyButtons() {{
+    document.querySelectorAll('pre').forEach((pre) => {{
+      if (pre.parentElement && pre.parentElement.classList.contains('code-block-wrapper')) return;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-block-wrapper';
+      pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'copy-button';
+      button.textContent = '复制';
+      wrapper.appendChild(button);
+      button.addEventListener('click', async () => {{
+        const text = pre.textContent || '';
+        try {{
+          await navigator.clipboard.writeText(text);
+          button.textContent = '已复制';
+          button.classList.add('copied');
+          setTimeout(() => {{
+            button.textContent = '复制';
+            button.classList.remove('copied');
+          }}, 1600);
+        }} catch (error) {{
+          button.textContent = '复制失败';
+          setTimeout(() => button.textContent = '复制', 1600);
+        }}
+      }});
     }});
-  }});
-
-  [starS, starT, starA, starR].forEach((textarea) => {{
-    textarea?.addEventListener("input", updateStarPreview);
-  }});
-  starStyle?.addEventListener("change", updateStarPreview);
-
-  copyStarBtn?.addEventListener("click", async () => {{
-    const code = starOutputCode ? starOutputCode.textContent : "";
-    if (!code || code.startsWith("在左侧输入框") || code.startsWith("在等待输入")) return;
-    try {{
-      await navigator.clipboard.writeText(code);
-      const originalText = copyStarBtn.textContent || "一键复制排版";
-      copyStarBtn.textContent = "已复制到剪贴板！";
-      copyStarBtn.classList.add("copied");
-      setTimeout(() => {{
-        copyStarBtn.textContent = originalText;
-        copyStarBtn.classList.remove("copied");
-      }}, 2000);
-    }} catch (err) {{
-      console.error("Failed to copy STAR text:", err);
-    }}
-  }});
-
-  if (container) {{
-    createCourseRow("高等数学", 5.0, 90);
-    createCourseRow("大学英语", 3.0, 85);
-    calculateGpa();
   }}
-  updateStarPreview();
-}}
 
+  function round(value, digits = 2) {{
+    if (!Number.isFinite(value)) return 0;
+    const factor = Math.pow(10, digits);
+    return Math.round(value * factor) / factor;
+  }}
 
-document.addEventListener("DOMContentLoaded", () => {{
-  buildNav();
-  buildFooter();
-  buildAdSlots();
-  buildFeaturedResources();
-  buildArticleSearch();
+  function initCalculator() {{
+    const root = document.querySelector('[data-logistics-calculator]');
+    if (!root) return;
+    const rowsBody = root.querySelector('[data-sku-rows]');
+    const customDivisor = root.querySelector('[data-custom-divisor]');
+    const totalActual = root.querySelector('[data-total-actual]');
+    const totalCbm = root.querySelector('[data-total-cbm]');
+    const longSide = root.querySelector('[data-long-side]');
+    const channelResults = root.querySelector('[data-channel-results]');
+    const suggestion = root.querySelector('[data-suggestion]');
+    let rowId = 0;
+
+    const channels = [
+      ['DHL 官方常见口径', 5000],
+      ['EMS 复核口径', 6000],
+      ['标准空运模拟', 6000],
+      ['自定义分母', 'custom']
+    ];
+
+    function rowTemplate(data = {{}}) {{
+      rowId += 1;
+      const id = rowId;
+      const defaults = Object.assign({{ name: '', qty: 1, l: '', w: '', h: '', kg: '' }}, data);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><label class="sr-only" for="sku-name-${{id}}">SKU 或箱型</label><input id="sku-name-${{id}}" type="text" value="${{defaults.name}}" placeholder="如 自拍杆 A 箱" data-field="name"></td>
+        <td><label class="sr-only" for="sku-qty-${{id}}">箱数</label><input id="sku-qty-${{id}}" type="number" min="1" step="1" value="${{defaults.qty}}" data-field="qty"></td>
+        <td><label class="sr-only" for="sku-l-${{id}}">长厘米</label><input id="sku-l-${{id}}" type="number" min="0" step="0.1" value="${{defaults.l}}" data-field="l"></td>
+        <td><label class="sr-only" for="sku-w-${{id}}">宽厘米</label><input id="sku-w-${{id}}" type="number" min="0" step="0.1" value="${{defaults.w}}" data-field="w"></td>
+        <td><label class="sr-only" for="sku-h-${{id}}">高厘米</label><input id="sku-h-${{id}}" type="number" min="0" step="0.1" value="${{defaults.h}}" data-field="h"></td>
+        <td><label class="sr-only" for="sku-kg-${{id}}">单箱实重千克</label><input id="sku-kg-${{id}}" type="number" min="0" step="0.01" value="${{defaults.kg}}" data-field="kg"></td>
+        <td><button class="icon-button" type="button" aria-label="删除这一行" data-remove-row>删</button></td>
+      `;
+      rowsBody.appendChild(tr);
+      tr.querySelectorAll('input').forEach((input) => input.addEventListener('input', calculate));
+      tr.querySelector('[data-remove-row]').addEventListener('click', () => {{
+        tr.remove();
+        if (!rowsBody.children.length) addRow();
+        calculate();
+      }});
+      calculate();
+    }}
+
+    function getRows() {{
+      return Array.from(rowsBody.querySelectorAll('tr')).map((tr) => {{
+        const value = (field) => {{
+          const node = tr.querySelector(`[data-field="${{field}}"]`);
+          return node ? node.value : '';
+        }};
+        return {{
+          name: value('name'),
+          qty: Math.max(0, Number(value('qty')) || 0),
+          l: Math.max(0, Number(value('l')) || 0),
+          w: Math.max(0, Number(value('w')) || 0),
+          h: Math.max(0, Number(value('h')) || 0),
+          kg: Math.max(0, Number(value('kg')) || 0)
+        }};
+      }}).filter((row) => row.qty && row.l && row.w && row.h);
+    }}
+
+    function channelCalc(rows, divisor) {{
+      let volume = 0;
+      let chargeable = 0;
+      rows.forEach((row) => {{
+        const volumePer = row.l * row.w * row.h / divisor;
+        const actualPer = row.kg || 0;
+        volume += volumePer * row.qty;
+        chargeable += Math.max(volumePer, actualPer) * row.qty;
+      }});
+      return {{ volume: round(volume), chargeable: round(chargeable) }};
+    }}
+
+    function calculate() {{
+      const rows = getRows();
+      const actual = rows.reduce((sum, row) => sum + row.kg * row.qty, 0);
+      const cbm = rows.reduce((sum, row) => sum + (row.l * row.w * row.h / 1000000) * row.qty, 0);
+      const longest = rows.reduce((max, row) => Math.max(max, row.l, row.w, row.h), 0);
+      totalActual.textContent = `${{round(actual)}} kg`;
+      totalCbm.textContent = `${{round(cbm, 4)}} CBM`;
+      longSide.textContent = longest ? `${{round(longest, 1)}} cm${{longest >= 40 ? '，需复核' : ''}}` : '待录入';
+
+      const custom = Math.max(1000, Number(customDivisor.value) || 6000);
+      channelResults.innerHTML = channels.map(([name, divisor]) => {{
+        const realDivisor = divisor === 'custom' ? custom : divisor;
+        const result = channelCalc(rows, realDivisor);
+        return `<tr><td>${{name}}</td><td>${{realDivisor}}</td><td>${{result.volume}} kg</td><td><strong>${{result.chargeable}} kg</strong></td></tr>`;
+      }}).join('');
+
+      if (!rows.length) {{
+        suggestion.textContent = '录入箱规后显示复核提示。';
+        return;
+      }}
+      const dhl = channelCalc(rows, 5000).chargeable;
+      const ems = channelCalc(rows, 6000).chargeable;
+      const diff = round(Math.abs(dhl - ems));
+      const warnings = [];
+      if (longest >= 40) warnings.push('存在最长边达到 40cm 口径的箱子，EMS 等渠道需要单独复核。');
+      if (diff > 0) warnings.push(`DHL 5000 与 6000 分母模拟差异约 ${{diff}} kg，建议不要只比较每千克单价。`);
+      const density = cbm ? actual / cbm : 0;
+      if (density && density < 120) warnings.push(`当前密度约 ${{round(density)}} kg/CBM，偏轻泡，建议重点复核体积重。`);
+      if (!warnings.length) warnings.push('当前样本未出现明显长边或轻泡提醒，但仍需确认渠道分母、进位和附加项。');
+      suggestion.textContent = warnings.join(' ');
+    }}
+
+    function addRow(data) {{
+      rowTemplate(data);
+    }}
+
+    root.querySelector('[data-add-row]').addEventListener('click', () => addRow());
+    root.querySelector('[data-load-sample]').addEventListener('click', () => {{
+      rowsBody.innerHTML = '';
+      rowId = 0;
+      addRow({{ name: '自拍杆长条箱', qty: 4, l: 75, w: 35, h: 28, kg: 8 }});
+      addRow({{ name: '配件重货箱', qty: 3, l: 42, w: 30, h: 24, kg: 14 }});
+      calculate();
+    }});
+    root.querySelector('[data-reset-rows]').addEventListener('click', () => {{
+      rowsBody.innerHTML = '';
+      rowId = 0;
+      addRow();
+      calculate();
+    }});
+    customDivisor.addEventListener('input', calculate);
+    addRow({{ name: '示例轻泡箱', qty: 2, l: 60, w: 45, h: 40, kg: 8 }});
+    addRow({{ name: '示例重货箱', qty: 1, l: 38, w: 28, h: 22, kg: 12 }});
+    calculate();
+  }}
+
+  initNav();
+  initTheme();
+  initAdSlots();
+  initArticleFilter();
   initCopyButtons();
-  initInteractiveTools();
-}});
+  initCalculator();
+}})();
 """
 
 
 def render_sitemap() -> str:
-    urls = ["", "index.html", "articles.html", "campus.html", "career.html", "tools.html", "about.html", "privacy.html", "contact.html"]
-    urls += [article_url(item["slug"]) for item in ARTICLES]
-    locs = "\n".join(f"  <url><loc>{site_path(url)}</loc><lastmod>{TODAY}</lastmod></url>" if url else f"  <url><loc>{site_path('')}</loc><lastmod>{TODAY}</lastmod></url>" for url in urls)
-    return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{locs}\n</urlset>\n'
+    pages = ["index.html", "articles.html", "tools.html", "smoke-test.html", *[GROUPS[key]["page"] for key in GROUP_ORDER], *STATIC_PAGES.keys()]
+    urls = [site_path(page if page != "index.html" else "") for page in pages]
+    urls += [site_path(f"articles/{item['slug']}.html") for item in ARTICLES]
+    body = "\n".join(
+        f"  <url><loc>{esc(url)}</loc><lastmod>{TODAY}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>"
+        for url in urls
+    )
+    return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{body}\n</urlset>\n'
+
+
+def render_robots() -> str:
+    return f"User-agent: *\nAllow: /\n\nSitemap: {SITE_URL}/sitemap.xml\n"
+
+
+def render_attributions() -> str:
+    return """# Image Attributions
+
+Images in this site are generated locally for the static website and stored under `assets/images/articles/`.
+
+- `logistics-calculator.png` / `.webp`: locally generated illustration for volumetric weight and CBM calculation.
+- `channel-routes.png` / `.webp`: locally generated illustration for logistics channel comparison.
+- `carton-checklist.png` / `.webp`: locally generated illustration for carton measurement and packing checks.
+
+No article image is hotlinked from an external website.
+"""
 
 
 def write_site_file(path: Path, content: str) -> None:
-    normalized = "\n".join(line.rstrip() for line in content.splitlines()) + "\n"
-    path.write_text(normalized, encoding="utf-8", newline="\n")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8", newline="\n")
+
+
+def ensure_visual_assets() -> None:
+    try:
+        from PIL import Image, ImageDraw
+    except Exception:
+        return
+
+    ARTICLE_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+
+    def rounded(draw, box, fill, outline=None, width=1, radius=26):
+        draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
+
+    def save_article_image(name: str, theme: str) -> None:
+        img = Image.new("RGB", (1200, 675), "#f6f8fb")
+        draw = ImageDraw.Draw(img)
+        colors = {
+            "volume": ("#19705a", "#285a9b", "#f1c27d"),
+            "channels": ("#285a9b", "#19705a", "#d9e6ff"),
+            "packing": ("#9a5c09", "#19705a", "#f5dfb8"),
+        }[theme]
+        for y in range(80, 640, 90):
+            draw.line((60, y, 1140, y), fill="#e2e7ef", width=2)
+        for x in range(120, 1120, 140):
+            draw.line((x, 60, x, 615), fill="#edf1f6", width=2)
+        rounded(draw, (110, 130, 420, 500), "#ffffff", "#d6dde8", 3, 36)
+        rounded(draw, (150, 180, 380, 250), colors[2], "#d09b4b", 3, 18)
+        rounded(draw, (155, 270, 250, 365), "#ffffff", colors[0], 5, 16)
+        rounded(draw, (275, 270, 370, 365), "#ffffff", colors[1], 5, 16)
+        for i in range(4):
+            for j in range(3):
+                rounded(draw, (160 + j * 70, 390 + i * 26, 205 + j * 70, 408 + i * 26), "#eaf0f7", None, 1, 8)
+
+        if theme == "channels":
+            points = [(560, 190), (760, 290), (1010, 190), (930, 470), (650, 480)]
+            for a, b in zip(points, points[1:] + points[:1]):
+                draw.line((*a, *b), fill=colors[0], width=8)
+            for idx, (x, y) in enumerate(points):
+                rounded(draw, (x - 46, y - 34, x + 46, y + 34), "#ffffff", colors[idx % 2], 4, 20)
+            draw.polygon([(690, 235), (735, 250), (690, 265)], fill=colors[0])
+        elif theme == "packing":
+            for x, y, w, h in [(560, 250, 180, 150), (760, 190, 210, 180), (690, 405, 250, 120)]:
+                rounded(draw, (x, y, x + w, y + h), "#f8d9a7", "#b98230", 4, 18)
+                draw.line((x, y + 42, x + w, y + 42), fill="#b98230", width=4)
+            draw.line((555, 565, 1030, 565), fill=colors[0], width=10)
+            for x in range(580, 1010, 55):
+                draw.line((x, 550, x, 580), fill=colors[0], width=5)
+        else:
+            rounded(draw, (560, 160, 1030, 485), "#ffffff", "#d6dde8", 4, 32)
+            for y in [235, 310, 385]:
+                draw.line((610, y, 980, y), fill="#dce3ed", width=5)
+            for x in [700, 820, 940]:
+                draw.line((x, 190, x, 440), fill="#edf1f6", width=4)
+            draw.arc((710, 250, 1010, 550), 200, 338, fill=colors[0], width=16)
+            draw.polygon([(1010, 382), (1040, 415), (996, 430)], fill=colors[0])
+
+        draw.text((118, 540), SITE_NAME, fill="#20252b")
+        draw.text((118, 570), "CBM / Volumetric Weight / Chargeable Weight", fill="#5f6874")
+        png = ARTICLE_IMAGE_DIR / f"{name}.png"
+        webp = ARTICLE_IMAGE_DIR / f"{name}.webp"
+        img.save(png, "PNG")
+        img.save(webp, "WEBP", quality=88)
+
+    save_article_image("logistics-calculator", "volume")
+    save_article_image("channel-routes", "channels")
+    save_article_image("carton-checklist", "packing")
+
+    icon = Image.new("RGB", (512, 512), "#19705a")
+    draw = ImageDraw.Draw(icon)
+    rounded(draw, (96, 160, 416, 360), "#ffffff", "#ffffff", 1, 48)
+    draw.line((96, 225, 416, 225), fill="#19705a", width=16)
+    draw.line((256, 160, 256, 360), fill="#19705a", width=16)
+    draw.arc((150, 90, 362, 302), 200, 340, fill="#f1c27d", width=20)
+    draw.polygon([(360, 190), (405, 218), (354, 242)], fill="#f1c27d")
+    icon.save(IMAGE_DIR / "favicon.png", "PNG")
+    icon.resize((180, 180)).save(IMAGE_DIR / "apple-touch-icon.png", "PNG")
+    icon.save(ROOT / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48), (128, 128), (256, 256)])
+
+
+def clean_old_outputs() -> None:
+    ARTICLES_DIR.mkdir(parents=True, exist_ok=True)
+    for path in ARTICLES_DIR.glob("*.html"):
+        path.unlink()
+    for old_page in ["campus.html", "career.html"]:
+        target = ROOT / old_page
+        if target.exists():
+            target.unlink()
 
 
 def main() -> None:
-    ensure_webp_images()
-    ARTICLES_DIR.mkdir(exist_ok=True)
-    for old in ARTICLES_DIR.glob("*.html"):
-        old.unlink()
-    for article in ARTICLES:
-        write_site_file(ARTICLES_DIR / f"{article['slug']}.html", render_article(article))
+    ensure_visual_assets()
+    clean_old_outputs()
+    ordered = ARTICLES
+    for index, article in enumerate(ordered):
+        prev_article = ordered[index - 1] if index > 0 else None
+        next_article = ordered[index + 1] if index < len(ordered) - 1 else None
+        write_site_file(ARTICLES_DIR / f"{article['slug']}.html", render_article(article, prev_article, next_article))
+
     write_site_file(ROOT / "index.html", render_index())
     write_site_file(ROOT / "articles.html", render_articles_index())
-    for group_key in GROUPS:
-        write_site_file(ROOT / GROUPS[group_key]["page"], render_group_page(group_key))
+    write_site_file(ROOT / "tools.html", render_tools())
+    write_site_file(ROOT / "smoke-test.html", render_smoke_test())
+    for key in GROUP_ORDER:
+        write_site_file(ROOT / GROUPS[key]["page"], render_group_page(key))
     for path, meta in STATIC_PAGES.items():
         write_site_file(ROOT / path, render_static_page(path, meta))
     write_site_file(ROOT / "404.html", render_404())
-    write_site_file(ROOT / "assets" / "site.js", render_site_js())
-    write_site_file(ROOT / "assets" / "search-index.json", render_search_index())
+    write_site_file(ASSETS_DIR / "site.js", render_site_js())
+    write_site_file(ASSETS_DIR / "search-index.json", render_search_index())
     write_site_file(ROOT / "sitemap.xml", render_sitemap())
-    write_site_file(ROOT / "assets" / "images" / "ATTRIBUTIONS.md", render_attributions())
+    write_site_file(ROOT / "robots.txt", render_robots())
+    write_site_file(IMAGE_DIR / "ATTRIBUTIONS.md", render_attributions())
+    print(f"Generated {len(ARTICLES)} logistics articles for {SITE_NAME}.")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 # Image Attributions
 
-Images are stored locally under `assets/images/articles/` to avoid hotlinking.
+Images in this site are generated locally for the static website and stored under `assets/images/articles/`.
 
-- `campus-study.jpg`: Unsplash source image, used under the Unsplash License. Source URL: https://images.unsplash.com/photo-1516321318423-f06f85e504b3
-- `career-team.jpg`: Unsplash source image, used under the Unsplash License. Source URL: https://images.unsplash.com/photo-1519389950473-47ba0277781c
-- `ai-tools-code.jpg`: Unsplash source image, used under the Unsplash License. Source URL: https://images.unsplash.com/photo-1498050108023-c5249f4df085
-- Unsplash License: https://unsplash.com/license
+- `logistics-calculator.png` / `.webp`: locally generated illustration for volumetric weight and CBM calculation.
+- `channel-routes.png` / `.webp`: locally generated illustration for logistics channel comparison.
+- `carton-checklist.png` / `.webp`: locally generated illustration for carton measurement and packing checks.
+
+No article image is hotlinked from an external website.

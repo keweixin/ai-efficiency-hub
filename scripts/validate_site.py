@@ -9,36 +9,46 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE_URL = "https://ai-efficiency-hub.pages.dev"
-MIN_ARTICLES = 50
+MIN_ARTICLES = 30
 MIN_CJK = 1200
+
+REQUIRED_PAGES = [
+    "index.html",
+    "articles.html",
+    "volume.html",
+    "channels.html",
+    "packing.html",
+    "tools.html",
+    "smoke-test.html",
+    "about.html",
+    "privacy.html",
+    "contact.html",
+]
+
 FORBIDDEN_TERMS = [
-    "价格",
-    "购买",
-    "付款",
-    "资料包",
+    "AI效率资源站",
+    "四六级",
+    "简历",
+    "保证省钱",
+    "必省",
+    "货代坑人",
+    "隐藏条款",
     "上架建议",
     "建议定价",
-    "机场",
-    "节点",
-    "破解",
-    "封号",
-    "绕过",
-    "代写",
-    "作弊",
     "面包多",
     "顿顿",
+    "付款",
+    "购买",
     "data-payment-link",
+    "1234567890",
 ]
+
 OLD_SLUGS = [
-    "activity-plan-template.html",
-    "ai-account-safety.html",
-    "assignment-prompt.html",
-    "automation-test-interview.html",
-    "cet-ai-study.html",
-    "gpt-claude-beginner.html",
-    "graduate-project-story.html",
-    "prompt-library.html",
-    "resume-ai-polish.html",
+    "cet-14-day-study-plan.html",
+    "ai-resume-polish-guide.html",
+    "prompt-four-part-formula.html",
+    "automation-test-interview-roadmap.html",
+    "gpt-claude-beginner-differences.html",
 ]
 
 
@@ -77,8 +87,8 @@ def validate_articles(errors: list[str]) -> None:
         count = cjk_count(strip_tags(body))
         if count < MIN_CJK:
             errors.append(f"{path.relative_to(ROOT)} has only {count} CJK chars")
-        if len(re.findall(r"<h2\b", text)) < 4:
-            errors.append(f"{path.relative_to(ROOT)} has fewer than 4 h2 sections")
+        if len(re.findall(r"<h2\b", text)) < 8:
+            errors.append(f"{path.relative_to(ROOT)} has fewer than 8 h2 sections")
         if len(re.findall(r'<a href="https?://', text)) < 2:
             errors.append(f"{path.relative_to(ROOT)} has fewer than 2 external sources")
         for required in [
@@ -89,6 +99,7 @@ def validate_articles(errors: list[str]) -> None:
             'application/ld+json',
             'id="answer"',
             'id="checklist"',
+            'id="faq"',
         ]:
             if required not in text:
                 errors.append(f"{path.relative_to(ROOT)} missing {required}")
@@ -175,11 +186,13 @@ def validate_sitemap_and_index(errors: list[str]) -> None:
     article_urls = re.findall(rf"<loc>{re.escape(SITE_URL)}/articles/[^<]+</loc>", sitemap)
     if len(article_urls) != MIN_ARTICLES:
         errors.append(f"sitemap has {len(article_urls)} article urls")
-    for page in ["articles.html", "campus.html", "career.html", "tools.html", "about.html", "privacy.html", "contact.html"]:
-        if f"{SITE_URL}/{page}" not in sitemap:
+    for page in REQUIRED_PAGES:
+        expected = f"{SITE_URL}/{page}" if page != "index.html" else SITE_URL
+        if expected not in sitemap:
             errors.append(f"sitemap missing {page}")
-    if f"{SITE_URL}/404.html" in sitemap:
-        errors.append("sitemap should not include 404.html")
+    for page in ["campus.html", "career.html", "404.html"]:
+        if f"{SITE_URL}/{page}" in sitemap:
+            errors.append(f"sitemap should not include {page}")
     for slug in OLD_SLUGS:
         if f"/articles/{slug}</loc>" in sitemap:
             errors.append(f"sitemap still contains old slug {slug}")
@@ -204,7 +217,12 @@ def validate_sitemap_and_index(errors: list[str]) -> None:
 
 def validate_sensitive_terms(errors: list[str]) -> None:
     public_files = html_files()
-    public_files += [ROOT / "assets" / "site.js", ROOT / "assets" / "search-index.json", ROOT / "sitemap.xml", ROOT / "robots.txt"]
+    public_files += [
+        ROOT / "assets" / "site.js",
+        ROOT / "assets" / "search-index.json",
+        ROOT / "sitemap.xml",
+        ROOT / "robots.txt",
+    ]
     for path in public_files:
         if not path.exists():
             continue
@@ -214,22 +232,51 @@ def validate_sensitive_terms(errors: list[str]) -> None:
                 errors.append(f"{path.relative_to(ROOT)} contains forbidden term: {term}")
 
 
+def validate_tools(errors: list[str]) -> None:
+    text = read(ROOT / "tools.html") if (ROOT / "tools.html").exists() else ""
+    for marker in [
+        "data-logistics-calculator",
+        "data-sku-rows",
+        "data-channel-results",
+        "DHL 5000",
+        "EMS 6000",
+        "标准空运 6000",
+    ]:
+        if marker not in text:
+            errors.append(f"tools.html missing {marker}")
+    js = read(ROOT / "assets" / "site.js") if (ROOT / "assets" / "site.js").exists() else ""
+    for marker in ["initCalculator", "5000", "6000", "40cm"]:
+        if marker not in js:
+            errors.append(f"site.js missing calculator marker {marker}")
+
+
+def validate_required_pages(errors: list[str]) -> None:
+    for page in REQUIRED_PAGES + ["404.html"]:
+        if not (ROOT / page).exists():
+            errors.append(f"missing page {page}")
+    for old in ["campus.html", "career.html"]:
+        if (ROOT / old).exists():
+            errors.append(f"old page still exists: {old}")
+
+
 def main() -> int:
     errors: list[str] = []
+    validate_required_pages(errors)
     validate_articles(errors)
     validate_seo(errors)
     validate_links_and_images(errors)
     validate_sitemap_and_index(errors)
     validate_sensitive_terms(errors)
+    validate_tools(errors)
     if errors:
         print(f"FAILED: {len(errors)} issue(s)")
-        for error in errors[:200]:
+        for error in errors[:250]:
             print(f"- {error}")
         return 1
     print("PASS: site validation completed")
     print(f"- articles: {MIN_ARTICLES}")
     print(f"- minimum CJK chars per article: {MIN_CJK}")
-    print("- SEO, links, images, sitemap, search index, and sensitive terms checked")
+    print("- SEO, links, images, sitemap, search index, tools, and sensitive terms checked")
     return 0
 
 
