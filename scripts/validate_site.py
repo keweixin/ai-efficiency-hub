@@ -65,7 +65,11 @@ def strip_tags(html: str) -> str:
 
 
 def html_files() -> list[Path]:
-    return sorted(ROOT.glob("*.html")) + sorted((ROOT / "articles").glob("*.html"))
+    root_pages = [
+        path for path in sorted(ROOT.glob("*.html"))
+        if not path.name.startswith("google")
+    ]
+    return root_pages + sorted((ROOT / "articles").glob("*.html"))
 
 
 def local_target(from_path: Path, href: str) -> Path:
