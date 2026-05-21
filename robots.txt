@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ai-efficiency-hub.pages.dev/sitemap.xml
+Sitemap: https://www.bevoorra.business/sitemap.xml

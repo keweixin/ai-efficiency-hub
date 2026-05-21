@@ -13,7 +13,7 @@ ASSETS_DIR = ROOT / "assets"
 IMAGE_DIR = ASSETS_DIR / "images"
 ARTICLE_IMAGE_DIR = IMAGE_DIR / "articles"
 
-SITE_URL = "https://ai-efficiency-hub.pages.dev"
+SITE_URL = "https://www.bevoorra.business"
 SITE_NAME = "跨境运费避坑工具箱"
 SITE_DESCRIPTION = "面向外贸员、跨境电商卖家、独立站卖家和 FBA 新手的体积重、CBM、计费重与渠道复核静态工具站。"
 TODAY = "2026-05-21"

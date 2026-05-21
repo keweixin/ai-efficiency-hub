@@ -8,7 +8,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SITE_URL = "https://ai-efficiency-hub.pages.dev"
+SITE_URL = "https://www.bevoorra.business"
 MIN_ARTICLES = 30
 MIN_CJK = 1200
 
