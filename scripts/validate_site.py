@@ -285,6 +285,18 @@ def validate_required_pages(errors: list[str]) -> None:
             errors.append(f"old page still exists: {old}")
 
 
+def validate_analytics(errors: list[str]) -> None:
+    for path in html_files():
+        text = read(path)
+        rel = path.relative_to(ROOT)
+        for marker in ["window.va", "data-vercel-analytics", "/_vercel/insights/script.js"]:
+            if marker not in text:
+                errors.append(f"{rel} missing Vercel Analytics marker {marker}")
+    privacy = read(ROOT / "privacy.html") if (ROOT / "privacy.html").exists() else ""
+    if "Vercel Web Analytics" not in privacy or "cookie" not in privacy:
+        errors.append("privacy.html missing Vercel Web Analytics privacy note")
+
+
 def main() -> int:
     errors: list[str] = []
     validate_required_pages(errors)
@@ -294,6 +306,7 @@ def main() -> int:
     validate_sitemap_and_index(errors)
     validate_sensitive_terms(errors)
     validate_tools(errors)
+    validate_analytics(errors)
     if errors:
         print(f"FAILED: {len(errors)} issue(s)")
         for error in errors[:250]:

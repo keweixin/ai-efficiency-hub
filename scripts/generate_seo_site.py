@@ -17,6 +17,7 @@ SITE_URL = "https://www.bevoorra.business"
 SITE_NAME = "跨境运费避坑工具箱"
 SITE_DESCRIPTION = "面向外贸员、跨境电商卖家、独立站卖家和 FBA 新手的体积重、CBM、计费重与渠道复核静态工具站。"
 TODAY = "2026-05-21"
+VERCEL_ANALYTICS_SCRIPT = "/_vercel/insights/script.js"
 
 
 SOURCES = {
@@ -617,7 +618,7 @@ STATIC_PAGES = {
         "h1": "隐私政策",
         "body": [
             "本站是纯静态页面。计费重计算器在用户浏览器本地运行，录入的 SKU、尺寸、重量和渠道分母不会被本站服务器接收或保存。",
-            "站点可能使用托管平台提供的基础访问日志，用于排查可用性和页面加载问题。我们不会要求用户提交账号密码、客户资料、订单明细或承运商合同信息。",
+            "站点可能使用 Vercel Web Analytics 和托管平台提供的基础访问日志，用于了解页面访问量、来源页面、设备类型和地区分布，并排查可用性问题。Vercel Web Analytics 不使用 cookie；计算器录入内容不会作为统计数据上传。我们不会要求用户提交账号密码、客户资料、订单明细或承运商合同信息。",
             "如果未来接入广告或统计服务，会在页面中补充对应说明。用户可以了解 Google 广告设置：<a href=\"https://adssettings.google.com/\" rel=\"noopener noreferrer\">Google Ads Settings</a>，也可以参考 <a href=\"https://optout.aboutads.info/\" rel=\"noopener noreferrer\">AboutAds 退订页面</a>。",
             "外部链接用于引用官方规则或资料来源。访问外部网站时，请以对方网站的隐私政策和服务条款为准。",
         ],
@@ -756,6 +757,10 @@ def layout_end(prefix: str = "") -> str:
       <p class="copyright" data-i18n="copyright">© {year} {SITE_NAME}. 本站不提供承运商报价承诺。</p>
     </div>
   </footer>
+  <script>
+    window.va = window.va || function () {{ (window.vaq = window.vaq || []).push(arguments); }};
+  </script>
+  <script defer src="{VERCEL_ANALYTICS_SCRIPT}" data-vercel-analytics></script>
   <script src="{prefix}assets/site.js"></script>
 </body>"""
 
