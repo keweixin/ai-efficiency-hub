@@ -47,6 +47,7 @@ FORBIDDEN_TERMS = [
     "购买",
     "data-payment-link",
     "1234567890",
+    "sellercentral.amazon.com/help",
 ]
 
 OLD_SLUGS = [

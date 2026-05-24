@@ -40,8 +40,8 @@ SOURCES = {
         "https://www.sf-express.com/chn/en/price-query",
     ),
     "amazon_fba_pack": (
-        "Amazon Seller Central Help：Packaging and prep requirements",
-        "https://sellercentral.amazon.com/help/hub/reference/G201079430",
+        "Amazon FBA：Fulfillment and product requirements overview",
+        "https://sell.amazon.com/fulfillment-by-amazon",
     ),
     "amazon_sp_api": (
         "Amazon SP-API：Create shipment without carton info",
