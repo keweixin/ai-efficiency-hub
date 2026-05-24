@@ -11,6 +11,7 @@ import ssl
 import subprocess
 import sys
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 
 
@@ -21,6 +22,7 @@ HTTP_WWW_URL = "http://www.bevoorra.business"
 ADS_TXT_LINE = "google.com, pub-7663008606677915, DIRECT, f08c47fec0942fa0"
 JSPDF_PATH = "assets/vendor/jspdf.umd.min.js"
 MIN_ARTICLES = 30
+FETCH_ATTEMPTS = 3
 
 
 @dataclass
@@ -51,17 +53,23 @@ class AssetParser(HTMLParser):
 
 def fetch(url: str, timeout: int = 25) -> FetchResult:
     request = Request(url, headers={"User-Agent": "ai-efficiency-hub-production-check/1.0"})
-    try:
-        with urlopen(request, timeout=timeout, context=ssl.create_default_context()) as response:
-            raw = response.read()
-            charset = response.headers.get_content_charset() or "utf-8"
-            return FetchResult(url, response.status, response.geturl(), raw.decode(charset, errors="replace"))
-    except HTTPError as error:
-        raw = error.read()
-        charset = error.headers.get_content_charset() or "utf-8"
-        return FetchResult(url, error.code, error.geturl(), raw.decode(charset, errors="replace"))
-    except URLError as error:
-        raise RuntimeError(f"{url} failed: {error}") from error
+    last_error: Exception | None = None
+    for attempt in range(1, FETCH_ATTEMPTS + 1):
+        try:
+            with urlopen(request, timeout=timeout, context=ssl.create_default_context()) as response:
+                raw = response.read()
+                charset = response.headers.get_content_charset() or "utf-8"
+                return FetchResult(url, response.status, response.geturl(), raw.decode(charset, errors="replace"))
+        except HTTPError as error:
+            raw = error.read()
+            charset = error.headers.get_content_charset() or "utf-8"
+            return FetchResult(url, error.code, error.geturl(), raw.decode(charset, errors="replace"))
+        except (URLError, TimeoutError, OSError) as error:
+            last_error = error
+            if attempt < FETCH_ATTEMPTS:
+                time.sleep(1.5 * attempt)
+                continue
+    raise RuntimeError(f"{url} failed after {FETCH_ATTEMPTS} attempts: {last_error}") from last_error
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -254,13 +262,20 @@ def check_assets_from_pages(errors: list[str]) -> None:
 
 def main() -> int:
     errors: list[str] = []
-    check_dns(errors)
-    check_core_pages(errors)
-    check_static_content(errors)
-    check_production_calculator_logic(errors)
-    check_external_dependencies(errors)
-    check_sitemap(errors)
-    check_assets_from_pages(errors)
+    checks = [
+        check_dns,
+        check_core_pages,
+        check_static_content,
+        check_production_calculator_logic,
+        check_external_dependencies,
+        check_sitemap,
+        check_assets_from_pages,
+    ]
+    for check in checks:
+        try:
+            check(errors)
+        except RuntimeError as exc:
+            errors.append(str(exc))
     if errors:
         print(f"FAILED: {len(errors)} production issue(s)")
         for error in errors:
