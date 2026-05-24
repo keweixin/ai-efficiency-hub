@@ -129,6 +129,8 @@ def check_static_content(errors: list[str]) -> None:
 
     sample_article = fetch(f"{SITE_URL}/articles/volumetric-weight-formula-dhl-ems-sf.html")
     require('property="og:type" content="article"' in sample_article.body, "sample article should use article Open Graph type", errors)
+    require('property="og:image:alt"' in sample_article.body, "sample article missing Open Graph image alt text", errors)
+    require('name="twitter:image"' in sample_article.body, "sample article missing Twitter image meta", errors)
     require('"@type":"Article"' in sample_article.body, "sample article missing Article JSON-LD", errors)
 
     js = fetch(f"{SITE_URL}/assets/site.js")

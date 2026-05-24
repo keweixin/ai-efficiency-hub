@@ -683,12 +683,14 @@ def page_head(
     path: str,
     prefix: str = "",
     image: str | None = None,
+    image_alt: str | None = None,
     og_type: str = "website",
     robots: str = "index, follow",
     json_ld: list[dict] | dict | None = None,
 ) -> str:
     canonical = site_path(path)
     image_url = site_path(image or "assets/images/favicon.png")
+    image_alt_text = image_alt or description
     if json_ld is None:
         json_ld = {
             "@context": "https://schema.org",
@@ -707,12 +709,17 @@ def page_head(
   <link rel="canonical" href="{esc(canonical)}">
   <meta property="og:title" content="{esc(title)}">
   <meta property="og:description" content="{esc(description)}">
+  <meta property="og:site_name" content="{esc(SITE_NAME)}">
+  <meta property="og:locale" content="zh_CN">
   <meta property="og:type" content="{esc(og_type)}">
   <meta property="og:url" content="{esc(canonical)}">
   <meta property="og:image" content="{esc(image_url)}">
+  <meta property="og:image:alt" content="{esc(image_alt_text)}">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{esc(title)}">
   <meta name="twitter:description" content="{esc(description)}">
+  <meta name="twitter:image" content="{esc(image_url)}">
+  <meta name="twitter:image:alt" content="{esc(image_alt_text)}">
   <link rel="icon" href="{prefix}assets/images/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="{prefix}assets/images/apple-touch-icon.png">
   <link rel="stylesheet" href="{prefix}assets/styles.css">
@@ -894,7 +901,7 @@ def render_article(article: dict, prev_article: dict | None, next_article: dict 
     related_html = "\n".join(f'<li><a href="{item["slug"]}.html">{esc(item["title"])}</a></li>' for item in related)
     html = f"""<!doctype html>
 <html lang="zh-CN">
-{page_head(title=title, description=article['description'], path=path, prefix='../', image=image['src'], og_type='article', json_ld=article_schema)}
+{page_head(title=title, description=article['description'], path=path, prefix='../', image=image['src'], image_alt=image['alt'], og_type='article', json_ld=article_schema)}
 {layout_start(active=article['group'], prefix='../')}
     <section class="article-hero">
       <div class="section-inner">

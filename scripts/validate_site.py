@@ -139,7 +139,11 @@ def validate_seo(errors: list[str]) -> None:
             '<link rel="canonical"',
             'property="og:title"',
             'property="og:url"',
+            'property="og:image"',
+            'property="og:image:alt"',
             'name="twitter:card"',
+            'name="twitter:image"',
+            'name="twitter:image:alt"',
             'application/ld+json',
         ]:
             if required not in text:
