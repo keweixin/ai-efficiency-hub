@@ -294,6 +294,7 @@ def validate_tools(errors: list[str]) -> None:
         "initLanguage",
         "exportPdfReport",
         "JSPDF_SRC",
+        "assets/vendor/jspdf.umd.min.js",
         "data-load-failed",
         "jsPDF load failed",
         "shipping-calculator-state-v1",
@@ -322,9 +323,24 @@ def validate_tools(errors: list[str]) -> None:
         "row.l >= 40",
         "Object.values(row).some(Boolean)",
         "saveStateNow('saveCleared')",
+        "cdn.jsdelivr.net/npm/jspdf",
     ]:
         if forbidden in js:
             errors.append(f"site.js still contains outdated calculator pattern {forbidden}")
+
+    vendor = ROOT / "assets" / "vendor" / "jspdf.umd.min.js"
+    license_file = ROOT / "assets" / "vendor" / "jspdf.LICENSE.txt"
+    if not vendor.exists():
+        errors.append("missing self-hosted jsPDF vendor file")
+    elif vendor.stat().st_size < 100_000:
+        errors.append("self-hosted jsPDF vendor file looks too small")
+    if not license_file.exists():
+        errors.append("missing jsPDF license file")
+    else:
+        license_text = read(license_file)
+        for marker in ["Permission is hereby granted", "THE SOFTWARE IS PROVIDED"]:
+            if marker not in license_text:
+                errors.append(f"jsPDF license file missing expected license marker: {marker}")
 
 
 def validate_calculator_logic(errors: list[str]) -> None:

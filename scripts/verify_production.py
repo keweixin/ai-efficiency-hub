@@ -19,7 +19,7 @@ ROOT_DOMAIN_URL = "https://bevoorra.business"
 HTTP_ROOT_DOMAIN_URL = "http://bevoorra.business"
 HTTP_WWW_URL = "http://www.bevoorra.business"
 ADS_TXT_LINE = "google.com, pub-7663008606677915, DIRECT, f08c47fec0942fa0"
-JSPDF_URL = "https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"
+JSPDF_PATH = "assets/vendor/jspdf.umd.min.js"
 MIN_ARTICLES = 30
 
 
@@ -119,6 +119,8 @@ def check_static_content(errors: list[str]) -> None:
     js = fetch(f"{SITE_URL}/assets/site.js")
     for marker in ["ShippingCalculatorLogic", "saveClearedState", "computeCalculatorData", "JSPDF_SRC"]:
         require(marker in js.body, f"assets/site.js missing marker {marker}", errors)
+    require(JSPDF_PATH in js.body, "assets/site.js does not load the self-hosted jsPDF file", errors)
+    require("cdn.jsdelivr.net/npm/jspdf" not in js.body, "assets/site.js still points PDF export at jsDelivr", errors)
     require("saveStateNow('saveCleared')" not in js.body, "assets/site.js still has old clear-state save pattern", errors)
 
     ads = fetch(f"{SITE_URL}/ads.txt")
@@ -206,9 +208,13 @@ close(channel(custom, 'customChannel').chargeable, 31.25, 'production custom div
 
 
 def check_external_dependencies(errors: list[str]) -> None:
-    jspdf = fetch(JSPDF_URL)
-    require(jspdf.status == 200, f"jsPDF CDN returned {jspdf.status}", errors)
-    require("jsPDF" in jspdf.body, "jsPDF CDN response did not contain expected jsPDF marker", errors)
+    jspdf = fetch(f"{SITE_URL}/{JSPDF_PATH}")
+    require(jspdf.status == 200, f"self-hosted jsPDF returned {jspdf.status}", errors)
+    require("jsPDF" in jspdf.body, "self-hosted jsPDF response did not contain expected jsPDF marker", errors)
+    license_file = fetch(f"{SITE_URL}/assets/vendor/jspdf.LICENSE.txt")
+    require(license_file.status == 200, f"jsPDF license file returned {license_file.status}", errors)
+    for marker in ["Permission is hereby granted", "THE SOFTWARE IS PROVIDED"]:
+        require(marker in license_file.body, f"jsPDF license file missing expected license marker: {marker}", errors)
 
 
 def check_sitemap(errors: list[str]) -> None:
@@ -263,7 +269,7 @@ def main() -> int:
     print("PASS: production verification completed")
     print(f"- domain: {SITE_URL}")
     print(f"- sitemap articles: {MIN_ARTICLES}")
-    print("- checked DNS, HTTP to HTTPS redirects, core pages, assets, production calculator logic, jsPDF CDN, analytics script, ads.txt, robots.txt, sitemap, and custom 404")
+    print("- checked DNS, HTTP to HTTPS redirects, core pages, assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, robots.txt, sitemap, and custom 404")
     return 0
 
 

@@ -5,7 +5,7 @@
     nav: [{"href": "index.html", "label": "首页", "labelEn": "Home", "key": "home"}, {"href": "articles.html", "label": "文章", "labelEn": "Articles", "key": "articles"}, {"href": "volume.html", "label": "体积重", "labelEn": "Volumetric", "key": "volume"}, {"href": "channels.html", "label": "渠道", "labelEn": "Channels", "key": "channels"}, {"href": "packing.html", "label": "包装", "labelEn": "Packing", "key": "packing"}, {"href": "tools.html", "label": "工具", "labelEn": "Tools", "key": "tools"}, {"href": "smoke-test.html", "label": "内测", "labelEn": "Beta", "key": "smoke"}]
   };
 
-  const JSPDF_SRC = 'https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js';
+  const JSPDF_SRC = 'assets/vendor/jspdf.umd.min.js';
 
   const i18n = {
     zh: {
@@ -669,7 +669,7 @@
           return;
         }
         const script = document.createElement('script');
-        script.src = JSPDF_SRC;
+        script.src = resolvePrefix() + JSPDF_SRC;
         script.async = true;
         script.defer = true;
         script.dataset.jspdf = 'true';

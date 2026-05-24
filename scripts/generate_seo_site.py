@@ -1397,7 +1397,7 @@ def render_site_js() -> str:
     nav: {json.dumps(nav_items, ensure_ascii=False)}
   }};
 
-  const JSPDF_SRC = 'https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js';
+  const JSPDF_SRC = 'assets/vendor/jspdf.umd.min.js';
 
   const i18n = {{
     zh: {{
@@ -2061,7 +2061,7 @@ def render_site_js() -> str:
           return;
         }}
         const script = document.createElement('script');
-        script.src = JSPDF_SRC;
+        script.src = resolvePrefix() + JSPDF_SRC;
         script.async = true;
         script.defer = true;
         script.dataset.jspdf = 'true';
