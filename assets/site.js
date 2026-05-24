@@ -468,7 +468,9 @@
           h: value('h'),
           kg: value('kg')
         };
-      }).filter((row) => Object.values(row).some(Boolean));
+      }).filter((row) => {
+        return Boolean(row.name || row.l || row.w || row.h || row.kg || (row.qty && row.qty !== '1'));
+      });
     }
 
     function sanitizeStoredRows(rows) {
@@ -483,7 +485,9 @@
           h: String(safe.h || ''),
           kg: String(safe.kg || '')
         };
-      }).filter((row) => Object.values(row).some(Boolean));
+      }).filter((row) => {
+        return Boolean(row.name || row.l || row.w || row.h || row.kg || (row.qty && row.qty !== '1'));
+      });
     }
 
     function readSavedState() {
@@ -526,6 +530,21 @@
       window.clearTimeout(saveTimer);
       storageRemove(storageKey);
       setSaveStatus('saveCleared');
+    }
+
+    function saveClearedState() {
+      window.clearTimeout(saveTimer);
+      const payload = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        customDivisor: '6000',
+        rows: []
+      };
+      if (storageSet(storageKey, JSON.stringify(payload))) {
+        setSaveStatus('saveCleared');
+      } else {
+        setSaveStatus('saveUnavailable', 3600);
+      }
     }
 
     function rowTemplate(data = {}) {
@@ -878,7 +897,7 @@
       customDivisor.value = '6000';
       addRow();
       calculate();
-      saveStateNow('saveCleared');
+      saveClearedState();
     });
     customDivisor.addEventListener('input', () => {
       calculate();

@@ -304,6 +304,7 @@ def validate_tools(errors: list[str]) -> None:
         "emsPieceCalc",
         "calcChannel",
         "saveStateNow",
+        "saveClearedState",
         "readSavedState",
         "storageSet",
         "emsPieceWarning",
@@ -319,6 +320,8 @@ def validate_tools(errors: list[str]) -> None:
         "chargeable += Math.max(volumePer, actualPer) * row.qty",
         "longest >= 40",
         "row.l >= 40",
+        "Object.values(row).some(Boolean)",
+        "saveStateNow('saveCleared')",
     ]:
         if forbidden in js:
             errors.append(f"site.js still contains outdated calculator pattern {forbidden}")
