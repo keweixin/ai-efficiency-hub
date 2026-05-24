@@ -250,6 +250,15 @@ def check_sitemap(errors: list[str]) -> None:
     require(len(article_locs) == MIN_ARTICLES, f"sitemap has {len(article_locs)} article URLs, expected {MIN_ARTICLES}", errors)
     for expected in [SITE_URL, f"{SITE_URL}/tools.html", f"{SITE_URL}/smoke-test.html"]:
         require(expected in locs, f"sitemap missing {expected}", errors)
+    for loc in locs:
+        if not loc.startswith(SITE_URL):
+            errors.append(f"sitemap URL is outside production domain: {loc}")
+            continue
+        result = fetch(loc)
+        require(result.status == 200, f"sitemap URL returned {result.status}: {loc}", errors)
+        if "<html" in result.body[:300].lower():
+            expected_canonical = f'<link rel="canonical" href="{loc}">'
+            require(expected_canonical in result.body, f"sitemap URL canonical mismatch: {loc}", errors)
 
 
 def check_assets_from_pages(errors: list[str]) -> None:
@@ -296,7 +305,7 @@ def main() -> int:
     print("PASS: production verification completed")
     print(f"- domain: {SITE_URL}")
     print(f"- sitemap articles: {MIN_ARTICLES}")
-    print("- checked DNS, HTTP to HTTPS redirects, core pages, assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, Google verification, robots.txt, sitemap, and custom 404")
+    print("- checked DNS, HTTP to HTTPS redirects, core pages, all sitemap URLs, canonical tags, assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, Google verification, robots.txt, sitemap, and custom 404")
     return 0
 
 
