@@ -299,6 +299,8 @@ def check_sitemap(errors: list[str]) -> None:
             expected_canonical = f'<link rel="canonical" href="{loc}">'
             require(expected_canonical in result.body, f"sitemap URL canonical mismatch: {loc}", errors)
             require('name="robots" content="index, follow"' in result.body, f"sitemap URL is not indexable: {loc}", errors)
+            require("dataset.vercelAnalytics" in result.body, f"sitemap URL missing Vercel Analytics marker: {loc}", errors)
+            require("/_vercel/insights/script.js" in result.body, f"sitemap URL missing Vercel Analytics script path: {loc}", errors)
 
 
 def check_assets_from_pages(errors: list[str]) -> None:
@@ -350,7 +352,7 @@ def main() -> int:
     print("PASS: production verification completed")
     print(f"- domain: {SITE_URL}")
     print(f"- sitemap articles: {MIN_ARTICLES}")
-    print("- checked DNS, HTTP to HTTPS redirects, core pages, all sitemap URLs, canonical tags, indexable sitemap pages, sitemap page assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, Google verification, robots.txt, sitemap, and custom 404")
+    print("- checked DNS, HTTP to HTTPS redirects, core pages, all sitemap URLs, canonical tags, indexable sitemap pages, sitemap page analytics, sitemap page assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, Google verification, robots.txt, sitemap, and custom 404")
     return 0
 
 
