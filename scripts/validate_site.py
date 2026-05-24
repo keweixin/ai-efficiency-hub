@@ -14,6 +14,9 @@ PUBLISHED_DATE = "2026-05-21"
 TODAY = datetime.date.today().isoformat()
 MIN_ARTICLES = 30
 MIN_CJK = 1200
+GSC_VERIFICATION_FILE = "google97d2ec5ca21ee27c.html"
+GSC_VERIFICATION_BODY = "google-site-verification: google97d2ec5ca21ee27c.html"
+ADS_TXT_LINE = "google.com, pub-7663008606677915, DIRECT, f08c47fec0942fa0"
 
 REQUIRED_PAGES = [
     "index.html",
@@ -313,6 +316,20 @@ def validate_required_pages(errors: list[str]) -> None:
             errors.append(f"old page still exists: {old}")
 
 
+def validate_required_static_files(errors: list[str]) -> None:
+    for file_name in ["robots.txt", "sitemap.xml", "ads.txt", GSC_VERIFICATION_FILE]:
+        if not (ROOT / file_name).exists():
+            errors.append(f"missing static file {file_name}")
+
+    ads = read(ROOT / "ads.txt").strip() if (ROOT / "ads.txt").exists() else ""
+    if ADS_TXT_LINE not in ads:
+        errors.append("ads.txt missing expected AdSense publisher line")
+
+    verification = read(ROOT / GSC_VERIFICATION_FILE).strip() if (ROOT / GSC_VERIFICATION_FILE).exists() else ""
+    if verification != GSC_VERIFICATION_BODY:
+        errors.append(f"{GSC_VERIFICATION_FILE} has unexpected verification body")
+
+
 def validate_analytics(errors: list[str]) -> None:
     for path in html_files():
         text = read(path)
@@ -328,6 +345,7 @@ def validate_analytics(errors: list[str]) -> None:
 def main() -> int:
     errors: list[str] = []
     validate_required_pages(errors)
+    validate_required_static_files(errors)
     validate_articles(errors)
     validate_seo(errors)
     validate_links_and_images(errors)
@@ -343,7 +361,7 @@ def main() -> int:
     print("PASS: site validation completed")
     print(f"- articles: {MIN_ARTICLES}")
     print(f"- minimum CJK chars per article: {MIN_CJK}")
-    print("- SEO, links, images, sitemap, search index, tools, and sensitive terms checked")
+    print("- SEO, links, images, sitemap, search index, static files, tools, and sensitive terms checked")
     return 0
 
 
