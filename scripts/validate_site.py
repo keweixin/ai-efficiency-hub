@@ -148,6 +148,11 @@ def validate_seo(errors: list[str]) -> None:
         ]:
             if required not in text:
                 errors.append(f"{path.relative_to(ROOT)} missing {required}")
+        if path.name == "404.html":
+            if 'name="robots" content="noindex, follow"' not in text:
+                errors.append("404.html should be noindex, follow")
+        elif 'name="robots" content="index, follow"' not in text:
+            errors.append(f"{path.relative_to(ROOT)} should be index, follow")
         if path.parent.name == "articles":
             if f'"datePublished":"{PUBLISHED_DATE}"' not in text:
                 errors.append(f"{path.relative_to(ROOT)} has wrong datePublished")
