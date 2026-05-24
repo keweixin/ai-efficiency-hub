@@ -1981,11 +1981,28 @@ def render_site_js() -> str:
 
     function loadJsPdf() {{
       if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+      const failed = document.querySelector('script[data-jspdf][data-load-failed="true"]');
+      if (failed) failed.remove();
       return new Promise((resolve, reject) => {{
         const existing = document.querySelector('script[data-jspdf]');
         if (existing) {{
-          existing.addEventListener('load', () => resolve(window.jspdf.jsPDF), {{ once: true }});
-          existing.addEventListener('error', reject, {{ once: true }});
+          if (existing.dataset.loaded === 'true') {{
+            existing.remove();
+          }} else {{
+            existing.addEventListener('load', () => {{
+              if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
+              else reject(new Error('jsPDF missing after load'));
+            }}, {{ once: true }});
+            existing.addEventListener('error', () => {{
+              existing.dataset.loadFailed = 'true';
+              existing.remove();
+              reject(new Error('jsPDF load failed'));
+            }}, {{ once: true }});
+            return;
+          }}
+        }}
+        if (window.jspdf && window.jspdf.jsPDF) {{
+          resolve(window.jspdf.jsPDF);
           return;
         }}
         const script = document.createElement('script');
@@ -1993,8 +2010,19 @@ def render_site_js() -> str:
         script.async = true;
         script.defer = true;
         script.dataset.jspdf = 'true';
-        script.onload = () => resolve(window.jspdf.jsPDF);
-        script.onerror = reject;
+        script.onload = () => {{
+          script.dataset.loaded = 'true';
+          if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
+          else {{
+            script.remove();
+            reject(new Error('jsPDF missing after load'));
+          }}
+        }};
+        script.onerror = () => {{
+          script.dataset.loadFailed = 'true';
+          script.remove();
+          reject(new Error('jsPDF load failed'));
+        }};
         document.head.appendChild(script);
       }});
     }}

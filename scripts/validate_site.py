@@ -289,6 +289,8 @@ def validate_tools(errors: list[str]) -> None:
         "initLanguage",
         "exportPdfReport",
         "JSPDF_SRC",
+        "data-load-failed",
+        "jsPDF load failed",
         "shipping-calculator-state-v1",
         "shipmentCalc",
         "emsPieceCalc",
