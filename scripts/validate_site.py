@@ -32,6 +32,20 @@ REQUIRED_PAGES = [
     "contact.html",
 ]
 
+EXPECTED_SCHEMA_TYPES = {
+    "index.html": {"WebSite", "SearchAction"},
+    "articles.html": {"CollectionPage"},
+    "volume.html": {"CollectionPage"},
+    "channels.html": {"CollectionPage"},
+    "packing.html": {"CollectionPage"},
+    "tools.html": {"SoftwareApplication", "Offer"},
+    "smoke-test.html": {"WebPage"},
+    "about.html": {"WebPage"},
+    "privacy.html": {"WebPage"},
+    "contact.html": {"WebPage"},
+    "404.html": {"WebPage"},
+}
+
 FORBIDDEN_TERMS = [
     "AI效率资源站",
     "四六级",
@@ -180,10 +194,10 @@ def validate_seo(errors: list[str]) -> None:
                 errors.append(f"{path.relative_to(ROOT)} has invalid JSON-LD block {index}: {exc}")
                 continue
             parsed_types.update(schema_types(parsed))
-        if path.name == "index.html" and "WebSite" not in parsed_types:
-            errors.append("index.html missing WebSite JSON-LD")
-        if path.name == "tools.html" and "SoftwareApplication" not in parsed_types:
-            errors.append("tools.html missing SoftwareApplication JSON-LD")
+        expected_types = EXPECTED_SCHEMA_TYPES.get(path.name)
+        if expected_types and not expected_types.issubset(parsed_types):
+            missing = ", ".join(sorted(expected_types - parsed_types))
+            errors.append(f"{path.relative_to(ROOT)} missing JSON-LD type(s): {missing}")
         if path.parent.name == "articles":
             if f'"datePublished":"{PUBLISHED_DATE}"' not in text:
                 errors.append(f"{path.relative_to(ROOT)} has wrong datePublished")

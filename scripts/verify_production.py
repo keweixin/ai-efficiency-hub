@@ -40,6 +40,18 @@ REQUIRED_SITEMAP_URLS = [
     f"{SITE_URL}/privacy.html",
     f"{SITE_URL}/contact.html",
 ]
+EXPECTED_SCHEMA_TYPES = {
+    SITE_URL: {"WebSite", "SearchAction"},
+    f"{SITE_URL}/articles.html": {"CollectionPage"},
+    f"{SITE_URL}/tools.html": {"SoftwareApplication", "Offer"},
+    f"{SITE_URL}/smoke-test.html": {"WebPage"},
+    f"{SITE_URL}/volume.html": {"CollectionPage"},
+    f"{SITE_URL}/channels.html": {"CollectionPage"},
+    f"{SITE_URL}/packing.html": {"CollectionPage"},
+    f"{SITE_URL}/about.html": {"WebPage"},
+    f"{SITE_URL}/privacy.html": {"WebPage"},
+    f"{SITE_URL}/contact.html": {"WebPage"},
+}
 
 
 @dataclass
@@ -336,6 +348,10 @@ def check_sitemap(errors: list[str]) -> None:
             require("/_vercel/insights/script.js" in result.body, f"sitemap URL missing Vercel Analytics script path: {loc}", errors)
             schema_types_for_page = parse_json_ld_types(result.body, loc, errors)
             require(bool(schema_types_for_page), f"sitemap URL has no parseable JSON-LD: {loc}", errors)
+            expected_types = {"Article", "BreadcrumbList"} if "/articles/" in loc else EXPECTED_SCHEMA_TYPES.get(loc, set())
+            if expected_types and not expected_types.issubset(schema_types_for_page):
+                missing = ", ".join(sorted(expected_types - schema_types_for_page))
+                errors.append(f"sitemap URL missing JSON-LD type(s) {missing}: {loc}")
 
 
 def check_assets_from_pages(errors: list[str]) -> None:
