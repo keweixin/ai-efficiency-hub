@@ -5,6 +5,7 @@ from html import unescape
 from pathlib import Path
 import json
 import re
+import subprocess
 import sys
 
 
@@ -296,6 +297,9 @@ def validate_tools(errors: list[str]) -> None:
         "data-load-failed",
         "jsPDF load failed",
         "shipping-calculator-state-v1",
+        "ShippingCalculatorLogic",
+        "computeCalculatorData",
+        "normalizeCalculatorRows",
         "shipmentCalc",
         "emsPieceCalc",
         "calcChannel",
@@ -318,6 +322,77 @@ def validate_tools(errors: list[str]) -> None:
     ]:
         if forbidden in js:
             errors.append(f"site.js still contains outdated calculator pattern {forbidden}")
+
+
+def validate_calculator_logic(errors: list[str]) -> None:
+    site_js = json.dumps(str(ROOT / "assets" / "site.js"))
+    script = f"""
+const siteJs = {site_js};
+const noop = () => {{}};
+global.window = {{
+  localStorage: {{ getItem() {{ return null; }}, setItem() {{}}, removeItem() {{}} }},
+  location: {{ pathname: '/tools.html' }},
+  clearTimeout,
+  setTimeout
+}};
+global.location = window.location;
+global.document = {{
+  documentElement: {{ lang: '', classList: {{ add: noop, remove: noop, toggle() {{ return false; }} }} }},
+  body: {{ dataset: {{}} }},
+  querySelectorAll() {{ return []; }},
+  querySelector() {{ return null; }},
+  addEventListener: noop,
+  dispatchEvent: noop
+}};
+global.CustomEvent = function CustomEvent(type, init) {{ return {{ type, detail: init && init.detail }}; }};
+require(siteJs);
+
+const logic = window.ShippingCalculatorLogic;
+if (!logic || typeof logic.compute !== 'function') throw new Error('ShippingCalculatorLogic.compute is missing');
+
+function channel(report, key) {{
+  const item = report.channelData.find((entry) => entry.key === key);
+  if (!item) throw new Error('missing channel ' + key);
+  return item;
+}}
+function close(actual, expected, label) {{
+  if (Math.abs(actual - expected) > 0.01) {{
+    throw new Error(`${{label}} expected ${{expected}}, got ${{actual}}`);
+  }}
+}}
+
+const mixed = logic.compute([
+  {{ name: 'bulky', qty: 1, l: 100, w: 50, h: 30, kg: 2 }},
+  {{ name: 'heavy', qty: 1, l: 20, w: 20, h: 25, kg: 30 }}
+], 6000);
+close(channel(mixed, 'dhlChannel').chargeable, 32, 'DHL mixed shipment chargeable weight');
+close(channel(mixed, 'airChannel').chargeable, 32, 'air mixed shipment chargeable weight');
+close(channel(mixed, 'emsChannel').chargeable, 55, 'EMS piece long-side chargeable weight');
+
+const exact40 = logic.compute([{{ name: 'edge', qty: 1, l: 40, w: 20, h: 20, kg: 1 }}], 6000);
+close(channel(exact40, 'emsChannel').chargeable, 1, 'EMS exact 40cm should stay actual-weight only');
+
+const over40 = logic.compute([{{ name: 'over', qty: 1, l: 40.1, w: 20, h: 20, kg: 1 }}], 6000);
+close(channel(over40, 'emsChannel').chargeable, 2.67, 'EMS above 40cm should compare piece volume and actual');
+
+const custom = logic.compute([{{ name: 'custom', qty: 1, l: 50, w: 50, h: 50, kg: 10 }}], 4000);
+close(channel(custom, 'customChannel').divisor, 4000, 'custom divisor should be preserved');
+close(channel(custom, 'customChannel').chargeable, 31.25, 'custom divisor chargeable weight');
+"""
+    try:
+        completed = subprocess.run(
+            ["node", "-e", script],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        errors.append(f"calculator runtime validation could not run: {exc}")
+        return
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout).strip()
+        errors.append(f"calculator runtime validation failed: {detail}")
 
 
 def validate_required_pages(errors: list[str]) -> None:
@@ -365,6 +440,7 @@ def main() -> int:
     validate_sitemap_and_index(errors)
     validate_sensitive_terms(errors)
     validate_tools(errors)
+    validate_calculator_logic(errors)
     validate_analytics(errors)
     if errors:
         print(f"FAILED: {len(errors)} issue(s)")

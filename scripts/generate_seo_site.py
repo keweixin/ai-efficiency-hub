@@ -1744,6 +1744,77 @@ def render_site_js() -> str:
     return Math.round(value * factor) / factor;
   }}
 
+  const calculatorChannels = [
+    {{ key: 'dhlChannel', divisor: 5000, mode: 'shipment' }},
+    {{ key: 'emsChannel', divisor: 6000, mode: 'ems-piece' }},
+    {{ key: 'airChannel', divisor: 6000, mode: 'shipment' }},
+    {{ key: 'customChannel', divisor: 'custom', mode: 'shipment' }}
+  ];
+
+  function normalizeCalculatorRows(rows) {{
+    if (!Array.isArray(rows)) return [];
+    return rows.map((row) => {{
+      const source = row && typeof row === 'object' ? row : {{}};
+      return {{
+        name: String(source.name || ''),
+        qty: Math.max(0, Number(source.qty) || 0),
+        l: Math.max(0, Number(source.l) || 0),
+        w: Math.max(0, Number(source.w) || 0),
+        h: Math.max(0, Number(source.h) || 0),
+        kg: Math.max(0, Number(source.kg) || 0)
+      }};
+    }}).filter((row) => row.qty && row.l && row.w && row.h);
+  }}
+
+  function shipmentCalc(rows, actual, divisor) {{
+    const volume = rows.reduce((sum, row) => {{
+      return sum + (row.l * row.w * row.h / divisor) * row.qty;
+    }}, 0);
+    return {{ volume: round(volume), chargeable: round(Math.max(actual, volume)) }};
+  }}
+
+  function emsPieceCalc(rows) {{
+    let volume = 0;
+    let chargeable = 0;
+    rows.forEach((row) => {{
+      const volumePer = row.l * row.w * row.h / 6000;
+      const actualPer = row.kg || 0;
+      const hasLongSide = row.l > 40 || row.w > 40 || row.h > 40;
+      volume += volumePer * row.qty;
+      chargeable += (hasLongSide ? Math.max(volumePer, actualPer) : actualPer) * row.qty;
+    }});
+    return {{ volume: round(volume), chargeable: round(chargeable) }};
+  }}
+
+  function calcChannel(rows, actual, channel, customDivisorValue) {{
+    const divisor = channel.divisor === 'custom' ? customDivisorValue : channel.divisor;
+    const result = channel.mode === 'ems-piece'
+      ? emsPieceCalc(rows)
+      : shipmentCalc(rows, actual, divisor);
+    return {{
+      key: channel.key,
+      divisor,
+      volume: result.volume,
+      chargeable: result.chargeable
+    }};
+  }}
+
+  function computeCalculatorData(inputRows, customDivisorValue) {{
+    const rows = normalizeCalculatorRows(inputRows);
+    const actual = rows.reduce((sum, row) => sum + row.kg * row.qty, 0);
+    const cbm = rows.reduce((sum, row) => sum + (row.l * row.w * row.h / 1000000) * row.qty, 0);
+    const longest = rows.reduce((max, row) => Math.max(max, row.l, row.w, row.h), 0);
+    const custom = Math.max(1000, Number(customDivisorValue) || 6000);
+    const channelData = calculatorChannels.map((channel) => calcChannel(rows, actual, channel, custom));
+    return {{ rows, actual, cbm, longest, channelData }};
+  }}
+
+  if (typeof window !== 'undefined') {{
+    window.ShippingCalculatorLogic = Object.freeze({{
+      compute: computeCalculatorData
+    }});
+  }}
+
   function initCalculator() {{
     const root = document.querySelector('[data-logistics-calculator]');
     if (!root) return;
@@ -1762,13 +1833,6 @@ def render_site_js() -> str:
     let lastReport = null;
     let restoreReady = false;
     let saveTimer = 0;
-
-    const channels = [
-      {{ key: 'dhlChannel', divisor: 5000, mode: 'shipment' }},
-      {{ key: 'emsChannel', divisor: 6000, mode: 'ems-piece' }},
-      {{ key: 'airChannel', divisor: 6000, mode: 'shipment' }},
-      {{ key: 'customChannel', divisor: 'custom', mode: 'shipment' }}
-    ];
 
     function setSaveStatus(key, delay = 2200) {{
       if (!saveStatus) return;
@@ -1905,40 +1969,6 @@ def render_site_js() -> str:
       }}).filter((row) => row.qty && row.l && row.w && row.h);
     }}
 
-    function shipmentCalc(rows, actual, divisor) {{
-      const volume = rows.reduce((sum, row) => {{
-        return sum + (row.l * row.w * row.h / divisor) * row.qty;
-      }}, 0);
-      return {{ volume: round(volume), chargeable: round(Math.max(actual, volume)) }};
-    }}
-
-    function emsPieceCalc(rows) {{
-      let volume = 0;
-      let chargeable = 0;
-      rows.forEach((row) => {{
-        const volumePer = row.l * row.w * row.h / 6000;
-        const actualPer = row.kg || 0;
-        const hasLongSide = row.l > 40 || row.w > 40 || row.h > 40;
-        volume += volumePer * row.qty;
-        chargeable += (hasLongSide ? Math.max(volumePer, actualPer) : actualPer) * row.qty;
-      }});
-      return {{ volume: round(volume), chargeable: round(chargeable) }};
-    }}
-
-    function calcChannel(rows, actual, channel, customDivisorValue) {{
-      const divisor = channel.divisor === 'custom' ? customDivisorValue : channel.divisor;
-      const result = channel.mode === 'ems-piece'
-        ? emsPieceCalc(rows)
-        : shipmentCalc(rows, actual, divisor);
-      return {{
-        key: channel.key,
-        name: t(channel.key),
-        divisor,
-        volume: result.volume,
-        chargeable: result.chargeable
-      }};
-    }}
-
     function translateRows() {{
       rowsBody.querySelectorAll('[data-row-label]').forEach((label) => {{
         label.textContent = t(label.dataset.rowLabel);
@@ -1953,23 +1983,20 @@ def render_site_js() -> str:
     }}
 
     function calculate() {{
-      const rows = getRows();
-      const actual = rows.reduce((sum, row) => sum + row.kg * row.qty, 0);
-      const cbm = rows.reduce((sum, row) => sum + (row.l * row.w * row.h / 1000000) * row.qty, 0);
-      const longest = rows.reduce((max, row) => Math.max(max, row.l, row.w, row.h), 0);
+      const report = computeCalculatorData(getRows(), customDivisor.value);
+      const {{ rows, actual, cbm, longest, channelData }} = report;
       totalActual.textContent = `${{round(actual)}} kg`;
       totalCbm.textContent = `${{round(cbm, 4)}} CBM`;
       longSide.textContent = longest ? `${{round(longest, 1)}} cm${{longest > 40 ? t('needReview') : ''}}` : t('pending');
 
-      const custom = Math.max(1000, Number(customDivisor.value) || 6000);
-      const channelData = channels.map((channel) => calcChannel(rows, actual, channel, custom));
-      channelResults.innerHTML = channelData.map((item) => {{
+      const displayChannelData = channelData.map((item) => Object.assign({{ name: t(item.key) }}, item));
+      channelResults.innerHTML = displayChannelData.map((item) => {{
         return `<tr><td>${{item.name}}</td><td>${{item.divisor}}</td><td>${{item.volume}} kg</td><td><strong>${{item.chargeable}} kg</strong></td></tr>`;
       }}).join('');
 
       if (!rows.length) {{
         suggestion.textContent = t('emptySuggestion');
-        lastReport = {{ rows, actual, cbm, longest, channelData, warnings: [] }};
+        lastReport = {{ rows, actual, cbm, longest, channelData: displayChannelData, warnings: [] }};
         return;
       }}
       const dhl = channelData.find((item) => item.key === 'dhlChannel')?.chargeable || 0;
@@ -1985,7 +2012,7 @@ def render_site_js() -> str:
       if (density && density < 120) warnings.push(t('densityWarning').replace('{{density}}', round(density)));
       if (!warnings.length) warnings.push(t('normalWarning'));
       suggestion.textContent = warnings.join(' ');
-      lastReport = {{ rows, actual: round(actual), cbm: round(cbm, 4), longest: round(longest, 1), channelData, warnings }};
+      lastReport = {{ rows, actual: round(actual), cbm: round(cbm, 4), longest: round(longest, 1), channelData: displayChannelData, warnings }};
     }}
 
     function loadJsPdf() {{
