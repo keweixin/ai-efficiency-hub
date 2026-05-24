@@ -48,6 +48,9 @@ FORBIDDEN_TERMS = [
     "data-payment-link",
     "1234567890",
     "sellercentral.amazon.com/help",
+    "旧 60cm",
+    "从 60cm 调整到 40cm",
+    "EMS 60cm",
 ]
 
 OLD_SLUGS = [
