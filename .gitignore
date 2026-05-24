@@ -1,0 +1,13 @@
+# Local runtime and verification artifacts
+__pycache__/
+*.py[cod]
+.playwright-mcp/
+
+# Optional local deployment/tooling folders
+.vercel/
+node_modules/
+
+# Local logs and generated test downloads
+*.log
+*.tmp
+chargeable-weight-report-*.pdf
