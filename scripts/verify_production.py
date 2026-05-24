@@ -6,6 +6,8 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
+import json
+import re
 import socket
 import ssl
 import subprocess
@@ -115,6 +117,36 @@ def require(condition: bool, message: str, errors: list[str]) -> None:
         errors.append(message)
 
 
+def schema_types(data: object) -> set[str]:
+    found: set[str] = set()
+    if isinstance(data, dict):
+        value = data.get("@type")
+        if isinstance(value, str):
+            found.add(value)
+        elif isinstance(value, list):
+            found.update(item for item in value if isinstance(item, str))
+        for item in data.values():
+            found.update(schema_types(item))
+    elif isinstance(data, list):
+        for item in data:
+            found.update(schema_types(item))
+    return found
+
+
+def parse_json_ld_types(body: str, label: str, errors: list[str]) -> set[str]:
+    blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', body, re.S)
+    require(bool(blocks), f"{label} missing JSON-LD block", errors)
+    found: set[str] = set()
+    for index, block in enumerate(blocks, start=1):
+        try:
+            data = json.loads(block)
+        except json.JSONDecodeError as exc:
+            errors.append(f"{label} has invalid JSON-LD block {index}: {exc}")
+            continue
+        found.update(schema_types(data))
+    return found
+
+
 def check_dns(errors: list[str]) -> None:
     for host in ("bevoorra.business", "www.bevoorra.business"):
         try:
@@ -167,7 +199,8 @@ def check_static_content(errors: list[str]) -> None:
     require('property="og:type" content="article"' in sample_article.body, "sample article should use article Open Graph type", errors)
     require('property="og:image:alt"' in sample_article.body, "sample article missing Open Graph image alt text", errors)
     require('name="twitter:image"' in sample_article.body, "sample article missing Twitter image meta", errors)
-    require('"@type":"Article"' in sample_article.body, "sample article missing Article JSON-LD", errors)
+    sample_article_types = parse_json_ld_types(sample_article.body, "sample article", errors)
+    require({"Article", "BreadcrumbList"}.issubset(sample_article_types), "sample article missing Article or BreadcrumbList JSON-LD", errors)
 
     js = fetch(f"{SITE_URL}/assets/site.js")
     for marker in ["ShippingCalculatorLogic", "saveClearedState", "computeCalculatorData", "JSPDF_SRC"]:
@@ -301,6 +334,8 @@ def check_sitemap(errors: list[str]) -> None:
             require('name="robots" content="index, follow"' in result.body, f"sitemap URL is not indexable: {loc}", errors)
             require("dataset.vercelAnalytics" in result.body, f"sitemap URL missing Vercel Analytics marker: {loc}", errors)
             require("/_vercel/insights/script.js" in result.body, f"sitemap URL missing Vercel Analytics script path: {loc}", errors)
+            schema_types_for_page = parse_json_ld_types(result.body, loc, errors)
+            require(bool(schema_types_for_page), f"sitemap URL has no parseable JSON-LD: {loc}", errors)
 
 
 def check_assets_from_pages(errors: list[str]) -> None:
@@ -352,7 +387,7 @@ def main() -> int:
     print("PASS: production verification completed")
     print(f"- domain: {SITE_URL}")
     print(f"- sitemap articles: {MIN_ARTICLES}")
-    print("- checked DNS, HTTP to HTTPS redirects, core pages, all sitemap URLs, canonical tags, indexable sitemap pages, sitemap page analytics, sitemap page assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, Google verification, robots.txt, sitemap, and custom 404")
+    print("- checked DNS, HTTP to HTTPS redirects, core pages, all sitemap URLs, canonical tags, indexable sitemap pages, sitemap page analytics, sitemap page JSON-LD, sitemap page assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, Google verification, robots.txt, sitemap, and custom 404")
     return 0
 
 

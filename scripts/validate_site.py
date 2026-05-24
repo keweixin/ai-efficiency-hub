@@ -75,6 +75,22 @@ def strip_tags(html: str) -> str:
     return re.sub(r"<[^>]+>", "", html)
 
 
+def schema_types(data: object) -> set[str]:
+    found: set[str] = set()
+    if isinstance(data, dict):
+        value = data.get("@type")
+        if isinstance(value, str):
+            found.add(value)
+        elif isinstance(value, list):
+            found.update(item for item in value if isinstance(item, str))
+        for item in data.values():
+            found.update(schema_types(item))
+    elif isinstance(data, list):
+        for item in data:
+            found.update(schema_types(item))
+    return found
+
+
 def html_files() -> list[Path]:
     root_pages = [
         path for path in sorted(ROOT.glob("*.html"))
@@ -153,6 +169,21 @@ def validate_seo(errors: list[str]) -> None:
                 errors.append("404.html should be noindex, follow")
         elif 'name="robots" content="index, follow"' not in text:
             errors.append(f"{path.relative_to(ROOT)} should be index, follow")
+        schemas = re.findall(r'<script type="application/ld\+json">(.*?)</script>', text, re.S)
+        parsed_types: set[str] = set()
+        if not schemas:
+            errors.append(f"{path.relative_to(ROOT)} missing JSON-LD block")
+        for index, schema in enumerate(schemas, start=1):
+            try:
+                parsed = json.loads(schema)
+            except json.JSONDecodeError as exc:
+                errors.append(f"{path.relative_to(ROOT)} has invalid JSON-LD block {index}: {exc}")
+                continue
+            parsed_types.update(schema_types(parsed))
+        if path.name == "index.html" and "WebSite" not in parsed_types:
+            errors.append("index.html missing WebSite JSON-LD")
+        if path.name == "tools.html" and "SoftwareApplication" not in parsed_types:
+            errors.append("tools.html missing SoftwareApplication JSON-LD")
         if path.parent.name == "articles":
             if f'"datePublished":"{PUBLISHED_DATE}"' not in text:
                 errors.append(f"{path.relative_to(ROOT)} has wrong datePublished")
@@ -160,6 +191,8 @@ def validate_seo(errors: list[str]) -> None:
                 errors.append(f"{path.relative_to(ROOT)} has wrong dateModified")
             if 'property="og:type" content="article"' not in text:
                 errors.append(f"{path.relative_to(ROOT)} should use article Open Graph type")
+            if not {"Article", "BreadcrumbList"}.issubset(parsed_types):
+                errors.append(f"{path.relative_to(ROOT)} missing Article or BreadcrumbList JSON-LD")
 
     home = read(ROOT / "index.html") if (ROOT / "index.html").exists() else ""
     js = read(ROOT / "assets" / "site.js") if (ROOT / "assets" / "site.js").exists() else ""
