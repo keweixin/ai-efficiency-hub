@@ -20,6 +20,8 @@ ROOT_DOMAIN_URL = "https://bevoorra.business"
 HTTP_ROOT_DOMAIN_URL = "http://bevoorra.business"
 HTTP_WWW_URL = "http://www.bevoorra.business"
 ADS_TXT_LINE = "google.com, pub-7663008606677915, DIRECT, f08c47fec0942fa0"
+GSC_VERIFICATION_FILE = "google97d2ec5ca21ee27c.html"
+GSC_VERIFICATION_BODY = "google-site-verification: google97d2ec5ca21ee27c.html"
 JSPDF_PATH = "assets/vendor/jspdf.umd.min.js"
 MIN_ARTICLES = 30
 FETCH_ATTEMPTS = 3
@@ -96,6 +98,7 @@ def check_core_pages(errors: list[str]) -> None:
         f"{SITE_URL}/sitemap.xml",
         f"{SITE_URL}/robots.txt",
         f"{SITE_URL}/ads.txt",
+        f"{SITE_URL}/{GSC_VERIFICATION_FILE}",
         f"{SITE_URL}/assets/site.js",
         f"{SITE_URL}/assets/styles.css",
         f"{SITE_URL}/_vercel/insights/script.js",
@@ -133,6 +136,9 @@ def check_static_content(errors: list[str]) -> None:
 
     ads = fetch(f"{SITE_URL}/ads.txt")
     require(ADS_TXT_LINE in ads.body, "ads.txt missing expected AdSense publisher line", errors)
+
+    verification = fetch(f"{SITE_URL}/{GSC_VERIFICATION_FILE}")
+    require(verification.body.strip() == GSC_VERIFICATION_BODY, f"{GSC_VERIFICATION_FILE} has unexpected verification body", errors)
 
     robots = fetch(f"{SITE_URL}/robots.txt")
     require(f"Sitemap: {SITE_URL}/sitemap.xml" in robots.body, "robots.txt missing canonical sitemap URL", errors)
@@ -284,7 +290,7 @@ def main() -> int:
     print("PASS: production verification completed")
     print(f"- domain: {SITE_URL}")
     print(f"- sitemap articles: {MIN_ARTICLES}")
-    print("- checked DNS, HTTP to HTTPS redirects, core pages, assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, robots.txt, sitemap, and custom 404")
+    print("- checked DNS, HTTP to HTTPS redirects, core pages, assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, Google verification, robots.txt, sitemap, and custom 404")
     return 0
 
 
