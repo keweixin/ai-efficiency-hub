@@ -26,6 +26,18 @@ JSPDF_PATH = "assets/vendor/jspdf.umd.min.js"
 MIN_ARTICLES = 30
 FETCH_ATTEMPTS = 3
 LOCAL_ASSET_MARKERS = ("assets/", "articles/", ".html", ".css", ".js", ".png", ".webp")
+REQUIRED_SITEMAP_URLS = [
+    SITE_URL,
+    f"{SITE_URL}/articles.html",
+    f"{SITE_URL}/tools.html",
+    f"{SITE_URL}/smoke-test.html",
+    f"{SITE_URL}/volume.html",
+    f"{SITE_URL}/channels.html",
+    f"{SITE_URL}/packing.html",
+    f"{SITE_URL}/about.html",
+    f"{SITE_URL}/privacy.html",
+    f"{SITE_URL}/contact.html",
+]
 
 
 @dataclass
@@ -270,9 +282,12 @@ def check_sitemap(errors: list[str]) -> None:
         return
     namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
     locs = [node.text or "" for node in root.findall("sm:url/sm:loc", namespace)]
+    require(len(locs) == len(set(locs)), "sitemap contains duplicate URLs", errors)
     article_locs = [loc for loc in locs if "/articles/" in loc]
     require(len(article_locs) == MIN_ARTICLES, f"sitemap has {len(article_locs)} article URLs, expected {MIN_ARTICLES}", errors)
-    for expected in [SITE_URL, f"{SITE_URL}/tools.html", f"{SITE_URL}/smoke-test.html"]:
+    expected_total = len(REQUIRED_SITEMAP_URLS) + MIN_ARTICLES
+    require(len(locs) == expected_total, f"sitemap has {len(locs)} URLs, expected {expected_total}", errors)
+    for expected in REQUIRED_SITEMAP_URLS:
         require(expected in locs, f"sitemap missing {expected}", errors)
     for loc in locs:
         if not loc.startswith(SITE_URL):
