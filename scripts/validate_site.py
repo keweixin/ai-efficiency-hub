@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from html import unescape
 from pathlib import Path
 import json
@@ -9,6 +10,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE_URL = "https://www.bevoorra.business"
+TODAY = datetime.date.today().isoformat()
 MIN_ARTICLES = 30
 MIN_CJK = 1200
 
@@ -187,6 +189,10 @@ def validate_sitemap_and_index(errors: list[str]) -> None:
         errors.append("missing sitemap.xml")
         return
     sitemap = read(sitemap_path)
+    if f"<lastmod>{TODAY}</lastmod>" not in sitemap:
+        errors.append(f"sitemap lastmod is not current build date {TODAY}")
+    if "<lastmod>2026-05-21</lastmod>" in sitemap and TODAY != "2026-05-21":
+        errors.append("sitemap still contains old hard-coded lastmod 2026-05-21")
     article_urls = re.findall(rf"<loc>{re.escape(SITE_URL)}/articles/[^<]+</loc>", sitemap)
     if len(article_urls) != MIN_ARTICLES:
         errors.append(f"sitemap has {len(article_urls)} article urls")
@@ -265,6 +271,9 @@ def validate_tools(errors: list[str]) -> None:
         "exportPdfReport",
         "JSPDF_SRC",
         "shipping-calculator-state-v1",
+        "shipmentCalc",
+        "emsPieceCalc",
+        "calcChannel",
         "saveStateNow",
         "readSavedState",
         "storageSet",
@@ -274,6 +283,13 @@ def validate_tools(errors: list[str]) -> None:
     ]:
         if marker not in js:
             errors.append(f"site.js missing calculator marker {marker}")
+    for forbidden in [
+        "chargeable += Math.max(volumePer, actualPer) * row.qty",
+        "longest >= 40",
+        "row.l >= 40",
+    ]:
+        if forbidden in js:
+            errors.append(f"site.js still contains outdated calculator pattern {forbidden}")
 
 
 def validate_required_pages(errors: list[str]) -> None:

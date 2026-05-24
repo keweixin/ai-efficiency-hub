@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from html import escape
 from pathlib import Path
 import json
@@ -16,7 +17,7 @@ ARTICLE_IMAGE_DIR = IMAGE_DIR / "articles"
 SITE_URL = "https://www.bevoorra.business"
 SITE_NAME = "跨境运费避坑工具箱"
 SITE_DESCRIPTION = "面向外贸员、跨境电商卖家、独立站卖家和 FBA 新手的体积重、CBM、计费重与渠道复核静态工具站。"
-TODAY = "2026-05-21"
+TODAY = datetime.date.today().isoformat()
 VERCEL_ANALYTICS_SCRIPT = "/_vercel/insights/script.js"
 
 
@@ -308,13 +309,13 @@ ARTICLES = [
         "group": "channels",
         "tag": "EMS",
         "title": "EMS 40cm 计泡规则如何影响跨境发货复核",
-        "description": "解释中国 EMS 国际 EMS/e 特快 40cm 起计泡和 /6000 公式，并提醒旧 60cm 认知已经可能过时。",
+        "description": "解释中国 EMS 国际 EMS/e 特快超过 40cm 进入计泡复核和 /6000 公式，并提醒旧 60cm 认知已经可能过时。",
         "keyword": "EMS 40cm 计泡",
-        "scenario": "很多卖家仍记得较早的长边经验，但中国 EMS 公开页面和 2022 调整通知都显示，部分国际及港澳台邮件的计泡标准已经调整到任一单边达到或超过 40cm 的口径。",
-        "method": "复核 EMS 时，先检查任一单边是否达到计泡条件，再按长 × 宽 × 高 ÷ 6000 计算体积重。页面同时提醒查询结果仅供参考，以实际收寄计费为准，因此工具只能做发货前复核，不替代官方报价。",
-        "example": "外箱 42cm × 32cm × 28cm，实重 4kg。最长边达到 40cm 口径，应进入 EMS 计泡复核。体积重约 6.27kg，高于实重，报价时要关注是否按体积重方向处理。",
-        "table": ["箱号", "最长边", "是否达到 40cm", "实重", "体积重 /6000", "复核备注"],
-        "steps": ["每箱计算最长边。", "达到 40cm 口径就标记复核。", "按 6000 分母算体积重。", "查目的地尺寸和限重。", "以官方报价工具或收寄确认为准。"],
+        "scenario": "很多卖家仍记得较早的长边经验，但中国 EMS 公开页面和 2022 调整通知都显示，部分国际及港澳台邮件的计泡标准已经调整到任一单边超过 40cm 的口径。",
+        "method": "复核 EMS 时，先检查任一单边是否超过计泡条件，再按长 × 宽 × 高 ÷ 6000 计算体积重。页面同时提醒查询结果仅供参考，以实际收寄计费为准，因此工具只能做发货前复核，不替代官方报价。",
+        "example": "外箱 42cm × 32cm × 28cm，实重 4kg。最长边超过 40cm 口径，应进入 EMS 计泡复核。体积重约 6.27kg，高于实重，报价时要关注是否按体积重方向处理。",
+        "table": ["箱号", "最长边", "是否超过 40cm", "实重", "体积重 /6000", "复核备注"],
+        "steps": ["每箱计算最长边。", "超过 40cm 口径就标记复核。", "按 6000 分母算体积重。", "查目的地尺寸和限重。", "以官方报价工具或收寄确认为准。"],
         "mistakes": ["继续使用旧的 60cm 经验。", "只看重量不看长边。", "把 EMS 所有产品视为同一规则。", "没有保存官方确认口径。"],
         "sources": source("ems_product", "ems_notice"),
     },
@@ -476,7 +477,7 @@ ARTICLES = [
         "description": "用长条货案例说明最长边、计泡、分母、拆箱和包装安全如何一起复核。",
         "keyword": "长条货发货",
         "scenario": "自拍杆、支架、灯杆、卷轴类产品常见问题是长边明显，但实重不一定高。它们既可能触发体积重复核，也可能遇到尺寸限制或特殊处理要求。",
-        "method": "先把长条货从混装表里单独筛出来，记录最长边、包装后尺寸和实重。再按 EMS 40cm 口径、DHL 5000 分母和其他渠道分母分别试算。对于可拆产品，可以模拟拆成更短箱规后的计费重差异。",
+        "method": "先把长条货从混装表里单独筛出来，记录最长边、包装后尺寸和实重。再按 EMS 超过 40cm 口径、DHL 5000 分母和其他渠道分母分别试算。对于可拆产品，可以模拟拆成更短箱规后的计费重差异。",
         "example": "75cm 长的自拍杆装箱后外箱长 82cm。即使总重量不高，也应先做长边提醒，再比较原箱、拆短包装和换渠道三种方案。任何方案都必须确保商品保护和仓库执行可行。",
         "table": ["方案", "最长边", "实重", "体积重 5000", "体积重 6000", "包装风险"],
         "steps": ["筛出最长边超过 40cm 的箱子。", "单独试算 5000 和 6000 分母。", "模拟拆短或换箱方案。", "检查产品是否允许拆分。", "让承运商确认尺寸接受范围。"],
@@ -1185,7 +1186,7 @@ def render_tools() -> str:
             <div>
               <span class="eyebrow" data-i18n="localTool">Local Tool</span>
               <h2 data-i18n="calcTitle">发货前复核表</h2>
-              <p data-i18n="calcLead">数据只在浏览器内计算，并自动保存在当前浏览器本地，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。</p>
+              <p data-i18n="calcLead">数据只在浏览器内计算，并自动保存在当前浏览器本地，不会上传。默认 EMS 长边提醒按超过 40cm 标记，实际规则请以官方报价和收寄确认为准。</p>
             </div>
             <div class="tool-actions">
               <button class="button small" type="button" data-add-row data-i18n="addSku">添加 SKU</button>
@@ -1410,7 +1411,7 @@ def render_site_js() -> str:
       visualCaption: '站内生成插图：用于表示体积重、CBM 和计费重核算。',
       localTool: 'Local Tool',
       calcTitle: '发货前复核表',
-      calcLead: '数据只在浏览器内计算，并自动保存在当前浏览器本地，不会上传。默认 EMS 长边提醒按 40cm 标记，实际规则请以官方报价和收寄确认为准。',
+      calcLead: '数据只在浏览器内计算，并自动保存在当前浏览器本地，不会上传。默认 EMS 长边提醒按超过 40cm 标记，实际规则请以官方报价和收寄确认为准。',
       addSku: '添加 SKU',
       loadSample: '载入示例',
       resetRows: '清空',
@@ -1439,7 +1440,7 @@ def render_site_js() -> str:
       readCard1Title: '计费重不是最终报价',
       readCard1Text: '它只是报价复核入口。还要确认进位、附加项、目的地限制和服务类型。',
       readCard2Title: '长边提醒不是拦截规则',
-      readCard2Text: '默认按 EMS 40cm 口径提醒，目的是提示你回到官方页面或客服确认。',
+      readCard2Text: '默认按 EMS 超过 40cm 口径提醒，目的是提示你回到官方页面或客服确认。',
       readCard3Title: '拆分建议只做复核',
       readCard3Text: '工具只提示可能需要复核，不承诺某个方案一定更优。',
       langButton: 'EN',
@@ -1449,7 +1450,7 @@ def render_site_js() -> str:
       pending: '待录入',
       needReview: '，需复核',
       emptySuggestion: '录入箱规后显示复核提示。',
-      longSideWarning: '存在最长边达到 40cm 口径的箱子，EMS 等渠道需要单独复核。',
+      longSideWarning: '存在最长边超过 40cm 口径的箱子，EMS 等渠道需要单独复核。',
       divisorWarning: 'DHL 5000 与 6000 分母模拟差异约 {{diff}} kg，建议不要只比较每千克单价。',
       densityWarning: '当前密度约 {{density}} kg/CBM，偏轻泡，建议重点复核体积重。',
       normalWarning: '当前样本未出现明显长边或轻泡提醒，但仍需确认渠道分母、进位和附加项。',
@@ -1491,7 +1492,7 @@ def render_site_js() -> str:
       visualCaption: 'Site-generated illustration for volumetric weight, CBM and chargeable weight review.',
       localTool: 'Local Tool',
       calcTitle: 'Pre-shipment Review Sheet',
-      calcLead: 'All calculations run locally in your browser and autosave on this device only. Nothing is uploaded. The EMS long-side reminder uses 40cm as a review point; final rules should follow official quotes and acceptance confirmation.',
+      calcLead: 'All calculations run locally in your browser and autosave on this device only. Nothing is uploaded. The EMS long-side reminder uses above 40cm as a review point; final rules should follow official quotes and acceptance confirmation.',
       addSku: 'Add SKU',
       loadSample: 'Load sample',
       resetRows: 'Clear',
@@ -1520,7 +1521,7 @@ def render_site_js() -> str:
       readCard1Title: 'Chargeable weight is not the final quote',
       readCard1Text: 'It is the starting point for review. Rounding, surcharges, destination limits and service type still need confirmation.',
       readCard2Title: 'Long-side reminders are review prompts',
-      readCard2Text: 'The default EMS 40cm reminder is meant to prompt official-page or support confirmation.',
+      readCard2Text: 'The default EMS above-40cm reminder is meant to prompt official-page or support confirmation.',
       readCard3Title: 'Split suggestions only indicate review points',
       readCard3Text: 'The tool flags items worth checking; it does not guarantee one route is always better.',
       langButton: '中文',
@@ -1530,7 +1531,7 @@ def render_site_js() -> str:
       pending: 'Pending',
       needReview: ', review needed',
       emptySuggestion: 'Enter carton data to see review notes.',
-      longSideWarning: 'At least one carton reaches the 40cm long-side review point; EMS and similar routes need separate confirmation.',
+      longSideWarning: 'At least one carton is above the 40cm long-side review point; EMS and similar routes need separate confirmation.',
       divisorWarning: 'The simulated DHL 5000 vs 6000 divisor difference is about {{diff}} kg. Do not compare only the per-kg rate.',
       densityWarning: 'Current density is about {{density}} kg/CBM, which looks light and bulky. Prioritize volumetric-weight review.',
       normalWarning: 'No obvious long-side or light-bulky signal appears in this sample, but divisor, rounding and surcharges still need confirmation.',
@@ -1745,10 +1746,10 @@ def render_site_js() -> str:
     let saveTimer = 0;
 
     const channels = [
-      ['dhlChannel', 5000],
-      ['emsChannel', 6000],
-      ['airChannel', 6000],
-      ['customChannel', 'custom']
+      {{ key: 'dhlChannel', divisor: 5000, mode: 'shipment' }},
+      {{ key: 'emsChannel', divisor: 6000, mode: 'ems-piece' }},
+      {{ key: 'airChannel', divisor: 6000, mode: 'shipment' }},
+      {{ key: 'customChannel', divisor: 'custom', mode: 'shipment' }}
     ];
 
     function setSaveStatus(key, delay = 2200) {{
@@ -1886,16 +1887,38 @@ def render_site_js() -> str:
       }}).filter((row) => row.qty && row.l && row.w && row.h);
     }}
 
-    function channelCalc(rows, divisor) {{
+    function shipmentCalc(rows, actual, divisor) {{
+      const volume = rows.reduce((sum, row) => {{
+        return sum + (row.l * row.w * row.h / divisor) * row.qty;
+      }}, 0);
+      return {{ volume: round(volume), chargeable: round(Math.max(actual, volume)) }};
+    }}
+
+    function emsPieceCalc(rows) {{
       let volume = 0;
       let chargeable = 0;
       rows.forEach((row) => {{
-        const volumePer = row.l * row.w * row.h / divisor;
+        const volumePer = row.l * row.w * row.h / 6000;
         const actualPer = row.kg || 0;
+        const hasLongSide = row.l > 40 || row.w > 40 || row.h > 40;
         volume += volumePer * row.qty;
-        chargeable += Math.max(volumePer, actualPer) * row.qty;
+        chargeable += (hasLongSide ? Math.max(volumePer, actualPer) : actualPer) * row.qty;
       }});
       return {{ volume: round(volume), chargeable: round(chargeable) }};
+    }}
+
+    function calcChannel(rows, actual, channel, customDivisorValue) {{
+      const divisor = channel.divisor === 'custom' ? customDivisorValue : channel.divisor;
+      const result = channel.mode === 'ems-piece'
+        ? emsPieceCalc(rows)
+        : shipmentCalc(rows, actual, divisor);
+      return {{
+        key: channel.key,
+        name: t(channel.key),
+        divisor,
+        volume: result.volume,
+        chargeable: result.chargeable
+      }};
     }}
 
     function translateRows() {{
@@ -1918,14 +1941,10 @@ def render_site_js() -> str:
       const longest = rows.reduce((max, row) => Math.max(max, row.l, row.w, row.h), 0);
       totalActual.textContent = `${{round(actual)}} kg`;
       totalCbm.textContent = `${{round(cbm, 4)}} CBM`;
-      longSide.textContent = longest ? `${{round(longest, 1)}} cm${{longest >= 40 ? t('needReview') : ''}}` : t('pending');
+      longSide.textContent = longest ? `${{round(longest, 1)}} cm${{longest > 40 ? t('needReview') : ''}}` : t('pending');
 
       const custom = Math.max(1000, Number(customDivisor.value) || 6000);
-      const channelData = channels.map(([nameKey, divisor]) => {{
-        const realDivisor = divisor === 'custom' ? custom : divisor;
-        const result = channelCalc(rows, realDivisor);
-        return {{ name: t(nameKey), divisor: realDivisor, volume: result.volume, chargeable: result.chargeable }};
-      }});
+      const channelData = channels.map((channel) => calcChannel(rows, actual, channel, custom));
       channelResults.innerHTML = channelData.map((item) => {{
         return `<tr><td>${{item.name}}</td><td>${{item.divisor}}</td><td>${{item.volume}} kg</td><td><strong>${{item.chargeable}} kg</strong></td></tr>`;
       }}).join('');
@@ -1935,11 +1954,11 @@ def render_site_js() -> str:
         lastReport = {{ rows, actual, cbm, longest, channelData, warnings: [] }};
         return;
       }}
-      const dhl = channelCalc(rows, 5000).chargeable;
-      const ems = channelCalc(rows, 6000).chargeable;
+      const dhl = channelData.find((item) => item.key === 'dhlChannel')?.chargeable || 0;
+      const ems = channelData.find((item) => item.key === 'emsChannel')?.chargeable || 0;
       const diff = round(Math.abs(dhl - ems));
       const warnings = [];
-      if (longest >= 40) warnings.push(t('longSideWarning'));
+      if (longest > 40) warnings.push(t('longSideWarning'));
       if (diff > 0) warnings.push(t('divisorWarning').replace('{{diff}}', diff));
       const density = cbm ? actual / cbm : 0;
       if (density && density < 120) warnings.push(t('densityWarning').replace('{{density}}', round(density)));
