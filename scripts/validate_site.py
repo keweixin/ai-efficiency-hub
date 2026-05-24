@@ -10,6 +10,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE_URL = "https://www.bevoorra.business"
+PUBLISHED_DATE = "2026-05-21"
 TODAY = datetime.date.today().isoformat()
 MIN_ARTICLES = 30
 MIN_CJK = 1200
@@ -135,6 +136,11 @@ def validate_seo(errors: list[str]) -> None:
         ]:
             if required not in text:
                 errors.append(f"{path.relative_to(ROOT)} missing {required}")
+        if path.parent.name == "articles":
+            if f'"datePublished":"{PUBLISHED_DATE}"' not in text:
+                errors.append(f"{path.relative_to(ROOT)} has wrong datePublished")
+            if f'"dateModified":"{TODAY}"' not in text:
+                errors.append(f"{path.relative_to(ROOT)} has wrong dateModified")
 
 
 def validate_links_and_images(errors: list[str]) -> None:

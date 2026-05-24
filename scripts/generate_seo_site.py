@@ -17,6 +17,7 @@ ARTICLE_IMAGE_DIR = IMAGE_DIR / "articles"
 SITE_URL = "https://www.bevoorra.business"
 SITE_NAME = "跨境运费避坑工具箱"
 SITE_DESCRIPTION = "面向外贸员、跨境电商卖家、独立站卖家和 FBA 新手的体积重、CBM、计费重与渠道复核静态工具站。"
+PUBLISHED_DATE = "2026-05-21"
 TODAY = datetime.date.today().isoformat()
 VERCEL_ANALYTICS_SCRIPT = "/_vercel/insights/script.js"
 
@@ -843,7 +844,7 @@ def render_article(article: dict, prev_article: dict | None, next_article: dict 
                 "@type": "Article",
                 "headline": h1,
                 "description": article["description"],
-                "datePublished": TODAY,
+                "datePublished": PUBLISHED_DATE,
                 "dateModified": TODAY,
                 "author": {"@type": "Organization", "name": SITE_NAME},
                 "publisher": {"@type": "Organization", "name": SITE_NAME},
