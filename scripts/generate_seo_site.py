@@ -761,8 +761,17 @@ def layout_end(prefix: str = "") -> str:
   </footer>
   <script>
     window.va = window.va || function () {{ (window.vaq = window.vaq || []).push(arguments); }};
+    (function () {{
+      var host = window.location.hostname;
+      var isLocal = !host || host === 'localhost' || host === '127.0.0.1' || host === '::1';
+      if (isLocal) return;
+      var script = document.createElement('script');
+      script.defer = true;
+      script.src = '{VERCEL_ANALYTICS_SCRIPT}';
+      script.dataset.vercelAnalytics = 'true';
+      document.head.appendChild(script);
+    }})();
   </script>
-  <script defer src="{VERCEL_ANALYTICS_SCRIPT}" data-vercel-analytics></script>
   <script src="{prefix}assets/site.js"></script>
 </body>"""
 

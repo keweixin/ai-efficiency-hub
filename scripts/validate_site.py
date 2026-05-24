@@ -347,7 +347,7 @@ def validate_analytics(errors: list[str]) -> None:
     for path in html_files():
         text = read(path)
         rel = path.relative_to(ROOT)
-        for marker in ["window.va", "data-vercel-analytics", "/_vercel/insights/script.js"]:
+        for marker in ["window.va", "dataset.vercelAnalytics", "hostname", "localhost", "127.0.0.1", "/_vercel/insights/script.js"]:
             if marker not in text:
                 errors.append(f"{rel} missing Vercel Analytics marker {marker}")
     privacy = read(ROOT / "privacy.html") if (ROOT / "privacy.html").exists() else ""
