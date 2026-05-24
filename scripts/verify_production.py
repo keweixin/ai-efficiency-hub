@@ -25,6 +25,7 @@ GSC_VERIFICATION_BODY = "google-site-verification: google97d2ec5ca21ee27c.html"
 JSPDF_PATH = "assets/vendor/jspdf.umd.min.js"
 MIN_ARTICLES = 30
 FETCH_ATTEMPTS = 3
+FETCH_CACHE: dict[str, FetchResult] = {}
 
 
 @dataclass
@@ -54,6 +55,8 @@ class AssetParser(HTMLParser):
 
 
 def fetch(url: str, timeout: int = 25) -> FetchResult:
+    if url in FETCH_CACHE:
+        return FETCH_CACHE[url]
     request = Request(url, headers={"User-Agent": "ai-efficiency-hub-production-check/1.0"})
     last_error: Exception | None = None
     for attempt in range(1, FETCH_ATTEMPTS + 1):
@@ -61,11 +64,15 @@ def fetch(url: str, timeout: int = 25) -> FetchResult:
             with urlopen(request, timeout=timeout, context=ssl.create_default_context()) as response:
                 raw = response.read()
                 charset = response.headers.get_content_charset() or "utf-8"
-                return FetchResult(url, response.status, response.geturl(), raw.decode(charset, errors="replace"))
+                result = FetchResult(url, response.status, response.geturl(), raw.decode(charset, errors="replace"))
+                FETCH_CACHE[url] = result
+                return result
         except HTTPError as error:
             raw = error.read()
             charset = error.headers.get_content_charset() or "utf-8"
-            return FetchResult(url, error.code, error.geturl(), raw.decode(charset, errors="replace"))
+            result = FetchResult(url, error.code, error.geturl(), raw.decode(charset, errors="replace"))
+            FETCH_CACHE[url] = result
+            return result
         except (URLError, TimeoutError, OSError) as error:
             last_error = error
             if attempt < FETCH_ATTEMPTS:
@@ -262,13 +269,18 @@ def check_sitemap(errors: list[str]) -> None:
 
 
 def check_assets_from_pages(errors: list[str]) -> None:
-    pages = [
-        f"{SITE_URL}/",
-        f"{SITE_URL}/tools.html",
-        f"{SITE_URL}/articles/volumetric-weight-formula-dhl-ems-sf.html",
-    ]
+    sitemap = fetch(f"{SITE_URL}/sitemap.xml")
+    try:
+        root = ET.fromstring(sitemap.body)
+    except ET.ParseError as exc:
+        errors.append(f"could not parse sitemap for asset checks: {exc}")
+        return
+    namespace = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    pages = [node.text or "" for node in root.findall("sm:url/sm:loc", namespace)]
     checked: set[str] = set()
     for page in pages:
+        if not page.startswith(SITE_URL):
+            continue
         result = fetch(page)
         parser = AssetParser()
         parser.feed(result.body)
@@ -305,7 +317,7 @@ def main() -> int:
     print("PASS: production verification completed")
     print(f"- domain: {SITE_URL}")
     print(f"- sitemap articles: {MIN_ARTICLES}")
-    print("- checked DNS, HTTP to HTTPS redirects, core pages, all sitemap URLs, canonical tags, assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, Google verification, robots.txt, sitemap, and custom 404")
+    print("- checked DNS, HTTP to HTTPS redirects, core pages, all sitemap URLs, canonical tags, sitemap page assets, production calculator logic, self-hosted jsPDF, analytics script, ads.txt, Google verification, robots.txt, sitemap, and custom 404")
     return 0
 
 
