@@ -149,6 +149,8 @@ def validate_seo(errors: list[str]) -> None:
     js = read(ROOT / "assets" / "site.js") if (ROOT / "assets" / "site.js").exists() else ""
     if "articles.html?q={search_term_string}" in home and "params.get('q')" not in js:
         errors.append("SearchAction q parameter is not handled by article filter")
+    if "params.get('group')" in js and "chips.some((chip) => chip.dataset.filter === activeGroup)" not in js:
+        errors.append("article filter does not guard invalid group parameters")
 
 
 def validate_links_and_images(errors: list[str]) -> None:

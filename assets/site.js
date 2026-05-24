@@ -290,6 +290,7 @@
     const empty = document.querySelector('[data-empty-state]');
     const params = new URLSearchParams(location.search);
     let activeGroup = params.get('group') || 'all';
+    if (!chips.some((chip) => chip.dataset.filter === activeGroup)) activeGroup = 'all';
     const initialQuery = params.get('q') || '';
     if (initialQuery) input.value = initialQuery;
 
