@@ -2361,9 +2361,29 @@ def write_site_file(path: Path, content: str) -> None:
 
 
 def ensure_visual_assets() -> None:
+    required_assets = [
+        ARTICLE_IMAGE_DIR / "logistics-calculator.png",
+        ARTICLE_IMAGE_DIR / "logistics-calculator.webp",
+        ARTICLE_IMAGE_DIR / "channel-routes.png",
+        ARTICLE_IMAGE_DIR / "channel-routes.webp",
+        ARTICLE_IMAGE_DIR / "carton-checklist.png",
+        ARTICLE_IMAGE_DIR / "carton-checklist.webp",
+        IMAGE_DIR / "favicon.png",
+        IMAGE_DIR / "apple-touch-icon.png",
+        ROOT / "favicon.ico",
+    ]
     try:
         from PIL import Image, ImageDraw
-    except Exception:
+    except Exception as exc:
+        missing = [path.relative_to(ROOT).as_posix() for path in required_assets if not path.exists()]
+        if missing:
+            missing_list = ", ".join(missing)
+            raise RuntimeError(
+                "Pillow is required to generate missing visual assets. "
+                f"Missing: {missing_list}. "
+                "Install it locally with `python -m pip install Pillow` and rerun "
+                "`python scripts\\generate_seo_site.py`."
+            ) from exc
         return
 
     ARTICLE_IMAGE_DIR.mkdir(parents=True, exist_ok=True)

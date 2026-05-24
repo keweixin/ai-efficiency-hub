@@ -375,6 +375,26 @@ def validate_tools(errors: list[str]) -> None:
     ]:
         if marker not in js:
             errors.append(f"site.js missing calculator marker {marker}")
+    placeholder_rules = {
+        "divisorWarning": "{diff}",
+        "emsPieceWarning": "{diff}",
+        "emsNoDimWarning": "{diff}",
+        "densityWarning": "{density}",
+    }
+    for key, placeholder in placeholder_rules.items():
+        double_placeholder = "{{" + placeholder[1:-1] + "}}"
+        values = re.findall(rf"\b{re.escape(key)}:\s*'([^']*)'", js)
+        if len(values) < 2:
+            errors.append(f"site.js missing localized warning text for {key}")
+            continue
+        for value in values:
+            if placeholder not in value:
+                errors.append(f"site.js warning {key} missing placeholder {placeholder}")
+            if double_placeholder in value:
+                errors.append(f"site.js warning {key} still contains generator placeholder {double_placeholder}")
+    for placeholder in ["{diff}", "{density}"]:
+        if f".replace('{placeholder}'" not in js:
+            errors.append(f"site.js missing replacement for warning placeholder {placeholder}")
     for forbidden in [
         "chargeable += Math.max(volumePer, actualPer) * row.qty",
         "longest >= 40",
