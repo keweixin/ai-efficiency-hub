@@ -13,6 +13,8 @@ import xml.etree.ElementTree as ET
 
 SITE_URL = "https://www.bevoorra.business"
 ROOT_DOMAIN_URL = "https://bevoorra.business"
+HTTP_ROOT_DOMAIN_URL = "http://bevoorra.business"
+HTTP_WWW_URL = "http://www.bevoorra.business"
 ADS_TXT_LINE = "google.com, pub-7663008606677915, DIRECT, f08c47fec0942fa0"
 MIN_ARTICLES = 30
 
@@ -94,6 +96,11 @@ def check_core_pages(errors: list[str]) -> None:
     require(root.status == 200, f"{ROOT_DOMAIN_URL}/ returned {root.status}", errors)
     require(root.final_url.startswith(f"{SITE_URL}/"), f"root domain did not end at www domain: {root.final_url}", errors)
 
+    for url in (f"{HTTP_ROOT_DOMAIN_URL}/", f"{HTTP_WWW_URL}/"):
+        result = fetch(url)
+        require(result.status == 200, f"{url} returned {result.status}", errors)
+        require(result.final_url.startswith(f"{SITE_URL}/"), f"{url} did not redirect to HTTPS www domain: {result.final_url}", errors)
+
     not_found = fetch(f"{SITE_URL}/not-a-real-page-production-check")
     require(not_found.status == 404, f"unknown route returned {not_found.status}, expected 404", errors)
     require("页面未找到" in not_found.body, "custom 404 body did not contain expected title text", errors)
@@ -167,7 +174,7 @@ def main() -> int:
     print("PASS: production verification completed")
     print(f"- domain: {SITE_URL}")
     print(f"- sitemap articles: {MIN_ARTICLES}")
-    print("- checked DNS, redirects, core pages, assets, analytics script, ads.txt, robots.txt, sitemap, and custom 404")
+    print("- checked DNS, HTTP to HTTPS redirects, core pages, assets, analytics script, ads.txt, robots.txt, sitemap, and custom 404")
     return 0
 
 
