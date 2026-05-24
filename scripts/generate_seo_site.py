@@ -683,6 +683,7 @@ def page_head(
     path: str,
     prefix: str = "",
     image: str | None = None,
+    og_type: str = "website",
     robots: str = "index, follow",
     json_ld: list[dict] | dict | None = None,
 ) -> str:
@@ -706,7 +707,7 @@ def page_head(
   <link rel="canonical" href="{esc(canonical)}">
   <meta property="og:title" content="{esc(title)}">
   <meta property="og:description" content="{esc(description)}">
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="{esc(og_type)}">
   <meta property="og:url" content="{esc(canonical)}">
   <meta property="og:image" content="{esc(image_url)}">
   <meta name="twitter:card" content="summary_large_image">
@@ -893,7 +894,7 @@ def render_article(article: dict, prev_article: dict | None, next_article: dict 
     related_html = "\n".join(f'<li><a href="{item["slug"]}.html">{esc(item["title"])}</a></li>' for item in related)
     html = f"""<!doctype html>
 <html lang="zh-CN">
-{page_head(title=title, description=article['description'], path=path, prefix='../', image=image['src'], json_ld=article_schema)}
+{page_head(title=title, description=article['description'], path=path, prefix='../', image=image['src'], og_type='article', json_ld=article_schema)}
 {layout_start(active=article['group'], prefix='../')}
     <section class="article-hero">
       <div class="section-inner">

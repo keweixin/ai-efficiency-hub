@@ -149,6 +149,8 @@ def validate_seo(errors: list[str]) -> None:
                 errors.append(f"{path.relative_to(ROOT)} has wrong datePublished")
             if f'"dateModified":"{TODAY}"' not in text:
                 errors.append(f"{path.relative_to(ROOT)} has wrong dateModified")
+            if 'property="og:type" content="article"' not in text:
+                errors.append(f"{path.relative_to(ROOT)} should use article Open Graph type")
 
     home = read(ROOT / "index.html") if (ROOT / "index.html").exists() else ""
     js = read(ROOT / "assets" / "site.js") if (ROOT / "assets" / "site.js").exists() else ""

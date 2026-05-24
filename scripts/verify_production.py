@@ -127,6 +127,10 @@ def check_static_content(errors: list[str]) -> None:
     for marker in ["dataset.vercelAnalytics", "SoftwareApplication", "data-logistics-calculator"]:
         require(marker in tools.body, f"tools.html missing marker {marker}", errors)
 
+    sample_article = fetch(f"{SITE_URL}/articles/volumetric-weight-formula-dhl-ems-sf.html")
+    require('property="og:type" content="article"' in sample_article.body, "sample article should use article Open Graph type", errors)
+    require('"@type":"Article"' in sample_article.body, "sample article missing Article JSON-LD", errors)
+
     js = fetch(f"{SITE_URL}/assets/site.js")
     for marker in ["ShippingCalculatorLogic", "saveClearedState", "computeCalculatorData", "JSPDF_SRC"]:
         require(marker in js.body, f"assets/site.js missing marker {marker}", errors)
