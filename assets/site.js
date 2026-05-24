@@ -13,6 +13,8 @@
       skip: '跳到正文',
       brandAria: '跨境运费避坑工具箱首页',
       mainNav: '主导航',
+      footerNav: '页脚导航',
+      languageToggle: '切换语言',
       themeToggle: '切换深浅色',
       footerDesc: '用于发货前复核体积重、CBM、计费重和渠道口径。规则会变化，具体发货请以官方报价和承运商确认为准。',
       footerArticles: '文章索引',
@@ -21,11 +23,13 @@
       footerPrivacy: '隐私政策',
       footerContact: '联系',
       copyright: '© 2026 跨境运费避坑工具箱. 本站不提供承运商报价承诺。',
+      toolsPageTitle: '多 SKU 体积重计算器 - 跨境运费避坑工具箱',
       toolsEyebrow: 'Calculator',
       toolsH1: '多 SKU 体积重 / CBM / 计费重计算器',
       toolsLead: '录入每类货物的箱数、外箱尺寸和实重，本地计算 DHL 5000、EMS 6000、标准空运 6000 和自定义分母下的计费重，并提示长边复核项。',
       startCalc: '开始计算',
       formulaLink: '先看公式说明',
+      visualAlt: '计算器、纸箱和计量线条组成的跨境运费核算插图',
       visualCaption: '站内生成插图：用于表示体积重、CBM 和计费重核算。',
       localTool: 'Local Tool',
       calcTitle: '发货前复核表',
@@ -96,6 +100,8 @@
       skip: 'Skip to content',
       brandAria: 'Cross-border Freight Review Toolbox home',
       mainNav: 'Main navigation',
+      footerNav: 'Footer navigation',
+      languageToggle: 'Switch language',
       themeToggle: 'Toggle color theme',
       footerDesc: 'Review volumetric weight, CBM, chargeable weight and channel assumptions before shipment. Rules change, so final shipment decisions should follow carrier quotes and confirmation.',
       footerArticles: 'Articles',
@@ -104,11 +110,13 @@
       footerPrivacy: 'Privacy',
       footerContact: 'Contact',
       copyright: '© 2026 Cross-border Freight Review Toolbox. This site does not promise carrier quotes.',
+      toolsPageTitle: 'Multi-SKU volumetric weight calculator - Cross-border Freight Review Toolbox',
       toolsEyebrow: 'Calculator',
       toolsH1: 'Multi-SKU Volumetric Weight / CBM / Chargeable Weight Calculator',
       toolsLead: 'Enter carton counts, outer dimensions and actual weight. The browser compares DHL 5000, EMS 6000, standard air 6000 and a custom divisor, then flags long-side review points.',
       startCalc: 'Start calculating',
       formulaLink: 'Read the formula guide',
+      visualAlt: 'Illustration of a calculator, cartons and measurement lines for cross-border freight review',
       visualCaption: 'Site-generated illustration for volumetric weight, CBM and chargeable weight review.',
       localTool: 'Local Tool',
       calcTitle: 'Pre-shipment Review Sheet',
@@ -239,6 +247,9 @@
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => {
       node.setAttribute('placeholder', t(node.dataset.i18nPlaceholder));
+    });
+    document.querySelectorAll('[data-i18n-alt]').forEach((node) => {
+      node.setAttribute('alt', t(node.dataset.i18nAlt));
     });
     document.querySelectorAll('[data-lang-toggle]').forEach((button) => {
       button.setAttribute('aria-pressed', String(lang === 'en'));

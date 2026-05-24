@@ -684,6 +684,7 @@ def page_head(
     prefix: str = "",
     image: str | None = None,
     image_alt: str | None = None,
+    title_i18n: str | None = None,
     og_type: str = "website",
     robots: str = "index, follow",
     json_ld: list[dict] | dict | None = None,
@@ -700,10 +701,11 @@ def page_head(
             "url": canonical,
         }
     data = json.dumps(json_ld, ensure_ascii=False, separators=(",", ":"))
+    title_attr = f' data-i18n="{esc(title_i18n)}"' if title_i18n else ""
     return f"""<head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{esc(title)}</title>
+  <title{title_attr}>{esc(title)}</title>
   <meta name="description" content="{esc(description)}">
   <meta name="robots" content="{esc(robots)}">
   <link rel="canonical" href="{esc(canonical)}">
@@ -738,7 +740,7 @@ def layout_start(active: str = "", prefix: str = "") -> str:
       </a>
       <nav class="site-nav" data-site-nav aria-label="主导航" data-i18n-aria="mainNav"></nav>
       <div class="nav-tools">
-        <button class="lang-toggle" type="button" data-lang-toggle aria-label="Switch language" aria-pressed="false">
+        <button class="lang-toggle" type="button" data-lang-toggle aria-label="切换语言" data-i18n-aria="languageToggle" aria-pressed="false">
           <span data-lang-current>EN</span>
         </button>
         <button class="theme-toggle" type="button" data-theme-toggle aria-label="切换深浅色" data-i18n-aria="themeToggle">◐</button>
@@ -757,7 +759,7 @@ def layout_end(prefix: str = "") -> str:
         <strong data-i18n="siteName">{SITE_NAME}</strong>
         <p data-i18n="footerDesc">用于发货前复核体积重、CBM、计费重和渠道口径。规则会变化，具体发货请以官方报价和承运商确认为准。</p>
       </div>
-      <nav aria-label="页脚导航">
+      <nav aria-label="页脚导航" data-i18n-aria="footerNav">
         <a href="{prefix}articles.html" data-i18n="footerArticles">文章索引</a>
         <a href="{prefix}tools.html" data-i18n="footerTools">计算工具</a>
         <a href="{prefix}smoke-test.html" data-i18n="footerSmoke">内测说明</a>
@@ -780,16 +782,17 @@ def layout_end(prefix: str = "") -> str:
       document.head.appendChild(script);
     }})();
   </script>
-  <script src="{prefix}assets/site.js"></script>
+  <script src="{prefix}assets/site.js?v={TODAY}"></script>
 </body>"""
 
 
-def render_picture(image: dict, prefix: str = "", eager: bool = False) -> str:
+def render_picture(image: dict, prefix: str = "", eager: bool = False, alt_i18n: str | None = None) -> str:
     loading = "eager" if eager else "lazy"
     priority = ' fetchpriority="high"' if eager else ""
+    alt_attr = f' data-i18n-alt="{esc(alt_i18n)}"' if alt_i18n else ""
     return f"""<picture>
   <source srcset="{prefix}{esc(image['webp'])}" type="image/webp">
-  <img src="{prefix}{esc(image['src'])}" alt="{esc(image['alt'])}" width="{image['width']}" height="{image['height']}" loading="{loading}" decoding="async"{priority}>
+  <img src="{prefix}{esc(image['src'])}" alt="{esc(image['alt'])}"{alt_attr} width="{image['width']}" height="{image['height']}" loading="{loading}" decoding="async"{priority}>
 </picture>"""
 
 
@@ -1181,7 +1184,7 @@ def render_tools() -> str:
     }
     return f"""<!doctype html>
 <html lang="zh-CN">
-{page_head(title=f"多 SKU 体积重计算器 - {SITE_NAME}", description="纯静态多 SKU 体积重、CBM、计费重和渠道分母对比工具。", path="tools.html", image="assets/images/articles/logistics-calculator.png", json_ld=schema)}
+{page_head(title=f"多 SKU 体积重计算器 - {SITE_NAME}", description="纯静态多 SKU 体积重、CBM、计费重和渠道分母对比工具。", path="tools.html", image="assets/images/articles/logistics-calculator.png", title_i18n="toolsPageTitle", json_ld=schema)}
 {layout_start(active='tools')}
     <section class="page-hero">
       <div class="section-inner hero-grid">
@@ -1194,7 +1197,7 @@ def render_tools() -> str:
             <a class="button ghost" href="articles/volumetric-weight-formula-dhl-ems-sf.html" data-i18n="formulaLink">先看公式说明</a>
           </div>
         </div>
-        <figure class="hero-visual">{render_picture(IMAGES['volume'], eager=True)}<figcaption data-i18n="visualCaption">{esc(IMAGES['volume']['caption'])}</figcaption></figure>
+        <figure class="hero-visual">{render_picture(IMAGES['volume'], eager=True, alt_i18n='visualAlt')}<figcaption data-i18n="visualCaption">{esc(IMAGES['volume']['caption'])}</figcaption></figure>
       </div>
     </section>
     <section class="section" id="calculator">
@@ -1413,6 +1416,8 @@ def render_site_js() -> str:
       skip: '跳到正文',
       brandAria: '跨境运费避坑工具箱首页',
       mainNav: '主导航',
+      footerNav: '页脚导航',
+      languageToggle: '切换语言',
       themeToggle: '切换深浅色',
       footerDesc: '用于发货前复核体积重、CBM、计费重和渠道口径。规则会变化，具体发货请以官方报价和承运商确认为准。',
       footerArticles: '文章索引',
@@ -1421,11 +1426,13 @@ def render_site_js() -> str:
       footerPrivacy: '隐私政策',
       footerContact: '联系',
       copyright: '© 2026 跨境运费避坑工具箱. 本站不提供承运商报价承诺。',
+      toolsPageTitle: '多 SKU 体积重计算器 - 跨境运费避坑工具箱',
       toolsEyebrow: 'Calculator',
       toolsH1: '多 SKU 体积重 / CBM / 计费重计算器',
       toolsLead: '录入每类货物的箱数、外箱尺寸和实重，本地计算 DHL 5000、EMS 6000、标准空运 6000 和自定义分母下的计费重，并提示长边复核项。',
       startCalc: '开始计算',
       formulaLink: '先看公式说明',
+      visualAlt: '计算器、纸箱和计量线条组成的跨境运费核算插图',
       visualCaption: '站内生成插图：用于表示体积重、CBM 和计费重核算。',
       localTool: 'Local Tool',
       calcTitle: '发货前复核表',
@@ -1496,6 +1503,8 @@ def render_site_js() -> str:
       skip: 'Skip to content',
       brandAria: 'Cross-border Freight Review Toolbox home',
       mainNav: 'Main navigation',
+      footerNav: 'Footer navigation',
+      languageToggle: 'Switch language',
       themeToggle: 'Toggle color theme',
       footerDesc: 'Review volumetric weight, CBM, chargeable weight and channel assumptions before shipment. Rules change, so final shipment decisions should follow carrier quotes and confirmation.',
       footerArticles: 'Articles',
@@ -1504,11 +1513,13 @@ def render_site_js() -> str:
       footerPrivacy: 'Privacy',
       footerContact: 'Contact',
       copyright: '© 2026 Cross-border Freight Review Toolbox. This site does not promise carrier quotes.',
+      toolsPageTitle: 'Multi-SKU volumetric weight calculator - Cross-border Freight Review Toolbox',
       toolsEyebrow: 'Calculator',
       toolsH1: 'Multi-SKU Volumetric Weight / CBM / Chargeable Weight Calculator',
       toolsLead: 'Enter carton counts, outer dimensions and actual weight. The browser compares DHL 5000, EMS 6000, standard air 6000 and a custom divisor, then flags long-side review points.',
       startCalc: 'Start calculating',
       formulaLink: 'Read the formula guide',
+      visualAlt: 'Illustration of a calculator, cartons and measurement lines for cross-border freight review',
       visualCaption: 'Site-generated illustration for volumetric weight, CBM and chargeable weight review.',
       localTool: 'Local Tool',
       calcTitle: 'Pre-shipment Review Sheet',
@@ -1639,6 +1650,9 @@ def render_site_js() -> str:
     }});
     document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => {{
       node.setAttribute('placeholder', t(node.dataset.i18nPlaceholder));
+    }});
+    document.querySelectorAll('[data-i18n-alt]').forEach((node) => {{
+      node.setAttribute('alt', t(node.dataset.i18nAlt));
     }});
     document.querySelectorAll('[data-lang-toggle]').forEach((button) => {{
       button.setAttribute('aria-pressed', String(lang === 'en'));

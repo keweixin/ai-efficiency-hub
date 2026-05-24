@@ -338,6 +338,10 @@ def validate_tools(errors: list[str]) -> None:
         "EMS 6000",
         "标准空运 6000",
         "默认按 EMS 超过 40cm 口径提醒",
+        'data-i18n="toolsPageTitle"',
+        'data-i18n-alt="visualAlt"',
+        'data-i18n-aria="languageToggle"',
+        'data-i18n-aria="footerNav"',
     ]:
         if marker not in text:
             errors.append(f"tools.html missing {marker}")
@@ -366,6 +370,11 @@ def validate_tools(errors: list[str]) -> None:
         "saveClearedState",
         "readSavedState",
         "storageSet",
+        "data-i18n-alt",
+        "visualAlt",
+        "toolsPageTitle",
+        "languageToggle",
+        "footerNav",
         "emsPieceWarning",
         "emsNoDimWarning",
         "airChannel",
@@ -522,6 +531,8 @@ def validate_analytics(errors: list[str]) -> None:
         for marker in ["window.va", "dataset.vercelAnalytics", "hostname", "localhost", "127.0.0.1", "/_vercel/insights/script.js"]:
             if marker not in text:
                 errors.append(f"{rel} missing Vercel Analytics marker {marker}")
+        if "assets/site.js?v=" not in text:
+            errors.append(f"{rel} missing versioned site.js script")
     privacy = read(ROOT / "privacy.html") if (ROOT / "privacy.html").exists() else ""
     if "Vercel Web Analytics" not in privacy or "cookie" not in privacy:
         errors.append("privacy.html missing Vercel Web Analytics privacy note")
