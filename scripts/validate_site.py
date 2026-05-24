@@ -264,9 +264,12 @@ def validate_tools(errors: list[str]) -> None:
         "DHL 5000",
         "EMS 6000",
         "标准空运 6000",
+        "默认按 EMS 超过 40cm 口径提醒",
     ]:
         if marker not in text:
             errors.append(f"tools.html missing {marker}")
+    if "默认按 EMS 40cm 口径提醒" in text:
+        errors.append("tools.html still contains outdated EMS 40cm fallback copy")
     for forbidden in ["aggregateRating", '"review"']:
         if forbidden in text:
             errors.append(f"tools.html should not include unverified structured data marker {forbidden}")
