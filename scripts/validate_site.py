@@ -145,6 +145,11 @@ def validate_seo(errors: list[str]) -> None:
             if f'"dateModified":"{TODAY}"' not in text:
                 errors.append(f"{path.relative_to(ROOT)} has wrong dateModified")
 
+    home = read(ROOT / "index.html") if (ROOT / "index.html").exists() else ""
+    js = read(ROOT / "assets" / "site.js") if (ROOT / "assets" / "site.js").exists() else ""
+    if "articles.html?q={search_term_string}" in home and "params.get('q')" not in js:
+        errors.append("SearchAction q parameter is not handled by article filter")
+
 
 def validate_links_and_images(errors: list[str]) -> None:
     for path in html_files():

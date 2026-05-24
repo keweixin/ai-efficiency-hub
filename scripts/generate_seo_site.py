@@ -1671,7 +1671,10 @@ def render_site_js() -> str:
     const chips = Array.from(root.querySelectorAll('[data-filter]'));
     const cards = Array.from(list.querySelectorAll('[data-card-group]'));
     const empty = document.querySelector('[data-empty-state]');
-    let activeGroup = new URLSearchParams(location.search).get('group') || 'all';
+    const params = new URLSearchParams(location.search);
+    let activeGroup = params.get('group') || 'all';
+    const initialQuery = params.get('q') || '';
+    if (initialQuery) input.value = initialQuery;
 
     function apply() {{
       const q = (input.value || '').trim().toLowerCase();
