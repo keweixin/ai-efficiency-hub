@@ -1451,7 +1451,9 @@ def render_site_js() -> str:
       needReview: '，需复核',
       emptySuggestion: '录入箱规后显示复核提示。',
       longSideWarning: '存在最长边超过 40cm 口径的箱子，EMS 等渠道需要单独复核。',
-      divisorWarning: 'DHL 5000 与 6000 分母模拟差异约 {{diff}} kg，建议不要只比较每千克单价。',
+      divisorWarning: 'DHL 5000 与标准空运 6000 的整票计费重差异约 {{diff}} kg，建议不要只比较每千克单价。',
+      emsPieceWarning: 'EMS 逐箱长边复核与标准空运整票 6000 模拟差异约 {{diff}} kg，建议把长边箱单独发给承运商确认。',
+      emsNoDimWarning: 'EMS 未触发长边计泡时可能按实重模拟，与标准空运整票 6000 差异约 {{diff}} kg，建议确认对应产品和目的地口径。',
       densityWarning: '当前密度约 {{density}} kg/CBM，偏轻泡，建议重点复核体积重。',
       normalWarning: '当前样本未出现明显长边或轻泡提醒，但仍需确认渠道分母、进位和附加项。',
       dhlChannel: 'DHL 官方常见口径',
@@ -1532,7 +1534,9 @@ def render_site_js() -> str:
       needReview: ', review needed',
       emptySuggestion: 'Enter carton data to see review notes.',
       longSideWarning: 'At least one carton is above the 40cm long-side review point; EMS and similar routes need separate confirmation.',
-      divisorWarning: 'The simulated DHL 5000 vs 6000 divisor difference is about {{diff}} kg. Do not compare only the per-kg rate.',
+      divisorWarning: 'The shipment-level DHL 5000 vs standard air 6000 chargeable-weight difference is about {{diff}} kg. Do not compare only the per-kg rate.',
+      emsPieceWarning: 'The EMS piece-level long-side review vs standard air shipment-level 6000 simulation differs by about {{diff}} kg. Send long-side cartons to the carrier for confirmation.',
+      emsNoDimWarning: 'When EMS long-side volumetric review is not triggered, EMS may simulate on actual weight. The difference from standard air shipment-level 6000 is about {{diff}} kg; confirm product and destination rules.',
       densityWarning: 'Current density is about {{density}} kg/CBM, which looks light and bulky. Prioritize volumetric-weight review.',
       normalWarning: 'No obvious long-side or light-bulky signal appears in this sample, but divisor, rounding and surcharges still need confirmation.',
       dhlChannel: 'DHL common official basis',
@@ -1956,10 +1960,13 @@ def render_site_js() -> str:
       }}
       const dhl = channelData.find((item) => item.key === 'dhlChannel')?.chargeable || 0;
       const ems = channelData.find((item) => item.key === 'emsChannel')?.chargeable || 0;
-      const diff = round(Math.abs(dhl - ems));
+      const air = channelData.find((item) => item.key === 'airChannel')?.chargeable || 0;
+      const divisorDiff = round(Math.abs(dhl - air));
+      const emsDiff = round(Math.abs(ems - air));
       const warnings = [];
       if (longest > 40) warnings.push(t('longSideWarning'));
-      if (diff > 0) warnings.push(t('divisorWarning').replace('{{diff}}', diff));
+      if (divisorDiff > 0) warnings.push(t('divisorWarning').replace('{{diff}}', divisorDiff));
+      if (emsDiff > 0) warnings.push(t(longest > 40 ? 'emsPieceWarning' : 'emsNoDimWarning').replace('{{diff}}', emsDiff));
       const density = cbm ? actual / cbm : 0;
       if (density && density < 120) warnings.push(t('densityWarning').replace('{{density}}', round(density)));
       if (!warnings.length) warnings.push(t('normalWarning'));
