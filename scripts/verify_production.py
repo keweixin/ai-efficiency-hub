@@ -25,7 +25,7 @@ GSC_VERIFICATION_BODY = "google-site-verification: google97d2ec5ca21ee27c.html"
 JSPDF_PATH = "assets/vendor/jspdf.umd.min.js"
 MIN_ARTICLES = 30
 FETCH_ATTEMPTS = 3
-FETCH_CACHE: dict[str, FetchResult] = {}
+LOCAL_ASSET_MARKERS = ("assets/", "articles/", ".html", ".css", ".js", ".png", ".webp")
 
 
 @dataclass
@@ -36,22 +36,39 @@ class FetchResult:
     body: str
 
 
+FETCH_CACHE: dict[str, FetchResult] = {}
+
+
 class AssetParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.assets: set[str] = set()
 
+    def track_asset(self, value: str) -> None:
+        candidate = value.strip().split()[0].rstrip(",")
+        if not candidate or candidate.startswith(("mailto:", "#", "data:")):
+            return
+        if candidate.startswith(("http://", "https://")):
+            if candidate.startswith(f"{SITE_URL}/") and any(marker in candidate for marker in LOCAL_ASSET_MARKERS):
+                self.assets.add(candidate)
+            return
+        if any(marker in candidate for marker in LOCAL_ASSET_MARKERS):
+            self.assets.add(candidate)
+
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = dict(attrs)
-        for key in ("href", "src", "srcset"):
+        for key in ("href", "src"):
             value = values.get(key)
-            if not value:
-                continue
-            first = value.split()[0]
-            if first.startswith(("http://", "https://", "mailto:", "#")):
-                continue
-            if any(marker in first for marker in ("assets/", "articles/", ".html", ".css", ".js", ".png", ".webp")):
-                self.assets.add(first)
+            if value:
+                self.track_asset(value)
+        srcset = values.get("srcset")
+        if srcset:
+            for item in srcset.split(","):
+                self.track_asset(item)
+        if tag == "meta" and values.get("content"):
+            meta_key = values.get("property") or values.get("name")
+            if meta_key in {"og:image", "twitter:image"}:
+                self.track_asset(values["content"])
 
 
 def fetch(url: str, timeout: int = 25) -> FetchResult:
