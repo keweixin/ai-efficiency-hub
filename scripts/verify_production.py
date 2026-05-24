@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from html.parser import HTMLParser
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 import socket
 import ssl
+import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 
 
@@ -16,6 +19,7 @@ ROOT_DOMAIN_URL = "https://bevoorra.business"
 HTTP_ROOT_DOMAIN_URL = "http://bevoorra.business"
 HTTP_WWW_URL = "http://www.bevoorra.business"
 ADS_TXT_LINE = "google.com, pub-7663008606677915, DIRECT, f08c47fec0942fa0"
+JSPDF_URL = "https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"
 MIN_ARTICLES = 30
 
 
@@ -124,6 +128,89 @@ def check_static_content(errors: list[str]) -> None:
     require(f"Sitemap: {SITE_URL}/sitemap.xml" in robots.body, "robots.txt missing canonical sitemap URL", errors)
 
 
+def check_production_calculator_logic(errors: list[str]) -> None:
+    js = fetch(f"{SITE_URL}/assets/site.js").body
+    script = f"""
+const noop = () => {{}};
+global.window = {{
+  localStorage: {{ getItem() {{ return null; }}, setItem() {{}}, removeItem() {{}} }},
+  location: {{ pathname: '/tools.html', hostname: 'www.bevoorra.business' }},
+  clearTimeout,
+  setTimeout
+}};
+global.location = window.location;
+global.document = {{
+  documentElement: {{ lang: '', classList: {{ add: noop, remove: noop, toggle() {{ return false; }} }} }},
+  body: {{ dataset: {{}} }},
+  head: {{ appendChild: noop }},
+  createElement() {{ return {{ dataset: {{}}, addEventListener: noop, remove: noop }}; }},
+  querySelectorAll() {{ return []; }},
+  querySelector() {{ return null; }},
+  addEventListener: noop,
+  dispatchEvent: noop
+}};
+global.CustomEvent = function CustomEvent(type, init) {{ return {{ type, detail: init && init.detail }}; }};
+
+{js}
+
+const logic = window.ShippingCalculatorLogic;
+if (!logic || typeof logic.compute !== 'function') throw new Error('ShippingCalculatorLogic.compute is missing');
+
+function channel(report, key) {{
+  const item = report.channelData.find((entry) => entry.key === key);
+  if (!item) throw new Error('missing channel ' + key);
+  return item;
+}}
+
+function close(actual, expected, label) {{
+  if (Math.abs(actual - expected) > 0.01) {{
+    throw new Error(`${{label}} expected ${{expected}}, got ${{actual}}`);
+  }}
+}}
+
+const mixed = logic.compute([
+  {{ name: 'bulky', qty: 1, l: 100, w: 50, h: 30, kg: 2 }},
+  {{ name: 'heavy', qty: 1, l: 20, w: 20, h: 25, kg: 30 }}
+], 6000);
+close(channel(mixed, 'dhlChannel').chargeable, 32, 'production DHL mixed chargeable weight');
+close(channel(mixed, 'airChannel').chargeable, 32, 'production air mixed chargeable weight');
+close(channel(mixed, 'emsChannel').chargeable, 55, 'production EMS piece chargeable weight');
+
+const exact40 = logic.compute([{{ name: 'edge', qty: 1, l: 40, w: 20, h: 20, kg: 1 }}], 6000);
+close(channel(exact40, 'emsChannel').chargeable, 1, 'production EMS exact 40cm boundary');
+
+const custom = logic.compute([{{ name: 'custom', qty: 1, l: 50, w: 50, h: 50, kg: 10 }}], 4000);
+close(channel(custom, 'customChannel').chargeable, 31.25, 'production custom divisor chargeable weight');
+"""
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as handle:
+        handle.write(script)
+        script_path = handle.name
+    try:
+        completed = subprocess.run(
+            ["node", script_path],
+            text=True,
+            capture_output=True,
+            timeout=25,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        errors.append(f"production calculator runtime check could not run: {exc}")
+        return
+    finally:
+        try:
+            Path(script_path).unlink(missing_ok=True)
+        except OSError:
+            pass
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout).strip()
+        errors.append(f"production calculator runtime check failed: {detail}")
+
+
+def check_external_dependencies(errors: list[str]) -> None:
+    jspdf = fetch(JSPDF_URL)
+    require(jspdf.status == 200, f"jsPDF CDN returned {jspdf.status}", errors)
+    require("jsPDF" in jspdf.body, "jsPDF CDN response did not contain expected jsPDF marker", errors)
+
+
 def check_sitemap(errors: list[str]) -> None:
     sitemap = fetch(f"{SITE_URL}/sitemap.xml")
     try:
@@ -164,6 +251,8 @@ def main() -> int:
     check_dns(errors)
     check_core_pages(errors)
     check_static_content(errors)
+    check_production_calculator_logic(errors)
+    check_external_dependencies(errors)
     check_sitemap(errors)
     check_assets_from_pages(errors)
     if errors:
@@ -174,7 +263,7 @@ def main() -> int:
     print("PASS: production verification completed")
     print(f"- domain: {SITE_URL}")
     print(f"- sitemap articles: {MIN_ARTICLES}")
-    print("- checked DNS, HTTP to HTTPS redirects, core pages, assets, analytics script, ads.txt, robots.txt, sitemap, and custom 404")
+    print("- checked DNS, HTTP to HTTPS redirects, core pages, assets, production calculator logic, jsPDF CDN, analytics script, ads.txt, robots.txt, sitemap, and custom 404")
     return 0
 
 
